@@ -36,7 +36,7 @@ The system has three layers. Each is independently useful — you don't need all
 
 The foundation is a dedicated machine running Claude Desktop with MCP (Model Context Protocol) server integrations. MCP gives Claude direct, structured access to your infrastructure tools — not copy-pasting outputs into a chat window, but live tool calls.
 
-**Hardware:** GMKTec K11 mini PC — AMD Ryzen 9 8945HS, 30GB RAM, 2TB NVMe. Plenty for local embeddings and multiple Docker containers. Any modern mini PC or repurposed desktop works.
+**Hardware:** GMKTec K11 mini PC — AMD Ryzen 9 8945HS, 32GB RAM, 2TB NVMe. Plenty for local embeddings and multiple Docker containers. Any modern mini PC or repurposed desktop works.
 
 **OS:** Debian 13 (trixie). Nothing special about the choice — stable, familiar, good Docker support.
 
