@@ -1,6 +1,24 @@
 # homelab-agent
 
-A modular reference implementation of an AI-powered homelab operations platform. Not a tutorial — a peer-to-peer reference for the homelab community. Adopt the full stack or pick the pieces that solve your problems.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Built with Claude](https://img.shields.io/badge/Built%20with-Claude-blueviolet)](https://claude.ai)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-enabled-blueviolet)](https://claude.ai/code)
+
+A modular reference implementation of an AI-powered homelab operations platform. Peer-to-peer reference for the homelab community — adopt the full stack or pick the pieces that solve your problems.
+
+## Contents
+
+- [How This Started](#how-this-started)
+- [Architecture](#architecture)
+  - [Layer 1 — Host & Core Tooling](#layer-1--host--core-tooling)
+  - [Layer 2 — Self-Hosted Service Stack](#layer-2--self-hosted-service-stack)
+  - [Layer 3 — Multi-Agent Claude Code Engine](#layer-3--multi-agent-claude-code-engine)
+- [The Memory / Context System](#the-memory--context-system)
+- [What Makes This Different](#what-makes-this-different)
+- [Prerequisites](#prerequisites)
+- [Repo Structure](#repo-structure)
+- [Related Repos](#related-repos)
+- [Current Status](#current-status)
 
 ## How This Started
 
@@ -171,6 +189,8 @@ You don't need all of this to get value. See the component breakdown above for w
 
 ## Repo Structure
 
+> Structure reflects the planned layout — see [Current Status](#current-status) for what's available now.
+
 ```
 homelab-agent/
 ├── README.md                        ← You are here
@@ -228,7 +248,18 @@ homelab-agent/
 
 ## Current Status
 
-This repo is being built out incrementally. The system described here is running in production on my homelab. I'm working through sanitizing configs and writing component docs. If something you want isn't here yet, open an issue.
+The system described here is running in production on my homelab. This repo is being built out incrementally — structure and README are up first, then configs and component docs as they get sanitized.
+
+| Component | Status |
+|-----------|--------|
+| README | ✅ Done |
+| Repo structure | 🔲 Scaffolding in progress |
+| Docker compose files | 🔲 Sanitizing |
+| CLAUDE.md examples | 🔲 Planned |
+| PM2 ecosystem config | 🔲 Planned |
+| Component docs | 🔲 Planned |
+
+The repo structure shown above reflects the planned layout — most directories are placeholders for now. If something you want isn't here yet, open an issue.
 
 ## License
 
