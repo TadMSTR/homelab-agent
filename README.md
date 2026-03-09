@@ -12,8 +12,6 @@ A modular reference implementation of an AI-powered homelab operations platform.
 
 ## Contents
 
-> **AI agents:** See [`index.md`](index.md) for a machine-readable navigation index — load only the context relevant to your current task.
-
 - [How This Started](#how-this-started)
 - [Architecture](#architecture)
   - [Layer 1 — Host & Core Tooling](#layer-1--host--core-tooling)
@@ -22,10 +20,8 @@ A modular reference implementation of an AI-powered homelab operations platform.
 - [The Memory / Context System](#the-memory--context-system)
 - [What Makes This Different](#what-makes-this-different)
 - [Prerequisites](#prerequisites)
-- [What's in This Repo](#whats-in-this-repo)
 - [Repo Structure](#repo-structure)
 - [Related Repos](#related-repos)
-- [Current Status](#current-status)
 
 ## How This Started
 
@@ -199,64 +195,9 @@ To run the full stack, you need:
 
 You don't need all of this to get value. See the component breakdown above for what each piece requires independently.
 
-## What's in This Repo
-
-Files that exist now, with direct links:
-
-**Navigation**
-- [`index.md`](index.md) — Machine-readable document index for AI agents — topic/layer/task mappings for scoped context loading
-
-**MCP Servers**
-- [`mcp-servers/README.md`](mcp-servers/README.md) — All MCP servers in the stack: what each does, config patterns, standalone value, and a prioritized adoption path
-
-**PM2**
-- [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) — PM2 service definitions for always-on daemons (qmd, CUI) and scheduled cron jobs (backups, memory sync, monitoring, dep checks)
-
-**Claude Code**
-- [`claude-code/CLAUDE.md.example`](claude-code/CLAUDE.md.example) — Root CLAUDE.md template with infrastructure context, key paths, global rules, and guidance on what to put (and not put) here
-- [`claude-code/projects/homelab-ops.md`](claude-code/projects/homelab-ops.md) — Infrastructure management agent: MCP tools, host context, memory paths, conventions
-- [`claude-code/projects/dev.md`](claude-code/projects/dev.md) — Development agent: repo workflow, conventions, memory paths
-- [`claude-code/projects/research.md`](claude-code/projects/research.md) — Research agent: findings format, memory paths, conventions
-- [`claude-code/projects/memory-sync.md`](claude-code/projects/memory-sync.md) — Memory distillation agent: sources, output paths, workflow, rules for what's worth keeping
-
-**Docker Stacks**
-- [`docker/librechat/`](docker/librechat/) — LibreChat compose + config example (multi-provider chat UI with web search)
-- [`docker/firecrawl-simple/`](docker/firecrawl-simple/) — Trieve's Firecrawl fork for web page scraping (part of LibreChat search pipeline)
-- [`docker/reranker/`](docker/reranker/) — Custom Jina-compatible reranker using FlashRank (Dockerfile + source included)
-- [`docker/swag/`](docker/swag/) — SWAG reverse proxy with wildcard SSL via Cloudflare DNS
-- [`docker/authelia/`](docker/authelia/) — Authelia SSO authentication gateway
-- [`docker/perplexica/`](docker/perplexica/) — Perplexica AI search + SearXNG + Valkey
-- [`docker/dockhand/`](docker/dockhand/) — Dockhand Docker stack manager UI
-- [`docker/open-notebook/`](docker/open-notebook/) — Open Notebook AI research tool + SurrealDB
-
-**Component Docs**
-- [`docs/components/swag.md`](docs/components/swag.md) — SWAG reverse proxy setup, proxy conf pattern, Cloudflare DNS validation, dashboard
-- [`docs/components/authelia.md`](docs/components/authelia.md) — Authelia SSO config, file-based user backend, SWAG integration
-- [`docs/components/librechat.md`](docs/components/librechat.md) — LibreChat setup, web search pipeline architecture, reranker wrapper, gotchas
-- [`docs/components/perplexica.md`](docs/components/perplexica.md) — Perplexica + SearXNG setup, shared search backend, network topology
-- [`docs/components/dockhand.md`](docs/components/dockhand.md) — Dockhand setup, Docker socket access, multi-host stack visibility
-- [`docs/components/open-notebook.md`](docs/components/open-notebook.md) — Open Notebook setup, SurrealDB, dual-port proxy config
-- [`docs/components/qmd.md`](docs/components/qmd.md) — qmd semantic search, dual transport, GPU acceleration, config patterns
-- [`docs/components/memsearch.md`](docs/components/memsearch.md) — memsearch memory recall for Claude Code, plugin integration, config
-- [`docs/components/memory-sync.md`](docs/components/memory-sync.md) — Automated knowledge distillation pipeline, distillation rules, PM2 cron
-- [`docs/components/backups.md`](docs/components/backups.md) — Backup strategy: Backrest/restic, Claude Desktop backup, Docker appdata backup — schedules, retention, restore guidance
-
-**Architecture & Setup**
-- [`docs/architecture.md`](docs/architecture.md) — Detailed system architecture: data flows, network topology, security model, scaling
-- [`docs/getting-started.md`](docs/getting-started.md) — Dependency-ordered setup guide with five stopping points
-
-**Scripts**
-- [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) — Container-safe Docker appdata backup with dry-run, compression, retry logic, and notifications (ntfy, Pushover, email)
-- [`scripts/qmd-reindex.sh`](scripts/qmd-reindex.sh) — Pull latest repos and regenerate qmd search index
-- [`scripts/memory-sync.sh`](scripts/memory-sync.sh) — Run Claude Code in headless mode to distill durable knowledge from agent memory
-- [`scripts/check-resources.sh`](scripts/check-resources.sh) — System health monitor: RAM, disk, Docker, PM2, NFS mounts with push alerts
-- [`scripts/check-dep-updates.sh`](scripts/check-dep-updates.sh) — Check npm, pip, Docker, and Claude Code for available updates
-
----
-
 ## Repo Structure
 
-> Structure reflects the planned layout — see [Current Status](#current-status) for what's available now.
+> **AI agents:** See [`index.md`](index.md) for a machine-readable navigation index — load only the context relevant to your current task.
 
 ```
 homelab-agent/
@@ -266,23 +207,23 @@ homelab-agent/
 │   ├── architecture.md              ← Detailed system architecture and data flows
 │   ├── getting-started.md           ← Setup overview and prerequisites
 │   └── components/                  ← Per-component deep dives
-│       ├── swag.md
-│       ├── authelia.md
-│       ├── librechat.md
-│       ├── perplexica.md
-│       ├── dockhand.md
-│       ├── open-notebook.md
-│       ├── qmd.md
-│       ├── memsearch.md
-│       ├── memory-sync.md
-│       └── backups.md
+│       ├── swag.md                  ← Reverse proxy, Cloudflare DNS, proxy conf pattern
+│       ├── authelia.md              ← SSO config, file-based user backend, SWAG integration
+│       ├── librechat.md             ← Setup, web search pipeline, reranker wrapper, gotchas
+│       ├── perplexica.md            ← Perplexica + SearXNG, shared search backend
+│       ├── dockhand.md              ← Docker socket access, multi-host stack visibility
+│       ├── open-notebook.md         ← SurrealDB, dual-port proxy config
+│       ├── qmd.md                   ← Semantic search, dual transport, GPU acceleration
+│       ├── memsearch.md             ← Memory recall for Claude Code, plugin integration
+│       ├── memory-sync.md           ← Knowledge distillation pipeline, PM2 cron
+│       └── backups.md               ← Backrest/restic, Claude backup, Docker appdata backup
 ├── claude-code/
 │   ├── CLAUDE.md.example            ← Root CLAUDE.md template
 │   └── projects/                    ← Per-agent CLAUDE.md examples
-│       ├── homelab-ops.md
-│       ├── dev.md
-│       ├── research.md
-│       └── memory-sync.md
+│       ├── homelab-ops.md           ← Infrastructure management agent
+│       ├── dev.md                   ← Development agent
+│       ├── research.md              ← Research agent
+│       └── memory-sync.md           ← Memory distillation agent
 ├── docker/
 │   ├── swag/
 │   │   └── docker-compose.yml       ← Reverse proxy + wildcard SSL
@@ -306,13 +247,13 @@ homelab-agent/
 ├── pm2/
 │   └── ecosystem.config.js.example  ← PM2 service definitions
 ├── scripts/
-│   ├── memory-sync.sh               ← Automated knowledge distillation
-│   ├── docker-stack-backup.sh       ← Container-safe appdata backup
+│   ├── docker-stack-backup.sh       ← Container-safe appdata backup with notifications
 │   ├── qmd-reindex.sh               ← Semantic search re-indexing
+│   ├── memory-sync.sh               ← Automated knowledge distillation
 │   ├── check-resources.sh           ← Health monitoring with ntfy alerts
 │   └── check-dep-updates.sh         ← Dependency update checker
 └── mcp-servers/
-    └── README.md                    ← Notes on MCP servers in use, links to repos
+    └── README.md                    ← MCP servers in use, config patterns, adoption path
 ```
 
 ## Related Repos
@@ -324,24 +265,6 @@ homelab-agent/
 | [tobi/qmd](https://github.com/tobi/qmd) | Semantic search engine with MCP server mode — hybrid BM25 + vector + LLM reranking |
 | [wbopan/cui](https://github.com/wbopan/cui) | Claude Code web UI — browser-based terminal sessions with notifications |
 | [danny-avila/LibreChat](https://github.com/danny-avila/LibreChat) | Multi-provider chat interface with agents, MCP, memory, and RAG |
-
-## Current Status
-
-The system described here is running in production on my homelab. This repo is being built out incrementally — structure and README are up first, then configs and component docs as they get sanitized.
-
-| Component | Status |
-|-----------|--------|
-| README | ✅ Done |
-| Agent index (`index.md`) | ✅ Done |
-| MCP servers doc | ✅ Done |
-| CLAUDE.md examples | ✅ Done |
-| PM2 ecosystem config | ✅ Done |
-| Repo structure scaffolding | ✅ Done |
-| Docker compose files | ✅ Done (SWAG, Authelia, LibreChat, firecrawl-simple, reranker, Perplexica, Dockhand, Open Notebook) |
-| Scripts | ✅ Done (docker-stack-backup, qmd-reindex, memory-sync, check-resources, check-dep-updates) |
-| Component docs | 🔨 In progress ([SWAG](docs/components/swag.md), [Authelia](docs/components/authelia.md), [LibreChat](docs/components/librechat.md), [Perplexica](docs/components/perplexica.md), [Dockhand](docs/components/dockhand.md), [Open Notebook](docs/components/open-notebook.md), [qmd](docs/components/qmd.md), [memsearch](docs/components/memsearch.md), [memory-sync](docs/components/memory-sync.md), [backups](docs/components/backups.md) done) |
-
-The repo structure shown above reflects the planned layout — most directories are placeholders for now. If something you want isn't here yet, open an issue.
 
 ## License
 

@@ -71,7 +71,6 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Memory system | `README.md` (§The Memory / Context System), `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
 | Backups | `docs/components/backups.md`, `scripts/docker-stack-backup.sh`, `pm2/ecosystem.config.js.example` | Docker compose, MCP, Claude Code |
 | Docker stacks (general) | `docker/` subdirectories | Claude Code, MCP |
-| Reverse proxy / SSO | `docs/components/swag.md`, `docs/components/authelia.md`, `docker/swag/`, `docker/authelia/` | Claude Code, MCP |
 | Semantic search (qmd) | `docs/components/qmd.md`, `mcp-servers/README.md` (§qmd) | Docker, Claude Code |
 | Getting started | `docs/getting-started.md` | Component-level docs |
 | Detailed architecture | `docs/architecture.md` | Component-level docs |
@@ -105,28 +104,27 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 
 | Document | Status | Last Substantive Update |
 |----------|--------|------------------------|
-| `README.md` | ✅ Complete | 2025-03 |
-| `mcp-servers/README.md` | ✅ Complete | 2025-03 |
-| `claude-code/CLAUDE.md.example` | ✅ Complete | 2025-03 |
-| `claude-code/projects/*.md` | ✅ Complete | 2025-03 |
-| `pm2/ecosystem.config.js.example` | ✅ Complete | 2025-03 |
-| `docs/components/librechat.md` | ✅ Complete | 2025-03 |
-| `docs/components/swag.md` | ✅ Complete | 2025-03 |
-| `docs/components/authelia.md` | ✅ Complete | 2025-03 |
-| `docs/components/perplexica.md` | ✅ Complete | 2025-03 |
-| `docs/components/dockhand.md` | ✅ Complete | 2025-03 |
-| `docs/components/open-notebook.md` | ✅ Complete | 2025-03 |
-| `docker/swag/` | ✅ Complete | 2025-03 |
-| `docker/authelia/` | ✅ Complete | 2025-03 |
-| `docker/perplexica/` | ✅ Complete | 2025-03 |
-| `docker/dockhand/` | ✅ Complete | 2025-03 |
-| `docker/open-notebook/` | ✅ Complete | 2025-03 |
-| `docker/librechat/` | ✅ Complete | 2025-03 |
-| `docker/firecrawl-simple/` | ✅ Complete | 2025-03 |
-| `docker/reranker/` | ✅ Complete | 2025-03 |
+| `README.md` | ✅ Complete | 2026-03 |
+| `mcp-servers/README.md` | ✅ Complete | 2026-03 |
+| `claude-code/CLAUDE.md.example` | ✅ Complete | 2026-03 |
+| `claude-code/projects/*.md` | ✅ Complete | 2026-03 |
+| `pm2/ecosystem.config.js.example` | ✅ Complete | 2026-03 |
+| `docs/components/librechat.md` | ✅ Complete | 2026-03 |
+| `docs/components/swag.md` | ✅ Complete | 2026-03 |
+| `docs/components/authelia.md` | ✅ Complete | 2026-03 |
+| `docs/components/perplexica.md` | ✅ Complete | 2026-03 |
+| `docs/components/dockhand.md` | ✅ Complete | 2026-03 |
+| `docs/components/open-notebook.md` | ✅ Complete | 2026-03 |
+| `docker/swag/` | ✅ Complete | 2026-03 |
+| `docker/authelia/` | ✅ Complete | 2026-03 |
+| `docker/perplexica/` | ✅ Complete | 2026-03 |
+| `docker/dockhand/` | ✅ Complete | 2026-03 |
+| `docker/open-notebook/` | ✅ Complete | 2026-03 |
+| `docker/librechat/` | ✅ Complete | 2026-03 |
+| `docker/firecrawl-simple/` | ✅ Complete | 2026-03 |
+| `docker/reranker/` | ✅ Complete | 2026-03 |
 | `docs/architecture.md` | ✅ Complete | 2026-03 |
 | `docs/getting-started.md` | ✅ Complete | 2026-03 |
-| `docs/components/swag-authelia.md` | ✅ Split into `swag.md` + `authelia.md` | 2025-03 |
 | `docs/components/qmd.md` | ✅ Complete | 2026-03 |
 | `docs/components/memsearch.md` | ✅ Complete | 2026-03 |
 | `docs/components/memory-sync.md` | ✅ Complete | 2026-03 |
