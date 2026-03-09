@@ -39,8 +39,14 @@ homelab-agent/
 │   └── open-notebook/                 # Open Notebook + SurrealDB compose
 ├── mcp-servers/
 │   └── README.md                      # MCP server reference, config patterns, adoption path
-└── pm2/
-    └── ecosystem.config.js.example    # PM2 service + cron definitions
+├── pm2/
+│   └── ecosystem.config.js.example    # PM2 service + cron definitions
+└── scripts/
+    ├── docker-stack-backup.sh         # Container-safe appdata backup with notifications
+    ├── qmd-reindex.sh                 # Semantic search re-indexing
+    ├── memory-sync.sh                 # Automated knowledge distillation
+    ├── check-resources.sh             # Health monitoring with push alerts
+    └── check-dep-updates.sh           # Dependency update checker
 ```
 
 ## Context Loading Guide
@@ -121,7 +127,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/qmd.md` | ✅ Complete | 2026-03 |
 | `docs/components/memsearch.md` | ✅ Complete | 2026-03 |
 | `docs/components/memory-sync.md` | ✅ Complete | 2026-03 |
-| `scripts/` | 🔲 Planned | — |
+| `scripts/` | ✅ Complete | 2026-03 |
 
 ## Cross-Reference: Components → Documents
 

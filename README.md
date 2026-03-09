@@ -242,6 +242,13 @@ Files that exist now, with direct links:
 - [`docs/architecture.md`](docs/architecture.md) — Detailed system architecture: data flows, network topology, security model, scaling
 - [`docs/getting-started.md`](docs/getting-started.md) — Dependency-ordered setup guide with five stopping points
 
+**Scripts**
+- [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) — Container-safe Docker appdata backup with dry-run, compression, retry logic, and notifications (ntfy, Pushover, email)
+- [`scripts/qmd-reindex.sh`](scripts/qmd-reindex.sh) — Pull latest repos and regenerate qmd search index
+- [`scripts/memory-sync.sh`](scripts/memory-sync.sh) — Run Claude Code in headless mode to distill durable knowledge from agent memory
+- [`scripts/check-resources.sh`](scripts/check-resources.sh) — System health monitor: RAM, disk, Docker, PM2, NFS mounts with push alerts
+- [`scripts/check-dep-updates.sh`](scripts/check-dep-updates.sh) — Check npm, pip, Docker, and Claude Code for available updates
+
 ---
 
 ## Repo Structure
@@ -325,9 +332,9 @@ The system described here is running in production on my homelab. This repo is b
 | MCP servers doc | ✅ Done |
 | CLAUDE.md examples | ✅ Done |
 | PM2 ecosystem config | ✅ Done |
-| Repo structure scaffolding | 🔲 In progress |
+| Repo structure scaffolding | ✅ Done |
 | Docker compose files | ✅ Done (SWAG, Authelia, LibreChat, firecrawl-simple, reranker, Perplexica, Dockhand, Open Notebook) |
-| Scripts | 🔲 Planned |
+| Scripts | ✅ Done (docker-stack-backup, qmd-reindex, memory-sync, check-resources, check-dep-updates) |
 | Component docs | 🔨 In progress ([SWAG](docs/components/swag.md), [Authelia](docs/components/authelia.md), [LibreChat](docs/components/librechat.md), [Perplexica](docs/components/perplexica.md), [Dockhand](docs/components/dockhand.md), [Open Notebook](docs/components/open-notebook.md), [qmd](docs/components/qmd.md), [memsearch](docs/components/memsearch.md), [memory-sync](docs/components/memory-sync.md) done) |
 
 The repo structure shown above reflects the planned layout — most directories are placeholders for now. If something you want isn't here yet, open an issue.
