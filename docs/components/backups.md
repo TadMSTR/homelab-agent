@@ -112,7 +112,6 @@ Backrest runs as root, but Claude Desktop's config and memory live in the user's
 
 ### What Gets Backed Up
 
-- **`memory.db`** — Memory MCP knowledge graph. Despite the `.db` extension, this is JSONL (plain text), so a simple `cp` is safe. No database locking concerns.
 - **`basic-memory/claude/`** — Basic Memory markdown knowledge base. The working notes layer between sessions.
 - **`claude_desktop_config.json`** — MCP server configuration. Contains live API tokens — backed up to NFS only, never committed to git.
 - **`Claude Extensions Settings/`** — Extension settings including service account tokens. Same handling as the desktop config.
