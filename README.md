@@ -239,6 +239,7 @@ Files that exist now, with direct links:
 - [`docs/components/qmd.md`](docs/components/qmd.md) — qmd semantic search, dual transport, GPU acceleration, config patterns
 - [`docs/components/memsearch.md`](docs/components/memsearch.md) — memsearch memory recall for Claude Code, plugin integration, config
 - [`docs/components/memory-sync.md`](docs/components/memory-sync.md) — Automated knowledge distillation pipeline, distillation rules, PM2 cron
+- [`docs/components/backups.md`](docs/components/backups.md) — Backup strategy: Backrest/restic, Claude Desktop backup, Docker appdata backup — schedules, retention, restore guidance
 
 **Architecture & Setup**
 - [`docs/architecture.md`](docs/architecture.md) — Detailed system architecture: data flows, network topology, security model, scaling
@@ -273,7 +274,8 @@ homelab-agent/
 │       ├── open-notebook.md
 │       ├── qmd.md
 │       ├── memsearch.md
-│       └── memory-sync.md
+│       ├── memory-sync.md
+│       └── backups.md
 ├── claude-code/
 │   ├── CLAUDE.md.example            ← Root CLAUDE.md template
 │   └── projects/                    ← Per-agent CLAUDE.md examples
@@ -337,7 +339,7 @@ The system described here is running in production on my homelab. This repo is b
 | Repo structure scaffolding | ✅ Done |
 | Docker compose files | ✅ Done (SWAG, Authelia, LibreChat, firecrawl-simple, reranker, Perplexica, Dockhand, Open Notebook) |
 | Scripts | ✅ Done (docker-stack-backup, qmd-reindex, memory-sync, check-resources, check-dep-updates) |
-| Component docs | 🔨 In progress ([SWAG](docs/components/swag.md), [Authelia](docs/components/authelia.md), [LibreChat](docs/components/librechat.md), [Perplexica](docs/components/perplexica.md), [Dockhand](docs/components/dockhand.md), [Open Notebook](docs/components/open-notebook.md), [qmd](docs/components/qmd.md), [memsearch](docs/components/memsearch.md), [memory-sync](docs/components/memory-sync.md) done) |
+| Component docs | 🔨 In progress ([SWAG](docs/components/swag.md), [Authelia](docs/components/authelia.md), [LibreChat](docs/components/librechat.md), [Perplexica](docs/components/perplexica.md), [Dockhand](docs/components/dockhand.md), [Open Notebook](docs/components/open-notebook.md), [qmd](docs/components/qmd.md), [memsearch](docs/components/memsearch.md), [memory-sync](docs/components/memory-sync.md), [backups](docs/components/backups.md) done) |
 
 The repo structure shown above reflects the planned layout — most directories are placeholders for now. If something you want isn't here yet, open an issue.
 

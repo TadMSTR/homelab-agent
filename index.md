@@ -20,7 +20,8 @@ homelab-agent/
 │       ├── open-notebook.md           # Open Notebook AI research, SurrealDB, dual-port proxy
 │       ├── qmd.md                     # qmd semantic search, dual transport, GPU acceleration
 │       ├── memsearch.md               # memsearch memory recall for Claude Code sessions
-│       └── memory-sync.md             # Automated knowledge distillation pipeline
+│       ├── memory-sync.md             # Automated knowledge distillation pipeline
+│       └── backups.md                 # Backup strategy: Backrest/restic, Claude backup, Docker appdata
 ├── claude-code/
 │   ├── CLAUDE.md.example              # Root CLAUDE.md template
 │   └── projects/
@@ -68,6 +69,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Claude Code / CLAUDE.md | `claude-code/CLAUDE.md.example`, `claude-code/projects/` | Docker, MCP |
 | PM2 services / cron | `pm2/ecosystem.config.js.example` | Docker compose, MCP config |
 | Memory system | `README.md` (§The Memory / Context System), `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
+| Backups | `docs/components/backups.md`, `scripts/docker-stack-backup.sh`, `pm2/ecosystem.config.js.example` | Docker compose, MCP, Claude Code |
 | Docker stacks (general) | `docker/` subdirectories | Claude Code, MCP |
 | Reverse proxy / SSO | `docs/components/swag.md`, `docs/components/authelia.md`, `docker/swag/`, `docker/authelia/` | Claude Code, MCP |
 | Semantic search (qmd) | `docs/components/qmd.md`, `mcp-servers/README.md` (§qmd) | Docker, Claude Code |
@@ -97,6 +99,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | "I want to build a custom reranker" | `docker/reranker/` — standalone Dockerfile + source |
 | "I want to set up the whole thing step by step" | `docs/getting-started.md` — dependency-ordered with stopping points |
 | "I want to understand data flows and topology" | `docs/architecture.md` — detailed system architecture |
+| "I want to understand the backup strategy" | `docs/components/backups.md` — all three backup mechanisms, schedules, retention, restore guidance |
 
 ## Document Status
 
@@ -127,6 +130,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/qmd.md` | ✅ Complete | 2026-03 |
 | `docs/components/memsearch.md` | ✅ Complete | 2026-03 |
 | `docs/components/memory-sync.md` | ✅ Complete | 2026-03 |
+| `docs/components/backups.md` | ✅ Complete | 2026-03 |
 | `scripts/` | ✅ Complete | 2026-03 |
 
 ## Cross-Reference: Components → Documents
@@ -147,3 +151,4 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | CLAUDE.md hierarchy | [`claude-code/CLAUDE.md.example`](claude-code/CLAUDE.md.example), [`claude-code/projects/`](claude-code/projects/) | — | — |
 | memsearch | [`docs/components/memsearch.md`](docs/components/memsearch.md) | `~/.memsearch/config.toml` | (host-level service) |
 | memory-sync | [`docs/components/memory-sync.md`](docs/components/memory-sync.md), [`claude-code/projects/memory-sync.md`](claude-code/projects/memory-sync.md) | — | (PM2 cron job) |
+| Backups | [`docs/components/backups.md`](docs/components/backups.md) | [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) | (Backrest systemd + PM2 cron + user crontab) |
