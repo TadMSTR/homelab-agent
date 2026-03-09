@@ -19,6 +19,7 @@ All services share a single Docker network. SWAG routes traffic based on subdoma
 | Subdomain | Service | Port |
 |-----------|---------|------|
 | `auth.*` | Authelia | 9091 |
+| `backrest.*` | Backrest (systemd, cross-host) | 9898 |
 | `chat.*` | LibreChat | 3080 |
 | `cui.*` | Claude Code Web UI | 3001 |
 | `dashboard.*` | SWAG Dashboard | 81 (internal) |
