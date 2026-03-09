@@ -69,11 +69,13 @@ The foundation is a dedicated machine running Claude Desktop with MCP (Model Con
 | Desktop Commander | Filesystem operations, terminal commands, process management on the host |
 | Playwright | Browser automation — navigate, click, fill forms, take screenshots |
 | basic-memory | Persistent knowledge base as Obsidian-compatible markdown files |
-| qmd | Semantic search over repos, docs, and agent memory (see Layer 2) |
+| qmd | Semantic search over repos, docs, and agent memory — stdio for Claude Desktop, HTTP for LibreChat (see Layer 2) |
 | Unraid | Array status, disk health, Docker containers, shares via GraphQL API |
 | TrueNAS | Datasets, pools, snapshots, users, SMB/NFS/iSCSI via REST API |
 | InfluxDB | Time-series queries and writes for Telegraf-shipped metrics |
 | Bluesky | Social media management via AT Protocol |
+
+For config patterns, standalone value ratings, and a prioritized adoption path, see [`mcp-servers/README.md`](mcp-servers/README.md).
 
 **Guacamole** provides browser-based remote desktop access to the machine. Useful when you're away from the desk but need to interact with Claude Desktop's GUI.
 
@@ -127,18 +129,19 @@ The root CLAUDE.md contains infrastructure topology, key paths, and global rules
 
 Agents read from shared + their own directory, write to their own directory. Cross-agent knowledge goes to shared. This prevents context bleed — the dev agent doesn't need to know about last week's disk replacement on unraid.
 
-**memsearch** provides semantic search over the memory directories. It uses local sentence-transformer embeddings (all-MiniLM-L6-v2) and a Milvus vector database. The Claude Code plugin auto-injects relevant memories at session start and on each prompt. No API keys, no cloud services — runs entirely on the local CPU.
+**memsearch** provides semantic search over the memory directories using local sentence-transformer embeddings and a vector database. The Claude Code plugin auto-injects relevant memories at session start and on each prompt. No API keys, no cloud services — runs entirely on the local CPU. (Note: memsearch config is not yet in this repo — it's on the roadmap.)
 
 **PM2 Background Agents:**
 
 | Service | Schedule | What It Does |
 |---------|----------|-------------|
-| memory-sync | 4:00 AM daily | Exports LibreChat memory, reads memsearch files, distills durable knowledge into the prime-directive repo |
+| memory-sync | 4:00 AM daily | Exports LibreChat memory, reads Claude Code memory files, distills durable knowledge into the context repo |
 | qmd-reindex | 5:00 AM daily | Pulls latest from all git repos, re-embeds for semantic search |
 | docker-stack-backup | 1:00 AM daily | Stops containers, rsyncs appdata to NFS, restarts |
 | resource-monitor | Every 6 hours | Checks RAM, disk, Docker health, PM2 status, NFS mounts; alerts via ntfy |
-| dep-update-check | Wednesdays noon | Checks for updates to pinned dependencies (qmd, memsearch, Authelia) |
-| qmd-issue-check | Mondays noon | Monitors a specific upstream bug that affects MCP transport |
+| dep-update-check | Wednesdays noon | Checks for updates to pinned dependencies (qmd, Authelia, Claude Code) |
+
+See [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) for full configuration including an optional upstream issue watcher.
 
 **Standalone value:** The CLAUDE.md hierarchy alone is worth adopting. Even without memsearch or the background agents, giving Claude Code structured context about your infrastructure dramatically improves the quality of its responses. Start with a root CLAUDE.md and one project, expand from there.
 
@@ -273,10 +276,12 @@ The system described here is running in production on my homelab. This repo is b
 | Component | Status |
 |-----------|--------|
 | README | ✅ Done |
-| Repo structure | 🔲 Scaffolding in progress |
+| MCP servers doc | ✅ Done |
+| CLAUDE.md examples | ✅ Done |
+| PM2 ecosystem config | ✅ Done |
+| Repo structure scaffolding | 🔲 In progress |
 | Docker compose files | 🔲 Sanitizing |
-| CLAUDE.md examples | 🔲 Planned |
-| PM2 ecosystem config | 🔲 Planned |
+| Scripts | 🔲 Planned |
 | Component docs | 🔲 Planned |
 
 The repo structure shown above reflects the planned layout — most directories are placeholders for now. If something you want isn't here yet, open an issue.
