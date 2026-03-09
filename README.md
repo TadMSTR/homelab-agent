@@ -65,17 +65,17 @@ The foundation is a dedicated machine running Claude Desktop with MCP (Model Con
 
 | MCP Server | What It Does |
 |------------|-------------|
-| Netdata | Real-time metrics from any monitored host (CPU, RAM, disk, containers, alerts) |
-| Grafana | Dashboard management, alert rules, Loki log queries, InfluxDB metrics |
-| GitHub | Repo management, issues, PRs, code search across multiple accounts |
-| Desktop Commander | Filesystem operations, terminal commands, process management on the host |
-| Playwright | Browser automation — navigate, click, fill forms, take screenshots |
 | basic-memory | Persistent knowledge base as Obsidian-compatible markdown files |
-| qmd | Semantic search over repos, docs, and agent memory — stdio for Claude Desktop, HTTP for LibreChat (see Layer 2) |
-| Unraid | Array status, disk health, Docker containers, shares via GraphQL API |
-| TrueNAS | Datasets, pools, snapshots, users, SMB/NFS/iSCSI via REST API |
-| InfluxDB | Time-series queries and writes for Telegraf-shipped metrics |
 | Bluesky | Social media management via AT Protocol |
+| Desktop Commander | Filesystem operations, terminal commands, process management on the host |
+| GitHub | Repo management, issues, PRs, code search across multiple accounts |
+| Grafana | Dashboard management, alert rules, Loki log queries, InfluxDB metrics |
+| InfluxDB | Time-series queries and writes for Telegraf-shipped metrics |
+| Netdata | Real-time metrics from any monitored host (CPU, RAM, disk, containers, alerts) |
+| Playwright | Browser automation — navigate, click, fill forms, take screenshots |
+| qmd | Semantic search over repos, docs, and agent memory — stdio for Claude Desktop, HTTP for LibreChat (see Layer 2) |
+| TrueNAS | Datasets, pools, snapshots, users, SMB/NFS/iSCSI via REST API |
+| Unraid | Array status, disk health, Docker containers, shares via GraphQL API |
 
 For config patterns, standalone value ratings, and a prioritized adoption path, see [`mcp-servers/README.md`](mcp-servers/README.md).
 
@@ -89,14 +89,14 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 
 | Service | What It Does | Why It's Here |
 |---------|-------------|---------------|
-| **SWAG** | Nginx reverse proxy with Let's Encrypt wildcard SSL | Single entry point for all `*.yourdomain` services. DNS validation via Cloudflare — internal-only domain, no ports exposed to the internet. |
 | **Authelia** | SSO authentication gateway | One login for all services. SWAG has first-class Authelia support — two lines uncommented per proxy conf. |
-| **LibreChat** | Multi-provider chat UI (Anthropic, OpenAI, Ollama, etc.) | Web-based chat with agent support, MCP tool integration, built-in memory, and RAG. The primary interface for interactive agent work. |
-| **qmd** | Semantic search MCP server | Hybrid search (BM25 + vector + LLM reranking) over all repos, docs, and agent memory. Local embeddings via GGUF models, GPU-accelerated on AMD iGPU via Vulkan. |
 | **CUI** | Claude Code web UI | Browser-based Claude Code terminal sessions with push notifications. Useful for monitoring headless agent runs. |
-| **Perplexica + SearXNG** | AI-powered search | Self-hosted alternative to Perplexity. SearXNG does meta-search across engines, Perplexica adds AI synthesis. No external API keys needed. |
 | **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
+| **LibreChat** | Multi-provider chat UI (Anthropic, OpenAI, Ollama, etc.) | Web-based chat with agent support, MCP tool integration, built-in memory, and RAG. The primary interface for interactive agent work. |
 | **Open Notebook** | AI research/notebook tool | Document analysis and research with SurrealDB backend. |
+| **Perplexica + SearXNG** | AI-powered search | Self-hosted alternative to Perplexity. SearXNG does meta-search across engines, Perplexica adds AI synthesis. No external API keys needed. |
+| **qmd** | Semantic search MCP server | Hybrid search (BM25 + vector + LLM reranking) over all repos, docs, and agent memory. Local embeddings via GGUF models, GPU-accelerated on AMD iGPU via Vulkan. |
+| **SWAG** | Nginx reverse proxy with Let's Encrypt wildcard SSL | Single entry point for all `*.yourdomain` services. DNS validation via Cloudflare — internal-only domain, no ports exposed to the internet. |
 
 All containers share a single Docker network. SWAG handles SSL termination and routes `chat.yourdomain`, `auth.yourdomain`, `cui.yourdomain`, etc. to the appropriate container. Authelia sits in front of everything — one-factor auth with a file-based user backend (sufficient for a single-user or household setup).
 
@@ -131,15 +131,15 @@ The root CLAUDE.md contains infrastructure topology, key paths, and global rules
 
 Agents read from shared + their own directory, write to their own directory. Cross-agent knowledge goes to shared. This prevents context bleed — the dev agent doesn't need to know about last week's disk replacement on unraid.
 
-**memsearch** provides semantic search over the memory directories using local sentence-transformer embeddings and a vector database. The Claude Code plugin auto-injects relevant memories at session start and on each prompt. No API keys, no cloud services — runs entirely on the local CPU. (Note: memsearch config is not yet in this repo — it's on the roadmap.)
+**memsearch** provides semantic search over the memory directories using local sentence-transformer embeddings and a vector database. The Claude Code plugin auto-injects relevant memories at session start and on each prompt. No API keys, no cloud services — runs entirely on the local CPU. See [`docs/components/memsearch.md`](docs/components/memsearch.md) for configuration details.
 
 **PM2 Background Agents:**
 
 | Service | Schedule | What It Does |
 |---------|----------|-------------|
+| docker-stack-backup | 1:00 AM daily | Stops containers, rsyncs appdata to NFS, restarts |
 | memory-sync | 4:00 AM daily | Exports LibreChat memory, reads Claude Code memory files, distills durable knowledge into the context repo |
 | qmd-reindex | 5:00 AM daily | Pulls latest from all git repos, re-embeds for semantic search |
-| docker-stack-backup | 1:00 AM daily | Stops containers, rsyncs appdata to NFS, restarts |
 | resource-monitor | Every 6 hours | Checks RAM, disk, Docker health, PM2 status, NFS mounts; alerts via ntfy |
 | dep-update-check | Wednesdays noon | Checks for updates to pinned dependencies (qmd, Authelia, Claude Code) |
 
