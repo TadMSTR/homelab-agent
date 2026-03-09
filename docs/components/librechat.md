@@ -34,6 +34,11 @@ The config file version matters. Web search support requires config version 1.2.
 version: 1.3.5
 cache: true
 
+balance:
+  enabled: false
+transactions:
+  enabled: true
+
 interface:
   webSearch: true
 
@@ -156,6 +161,16 @@ The full web search pipeline adds about 1.2GB RAM on top of LibreChat's base foo
 LibreChat supports MCP servers for agent tool access. The config uses `host.docker.internal` to reach MCP servers running on the host machine. In my setup, qmd (semantic search) runs as a host-level service and exposes an HTTP MCP endpoint that LibreChat connects to.
 
 The `extra_hosts` entry in the compose file maps `host.docker.internal` to the host gateway IP, and `mcpSettings.allowedDomains` in `librechat.yaml` whitelists that hostname for MCP connections.
+
+## Token Usage Tracking
+
+LibreChat has two related systems for token tracking: transactions (logging) and balance (enforcement). They're independent — you can log everything without enforcing credit limits.
+
+With `transactions.enabled: true`, every API call writes a record to the `Transactions` collection in MongoDB capturing prompt tokens, completion tokens, model, cost, and user. With `balance.enabled: false`, there's no credit enforcement — usage is tracked but never blocked. This is the right setup for a personal/household instance where you want visibility without artificial limits.
+
+The transaction data in MongoDB can be queried for dashboards (see the Grafana integration notes below) or exported for cost analysis. LibreChat also exposes Prometheus-compatible metrics via an OpenMetrics endpoint for real-time monitoring.
+
+**Known issue (as of v0.8.3-rc2):** Agent transactions record the agent ID (e.g., `agent_8aWN5tLYRAdtV8knVWmod`) in the model field instead of the underlying model name. This causes incorrect pricing lookups for agent interactions. Tracked in [#11978](https://github.com/danny-avila/LibreChat/issues/11978). If you're building cost dashboards, filter or map agent IDs to their configured models until this is fixed.
 
 ## Gotchas and Lessons Learned
 
