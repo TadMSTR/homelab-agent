@@ -9,13 +9,18 @@ homelab-agent/
 ├── README.md                          # Architecture overview, origin story, component guide
 ├── index.md                           # THIS FILE — agent navigation index
 ├── docs/
+│   ├── architecture.md                # Detailed system architecture, data flows, network topology
+│   ├── getting-started.md             # Setup order, prerequisites, stopping points
 │   └── components/
 │       ├── swag.md                    # SWAG reverse proxy, Cloudflare DNS, proxy conf pattern
 │       ├── authelia.md                # Authelia SSO, file-based user backend, SWAG integration
 │       ├── librechat.md               # LibreChat setup, web search pipeline, reranker
 │       ├── perplexica.md              # Perplexica AI search, SearXNG, shared search backend
 │       ├── dockhand.md                # Dockhand Docker stack manager, socket access
-│       └── open-notebook.md           # Open Notebook AI research, SurrealDB, dual-port proxy
+│       ├── open-notebook.md           # Open Notebook AI research, SurrealDB, dual-port proxy
+│       ├── qmd.md                     # qmd semantic search, dual transport, GPU acceleration
+│       ├── memsearch.md               # memsearch memory recall for Claude Code sessions
+│       └── memory-sync.md             # Automated knowledge distillation pipeline
 ├── claude-code/
 │   ├── CLAUDE.md.example              # Root CLAUDE.md template
 │   └── projects/
@@ -56,11 +61,12 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | AI notebook (Open Notebook) | `docs/components/open-notebook.md`, `docker/open-notebook/` | Claude Code, MCP |
 | Claude Code / CLAUDE.md | `claude-code/CLAUDE.md.example`, `claude-code/projects/` | Docker, MCP |
 | PM2 services / cron | `pm2/ecosystem.config.js.example` | Docker compose, MCP config |
-| Memory system | `README.md` (§The Memory / Context System), `claude-code/projects/memory-sync.md` | Docker, MCP |
+| Memory system | `README.md` (§The Memory / Context System), `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
 | Docker stacks (general) | `docker/` subdirectories | Claude Code, MCP |
 | Reverse proxy / SSO | `docs/components/swag.md`, `docs/components/authelia.md`, `docker/swag/`, `docker/authelia/` | Claude Code, MCP |
-| Semantic search (qmd) | `mcp-servers/README.md` (§qmd), `README.md` (§Layer 2 qmd row) | Docker, Claude Code |
-| Getting started | `README.md` (§Prerequisites, §What's in This Repo) | Component-level docs |
+| Semantic search (qmd) | `docs/components/qmd.md`, `mcp-servers/README.md` (§qmd) | Docker, Claude Code |
+| Getting started | `docs/getting-started.md` | Component-level docs |
+| Detailed architecture | `docs/architecture.md` | Component-level docs |
 
 ### By Architecture Layer
 
@@ -68,7 +74,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 |-------|-------------|-------------|
 | Layer 1 — Host & Core Tooling | `README.md` (§Layer 1), `mcp-servers/README.md` | `claude_desktop_config.json` patterns in `mcp-servers/README.md` |
 | Layer 2 — Self-Hosted Services | `README.md` (§Layer 2), `docs/components/*.md` | `docker/*/docker-compose.yml` |
-| Layer 3 — Multi-Agent Engine | `README.md` (§Layer 3), `claude-code/` | `pm2/ecosystem.config.js.example`, `claude-code/projects/*.md` |
+| Layer 3 — Multi-Agent Engine | `README.md` (§Layer 3), `claude-code/`, `docs/components/memsearch.md`, `docs/components/memory-sync.md` | `pm2/ecosystem.config.js.example`, `claude-code/projects/*.md` |
 
 ### By Task
 
@@ -81,8 +87,10 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | "I want to deploy Perplexica" | `docs/components/perplexica.md` — then `docker/perplexica/` |
 | "I want to set up Claude Code agents" | `claude-code/CLAUDE.md.example` — then `claude-code/projects/` for per-agent examples |
 | "I want to add PM2 background jobs" | `pm2/ecosystem.config.js.example` — self-contained |
-| "I want to replicate the memory system" | `README.md` (§Memory / Context System) → `claude-code/projects/memory-sync.md` |
+| "I want to replicate the memory system" | `README.md` (§Memory / Context System) → `docs/components/memsearch.md` → `docs/components/memory-sync.md` |
 | "I want to build a custom reranker" | `docker/reranker/` — standalone Dockerfile + source |
+| "I want to set up the whole thing step by step" | `docs/getting-started.md` — dependency-ordered with stopping points |
+| "I want to understand data flows and topology" | `docs/architecture.md` — detailed system architecture |
 
 ## Document Status
 
@@ -107,12 +115,12 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docker/librechat/` | ✅ Complete | 2025-03 |
 | `docker/firecrawl-simple/` | ✅ Complete | 2025-03 |
 | `docker/reranker/` | ✅ Complete | 2025-03 |
-| `docs/architecture.md` | 🔲 Planned | — |
-| `docs/getting-started.md` | 🔲 Planned | — |
+| `docs/architecture.md` | ✅ Complete | 2026-03 |
+| `docs/getting-started.md` | ✅ Complete | 2026-03 |
 | `docs/components/swag-authelia.md` | ✅ Split into `swag.md` + `authelia.md` | 2025-03 |
-| `docs/components/qmd.md` | 🔲 Planned | — |
-| `docs/components/memsearch.md` | 🔲 Planned | — |
-| `docs/components/memory-sync.md` | 🔲 Planned | — |
+| `docs/components/qmd.md` | ✅ Complete | 2026-03 |
+| `docs/components/memsearch.md` | ✅ Complete | 2026-03 |
+| `docs/components/memory-sync.md` | ✅ Complete | 2026-03 |
 | `scripts/` | 🔲 Planned | — |
 
 ## Cross-Reference: Components → Documents
@@ -124,10 +132,12 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Reranker | [`docs/components/librechat.md`](docs/components/librechat.md) (§Rerank) | — | `docker/reranker/docker-compose.yml` |
 | SWAG | [`docs/components/swag.md`](docs/components/swag.md) | — | `docker/swag/docker-compose.yml` |
 | Authelia | [`docs/components/authelia.md`](docs/components/authelia.md) | — | `docker/authelia/docker-compose.yml` |
-| qmd | [`mcp-servers/README.md`](mcp-servers/README.md) (§qmd) | — | (host-level service) |
+| qmd | [`docs/components/qmd.md`](docs/components/qmd.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§qmd) | — | (host-level service) |
 | Perplexica + SearXNG | [`docs/components/perplexica.md`](docs/components/perplexica.md) | — | `docker/perplexica/docker-compose.yml` |
 | Dockhand | [`docs/components/dockhand.md`](docs/components/dockhand.md) | — | `docker/dockhand/docker-compose.yml` |
 | Open Notebook | [`docs/components/open-notebook.md`](docs/components/open-notebook.md) | — | `docker/open-notebook/docker-compose.yml` |
 | MCP servers (all) | [`mcp-servers/README.md`](mcp-servers/README.md) | Config patterns inline | — |
 | PM2 services | [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) | Inline | — |
 | CLAUDE.md hierarchy | [`claude-code/CLAUDE.md.example`](claude-code/CLAUDE.md.example), [`claude-code/projects/`](claude-code/projects/) | — | — |
+| memsearch | [`docs/components/memsearch.md`](docs/components/memsearch.md) | `~/.memsearch/config.toml` | (host-level service) |
+| memory-sync | [`docs/components/memory-sync.md`](docs/components/memory-sync.md), [`claude-code/projects/memory-sync.md`](claude-code/projects/memory-sync.md) | — | (PM2 cron job) |

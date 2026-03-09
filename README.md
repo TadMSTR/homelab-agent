@@ -234,6 +234,13 @@ Files that exist now, with direct links:
 - [`docs/components/perplexica.md`](docs/components/perplexica.md) — Perplexica + SearXNG setup, shared search backend, network topology
 - [`docs/components/dockhand.md`](docs/components/dockhand.md) — Dockhand setup, Docker socket access, multi-host stack visibility
 - [`docs/components/open-notebook.md`](docs/components/open-notebook.md) — Open Notebook setup, SurrealDB, dual-port proxy config
+- [`docs/components/qmd.md`](docs/components/qmd.md) — qmd semantic search, dual transport, GPU acceleration, config patterns
+- [`docs/components/memsearch.md`](docs/components/memsearch.md) — memsearch memory recall for Claude Code, plugin integration, config
+- [`docs/components/memory-sync.md`](docs/components/memory-sync.md) — Automated knowledge distillation pipeline, distillation rules, PM2 cron
+
+**Architecture & Setup**
+- [`docs/architecture.md`](docs/architecture.md) — Detailed system architecture: data flows, network topology, security model, scaling
+- [`docs/getting-started.md`](docs/getting-started.md) — Dependency-ordered setup guide with five stopping points
 
 ---
 
@@ -321,7 +328,7 @@ The system described here is running in production on my homelab. This repo is b
 | Repo structure scaffolding | 🔲 In progress |
 | Docker compose files | ✅ Done (SWAG, Authelia, LibreChat, firecrawl-simple, reranker, Perplexica, Dockhand, Open Notebook) |
 | Scripts | 🔲 Planned |
-| Component docs | 🔨 In progress ([SWAG](docs/components/swag.md), [Authelia](docs/components/authelia.md), [LibreChat](docs/components/librechat.md), [Perplexica](docs/components/perplexica.md), [Dockhand](docs/components/dockhand.md), [Open Notebook](docs/components/open-notebook.md) done) |
+| Component docs | 🔨 In progress ([SWAG](docs/components/swag.md), [Authelia](docs/components/authelia.md), [LibreChat](docs/components/librechat.md), [Perplexica](docs/components/perplexica.md), [Dockhand](docs/components/dockhand.md), [Open Notebook](docs/components/open-notebook.md), [qmd](docs/components/qmd.md), [memsearch](docs/components/memsearch.md), [memory-sync](docs/components/memory-sync.md) done) |
 
 The repo structure shown above reflects the planned layout — most directories are placeholders for now. If something you want isn't here yet, open an issue.
 
