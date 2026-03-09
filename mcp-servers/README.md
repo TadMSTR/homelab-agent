@@ -299,6 +299,43 @@ on Bluesky and want Claude to help manage it.
 
 ---
 
+### Backrest
+
+**Purpose:** Trigger backup plans and fetch operation history for
+[Backrest](https://github.com/garethgeorge/backrest) — a web UI and
+orchestrator for restic backups.
+
+**GitHub:** https://github.com/TadMSTR/backrest-mcp-server
+
+**Config pattern:**
+```json
+{
+  "backrest": {
+    "command": "node",
+    "args": ["/path/to/backrest-mcp-server/build/src/index.js"],
+    "env": {
+      "BACKREST_URL": "http://YOUR_BACKREST_HOST:9898",
+      "BACKREST_USERNAME": "YOUR_USERNAME",
+      "BACKREST_PASSWORD": "YOUR_PASSWORD"
+    }
+  }
+}
+```
+
+**Why it's here:** If you use Backrest for restic-based backups, this lets
+Claude trigger backup plans and check operation history without opening the
+Backrest web UI. "Run the home directory backup" or "did last night's backup
+succeed?" from within a conversation.
+
+**Note:** If Backrest auth is disabled, omit the username and password env vars.
+Backrest uses a JSON-RPC HTTP gateway over gRPC — the MCP server handles the
+protocol details.
+
+**Standalone value:** Medium. Useful if you already run Backrest. Two tools —
+`trigger-backup` and `get-operations` — focused and practical.
+
+---
+
 ## Choosing Your MCP Stack
 
 You don't need all of these. Here's a prioritized adoption path:
@@ -321,7 +358,8 @@ You don't need all of these. Here's a prioritized adoption path:
 
 **Add as needed:**
 9. Playwright — browser automation
-10. Bluesky — social media (niche use case)
+10. Backrest — backup management (if you use Backrest/restic)
+11. Bluesky — social media (niche use case)
 
 ## Notes on MCP Transport
 

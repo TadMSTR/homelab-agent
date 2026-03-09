@@ -98,6 +98,8 @@ curl -s -X POST 'http://localhost:9898/v1.Backrest/GetOperations' \
 
 Auth uses HTTP Basic with credentials stored in `~/.config/backrest/api-creds` (format: `user:password`, one per line). The WebUI login uses a separate bcrypt-hashed user list in the Backrest config.
 
+The [Backrest MCP server](../../mcp-servers/README.md#backrest) wraps this API and gives Claude direct access to trigger backups and check operation history from within a conversation. See [`mcp-servers/README.md`](../../mcp-servers/README.md) for config details.
+
 ## Claude Desktop Backup Script
 
 Backrest runs as root, but Claude Desktop's config and memory live in the user's home directory under `~/.config/Claude/`. While Backrest's `claudebox-home` plan does cover this path, the custom backup script (`~/scripts/backup-claude.sh`) adds a second layer with a different structure: a `latest/` directory that always reflects the current state (via rsync) plus dated snapshots for point-in-time recovery.
