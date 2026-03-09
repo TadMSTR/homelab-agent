@@ -212,6 +212,14 @@ Files that exist now, with direct links:
 - [`claude-code/projects/research.md`](claude-code/projects/research.md) — Research agent: findings format, memory paths, conventions
 - [`claude-code/projects/memory-sync.md`](claude-code/projects/memory-sync.md) — Memory distillation agent: sources, output paths, workflow, rules for what's worth keeping
 
+**Docker Stacks**
+- [`docker/librechat/`](docker/librechat/) — LibreChat compose + config example (multi-provider chat UI with web search)
+- [`docker/firecrawl-simple/`](docker/firecrawl-simple/) — Trieve's Firecrawl fork for web page scraping (part of LibreChat search pipeline)
+- [`docker/reranker/`](docker/reranker/) — Custom Jina-compatible reranker using FlashRank (Dockerfile + source included)
+
+**Component Docs**
+- [`docs/components/librechat.md`](docs/components/librechat.md) — LibreChat setup, web search pipeline architecture, reranker wrapper, gotchas
+
 ---
 
 ## Repo Structure
@@ -244,7 +252,13 @@ homelab-agent/
 │   │   └── docker-compose.yml       ← SSO authentication
 │   ├── librechat/
 │   │   ├── docker-compose.yml       ← Multi-provider chat + MongoDB + Meilisearch
-│   │   └── librechat.yaml.example   ← LibreChat config with memory and MCP
+│   │   └── librechat.yaml.example   ← LibreChat config with web search and MCP
+│   ├── firecrawl-simple/
+│   │   └── docker-compose.yml       ← Web scraper for LibreChat search pipeline
+│   ├── reranker/
+│   │   ├── docker-compose.yml       ← Jina-compatible reranker wrapper
+│   │   ├── Dockerfile               ← FlashRank + FastAPI build
+│   │   └── main.py                  ← Reranker API source (~115 lines)
 │   ├── perplexica/
 │   │   └── docker-compose.yml       ← AI search + SearXNG + Valkey
 │   ├── dockhand/
@@ -284,9 +298,9 @@ The system described here is running in production on my homelab. This repo is b
 | CLAUDE.md examples | ✅ Done |
 | PM2 ecosystem config | ✅ Done |
 | Repo structure scaffolding | 🔲 In progress |
-| Docker compose files | 🔲 Sanitizing |
+| Docker compose files | 🔨 In progress (LibreChat, firecrawl-simple, reranker done) |
 | Scripts | 🔲 Planned |
-| Component docs | 🔲 Planned |
+| Component docs | 🔨 In progress ([LibreChat](docs/components/librechat.md) done) |
 
 The repo structure shown above reflects the planned layout — most directories are placeholders for now. If something you want isn't here yet, open an issue.
 

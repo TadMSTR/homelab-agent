@@ -1,0 +1,19 @@
+# FlashRank Reranker — Jina-compatible API wrapper
+#
+# Exposes Jina's /v1/rerank endpoint backed by FlashRank (CPU-only, ONNX).
+# LibreChat points jinaApiUrl at this service for zero-cost local reranking.
+# See docs/components/librechat.md for context.
+
+services:
+  reranker:
+    build: .
+    container_name: reranker
+    environment:
+      - RERANKER_MODEL=ms-marco-MiniLM-L-12-v2
+    networks:
+      - your-network  # Replace with your shared Docker network
+    restart: unless-stopped
+
+networks:
+  your-network:
+    external: true

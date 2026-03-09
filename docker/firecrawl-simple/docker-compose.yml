@@ -1,0 +1,83 @@
+# firecrawl-simple — Self-hosted web scraper for LibreChat
+#
+# Trieve's fork of Firecrawl, stripped down for self-hosting.
+# Speaks the Firecrawl v1 API that LibreChat expects.
+# https://github.com/devflowinc/firecrawl-simple
+#
+# Only firecrawl-api joins the shared network. Internal services
+# (puppeteer, redis, worker) are isolated on firecrawl-internal.
+
+services:
+  firecrawl-api:
+    image: trieve/firecrawl:v0.0.46
+    container_name: firecrawl-api
+    environment:
+      - COREPACK_INTEGRITY_KEYS=0  # Workaround for corepack signature bug
+      - REDIS_URL=redis://firecrawl-redis:6379
+      - REDIS_RATE_LIMIT_URL=redis://firecrawl-redis:6379
+      - PLAYWRIGHT_MICROSERVICE_URL=http://firecrawl-puppeteer:3000
+      - PORT=3002
+      - HOST=0.0.0.0
+      - NUM_WORKERS_PER_QUEUE=4
+      - MAX_RAM=0.8
+      - MAX_CPU=0.8
+      - USE_DB_AUTHENTICATION=false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - firecrawl-redis
+      - firecrawl-puppeteer
+    command: ["pnpm", "run", "start:production"]
+    networks:
+      - your-network  # Replace with your shared Docker network
+      - firecrawl-internal
+    restart: unless-stopped
+
+  firecrawl-worker:
+    image: trieve/firecrawl:v0.0.46
+    container_name: firecrawl-worker
+    environment:
+      - COREPACK_INTEGRITY_KEYS=0
+      - REDIS_URL=redis://firecrawl-redis:6379
+      - REDIS_RATE_LIMIT_URL=redis://firecrawl-redis:6379
+      - PLAYWRIGHT_MICROSERVICE_URL=http://firecrawl-puppeteer:3000
+      - PORT=3002
+      - HOST=0.0.0.0
+      - NUM_WORKERS_PER_QUEUE=4
+      - MAX_RAM=0.8
+      - MAX_CPU=0.8
+      - USE_DB_AUTHENTICATION=false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - firecrawl-redis
+      - firecrawl-puppeteer
+      - firecrawl-api
+    command: ["pnpm", "run", "workers"]
+    networks:
+      - firecrawl-internal
+    restart: unless-stopped
+
+  firecrawl-puppeteer:
+    image: trieve/puppeteer-service-ts:v0.0.6
+    container_name: firecrawl-puppeteer
+    environment:
+      - PORT=3000
+      - MAX_CONCURRENCY=4
+    networks:
+      - firecrawl-internal
+    restart: unless-stopped
+
+  firecrawl-redis:
+    image: redis:alpine
+    container_name: firecrawl-redis
+    command: redis-server --bind 0.0.0.0
+    networks:
+      - firecrawl-internal
+    restart: unless-stopped
+
+networks:
+  your-network:
+    external: true
+  firecrawl-internal:
+    driver: bridge

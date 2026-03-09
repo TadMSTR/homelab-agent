@@ -1,0 +1,61 @@
+# LibreChat Docker Stack
+#
+# Multi-provider chat UI with MongoDB for conversations and
+# Meilisearch for conversation search indexing.
+#
+# Prerequisites:
+#   - External Docker network (e.g., claudebox-net) already created
+#   - .env file with ANTHROPIC_API_KEY, MEILI_MASTER_KEY, and web search vars
+#   - librechat.yaml mounted into the container
+#
+# See docs/components/librechat.md for full setup context.
+
+services:
+  librechat:
+    image: ghcr.io/danny-avila/librechat:latest
+    container_name: librechat
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/LibreChat
+      - MEILI_HOST=http://meilisearch:7700
+    env_file:
+      - .env
+    volumes:
+      - /opt/appdata/librechat/librechat/librechat.yaml:/app/librechat.yaml
+      - /opt/appdata/librechat/librechat/data:/app/data
+      - /opt/appdata/librechat/librechat/images:/app/client/public/images
+      - /opt/appdata/librechat/librechat/logs:/app/api/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mongodb
+      - meilisearch
+    networks:
+      - your-network  # Replace with your shared Docker network
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    container_name: librechat-mongodb
+    volumes:
+      - /opt/appdata/librechat/mongodb:/data/db
+    networks:
+      - your-network
+    restart: unless-stopped
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.37.0
+    container_name: librechat-meilisearch
+    environment:
+      - MEILI_NO_ANALYTICS=true
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+    env_file:
+      - .env
+    volumes:
+      - /opt/appdata/librechat/meilisearch:/meili_data
+    networks:
+      - your-network
+    restart: unless-stopped
+
+networks:
+  your-network:
+    external: true

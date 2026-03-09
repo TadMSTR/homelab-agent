@@ -1,0 +1,46 @@
+# LibreChat configuration
+# See: https://www.librechat.ai/docs/configuration/librechat_yaml
+#
+# Web search requires config version 1.2.6+.
+# Agent capabilities require the agents endpoint block.
+
+version: 1.3.5
+cache: true
+
+interface:
+  webSearch: true
+
+endpoints:
+  anthropic:
+    enabled: true
+    models:
+      - claude-sonnet-4-6
+      - claude-opus-4-6
+      - claude-haiku-4-5-20251001
+  agents:
+    capabilities:
+      - "web_search"
+      - "tools"
+      - "actions"
+      - "artifacts"
+
+webSearch:
+  searchProvider: "searxng"
+  searxngInstanceUrl: "${SEARXNG_INSTANCE_URL}"
+  scraperProvider: "firecrawl"
+  firecrawlApiKey: "${FIRECRAWL_API_KEY}"
+  firecrawlApiUrl: "${FIRECRAWL_API_URL}"
+  rerankerType: "jina"
+  jinaApiKey: "${JINA_API_KEY}"
+  jinaApiUrl: "${JINA_API_URL}"
+  safeSearch: 0
+
+mcpSettings:
+  allowedDomains:
+    - "host.docker.internal"
+
+# Add MCP servers as needed. Example for qmd semantic search:
+# mcpServers:
+#   qmd:
+#     type: streamable-http
+#     url: http://host.docker.internal:8181/mcp
