@@ -179,6 +179,8 @@ The key differences:
 
 **Tool access, not just chat.** Via MCP, the AI can directly query Netdata metrics, check Grafana dashboards, search GitHub repos, read and write files, and automate browser tasks. It's not just answering questions — it's operating.
 
+**Version-controlled infrastructure.** When AI agents have filesystem access, they will edit your config files directly — compose files, `.env` files, proxy confs. This is powerful, but it means you need version control on everything the AI can touch. All Docker compose files in this setup live in a git repo. Every change is tracked, diffable, and reversible. If an agent makes a bad edit, `git diff` shows what happened and `git checkout` recovers it. This isn't optional — it's the safety net that makes AI-assisted infrastructure management viable.
+
 **Model-agnostic in practice.** The core engine runs on Claude, but LibreChat supports any provider (OpenAI, Ollama, etc.). Perplexica provides self-hosted search without API keys. The architecture doesn't lock you into a single vendor.
 
 ## Prerequisites

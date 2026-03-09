@@ -56,6 +56,18 @@ You now have Claude Desktop with direct access to your filesystem and persistent
 
 Layer 2 is Docker containers providing web-accessible AI tools. The dependency chain matters here — deploy in this order.
 
+### Version Control Your Compose Files
+
+Before you deploy anything: put your Docker compose files in a git repo. This is not optional advice — it's the single most important operational practice when AI agents have filesystem access.
+
+When Claude has Desktop Commander or Claude Code access, it can and will edit your compose files directly. That's the point — you want it to be able to add environment variables, adjust port mappings, add containers. But an AI editing live config files without version control is how you end up debugging a broken stack at midnight with no idea what changed.
+
+```bash
+mkdir ~/docker && cd ~/docker && git init
+```
+
+Every compose file, every `.env` file (use `.env.example` with placeholders in git, real values in `.gitignore`'d `.env`), every proxy conf. Commit before and after AI-assisted changes. If something breaks, `git diff` tells you exactly what happened and `git checkout` gets you back. This has saved me more than once.
+
 ### Step 3: SWAG (Reverse Proxy)
 
 Deploy SWAG first. It handles SSL termination and subdomain routing for everything that follows. You'll need a domain name and DNS validation credentials (Cloudflare is what this setup uses, but SWAG supports many providers).

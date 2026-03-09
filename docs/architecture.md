@@ -155,11 +155,13 @@ Host (NVMe):
   ~/.memsearch/             ← memsearch vector DB
   ~/.claude/memory/         ← Agent memory files
   ~/repos/                  ← Git repositories
-  ~/docker/                 ← Docker compose files
+  ~/docker/                 ← Docker compose files (version controlled)
 
 NFS (optional, from storage server):
   /mnt/storage/host-backup/ ← Backup target for docker-stack-backup
 ```
+
+The `~/docker/` directory is a git repo. This is critical — AI agents (via Claude Desktop, Claude Code, or LibreChat) have filesystem access and will edit compose files, `.env` files, and proxy confs directly. Version control means every change is tracked, diffable, and reversible. If an agent makes a bad edit that breaks a stack, `git diff` shows exactly what changed and `git checkout` recovers it. Treat this the same way you'd treat infrastructure-as-code in a production environment.
 
 The docker-stack-backup PM2 job rsyncs `/opt/appdata/` to the NFS mount nightly. If the NFS mount is unavailable, the backup job fails gracefully and the resource-monitor alerts via push notification.
 
