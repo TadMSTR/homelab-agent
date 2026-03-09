@@ -1,0 +1,34 @@
+# Dockhand — Docker stack manager UI
+#
+# Visual management for Docker Compose stacks. Provides a web UI for
+# viewing container status, logs, and managing stacks without SSH.
+# https://github.com/fnsys/dockhand
+#
+# Requires Docker socket access. The group_add GID must match your
+# host's docker group — check with: getent group docker | cut -d: -f3
+
+services:
+  dockhand:
+    image: fnsys/dockhand:latest
+    container_name: dockhand
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - DATA_DIR=/opt/appdata/dockhand
+    group_add:
+      - "999"  # Docker socket GID — check yours with: getent group docker
+    ports:
+      - "3000:3000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/appdata/dockhand:/opt/appdata/dockhand
+      # Mount your home dir or compose file locations so Dockhand can
+      # find and manage your stacks:
+      # - /home/youruser:/home/youruser
+    networks:
+      - your-network  # Replace with your shared Docker network
+    restart: unless-stopped
+
+networks:
+  your-network:
+    external: true

@@ -1,0 +1,39 @@
+# SWAG — Reverse proxy for *.yourdomain services
+#
+# Nginx reverse proxy with Let's Encrypt wildcard SSL via Cloudflare DNS validation.
+# Ships with 300+ pre-built proxy conf templates and a built-in dashboard.
+# https://docs.linuxserver.io/general/swag/
+#
+# This is the single entry point for all services. No ports are exposed to
+# the internet — the domain resolves to an internal IP via split-horizon DNS
+# or a local DNS server.
+
+services:
+  swag:
+    image: lscr.io/linuxserver/swag:latest
+    container_name: swag
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - URL=yourdomain          # Your domain — must have Cloudflare DNS
+      - VALIDATION=dns
+      - DNSPLUGIN=cloudflare
+      - SUBDOMAINS=wildcard
+      - ONLY_SUBDOMAINS=false
+      - SWAG_AUTORELOAD=true    # Auto-reload nginx on proxy conf changes
+      - DOCKER_MODS=linuxserver/mods:swag-dashboard
+    volumes:
+      - /opt/appdata/swag:/config
+    ports:
+      - "443:443"
+      - "80:80"
+    networks:
+      - your-network  # Replace with your shared Docker network
+    restart: unless-stopped
+
+networks:
+  your-network:
+    external: true

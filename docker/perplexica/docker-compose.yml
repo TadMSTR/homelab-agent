@@ -1,0 +1,77 @@
+# Perplexica + SearXNG + Valkey — Self-hosted AI search
+#
+# Perplexica is a self-hosted alternative to Perplexity that uses SearXNG
+# for meta-search and adds AI-powered answer synthesis. Valkey (Redis fork)
+# provides caching for SearXNG.
+# https://github.com/ItzCrazyKns/Perplexica
+#
+# SearXNG is also used by the LibreChat web search pipeline (see
+# docker/firecrawl-simple). Both Perplexica and LibreChat point at the
+# same SearXNG instance — no duplication needed.
+#
+# Only perplexica and searxng join the shared network. Valkey is isolated
+# on an internal bridge.
+
+services:
+  perplexica:
+    image: itzcrazykns1337/perplexica:slim-latest
+    container_name: perplexica
+    environment:
+      - SEARXNG_API_URL=http://searxng:8080
+    ports:
+      - "3002:3000"
+    volumes:
+      - /opt/appdata/perplexica/data:/home/perplexica/data
+    networks:
+      - your-network  # Replace with your shared Docker network
+      - perplexica-internal
+    depends_on:
+      - searxng
+    restart: unless-stopped
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    volumes:
+      - /opt/appdata/perplexica/searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_SECRET=${SEARXNG_SECRET}            # Generate with: openssl rand -hex 32
+      - SEARXNG_VALKEY_URL=valkey://valkey:6379/0
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
+    networks:
+      - your-network  # Needed so LibreChat can also reach SearXNG
+      - perplexica-internal
+    depends_on:
+      - valkey
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: searxng-valkey
+    tmpfs:
+      - /data:size=64m
+    command: valkey-server --save "" --appendonly no   # In-memory only, no persistence
+    networks:
+      - perplexica-internal
+    restart: unless-stopped
+
+networks:
+  your-network:
+    external: true
+  perplexica-internal:
+    # Internal network — SearXNG <-> Valkey don't need external access
+    driver: bridge

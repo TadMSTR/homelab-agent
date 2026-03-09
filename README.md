@@ -221,9 +221,19 @@ Files that exist now, with direct links:
 - [`docker/librechat/`](docker/librechat/) — LibreChat compose + config example (multi-provider chat UI with web search)
 - [`docker/firecrawl-simple/`](docker/firecrawl-simple/) — Trieve's Firecrawl fork for web page scraping (part of LibreChat search pipeline)
 - [`docker/reranker/`](docker/reranker/) — Custom Jina-compatible reranker using FlashRank (Dockerfile + source included)
+- [`docker/swag/`](docker/swag/) — SWAG reverse proxy with wildcard SSL via Cloudflare DNS
+- [`docker/authelia/`](docker/authelia/) — Authelia SSO authentication gateway
+- [`docker/perplexica/`](docker/perplexica/) — Perplexica AI search + SearXNG + Valkey
+- [`docker/dockhand/`](docker/dockhand/) — Dockhand Docker stack manager UI
+- [`docker/open-notebook/`](docker/open-notebook/) — Open Notebook AI research tool + SurrealDB
 
 **Component Docs**
+- [`docs/components/swag.md`](docs/components/swag.md) — SWAG reverse proxy setup, proxy conf pattern, Cloudflare DNS validation, dashboard
+- [`docs/components/authelia.md`](docs/components/authelia.md) — Authelia SSO config, file-based user backend, SWAG integration
 - [`docs/components/librechat.md`](docs/components/librechat.md) — LibreChat setup, web search pipeline architecture, reranker wrapper, gotchas
+- [`docs/components/perplexica.md`](docs/components/perplexica.md) — Perplexica + SearXNG setup, shared search backend, network topology
+- [`docs/components/dockhand.md`](docs/components/dockhand.md) — Dockhand setup, Docker socket access, multi-host stack visibility
+- [`docs/components/open-notebook.md`](docs/components/open-notebook.md) — Open Notebook setup, SurrealDB, dual-port proxy config
 
 ---
 
@@ -239,8 +249,12 @@ homelab-agent/
 │   ├── architecture.md              ← Detailed system architecture and data flows
 │   ├── getting-started.md           ← Setup overview and prerequisites
 │   └── components/                  ← Per-component deep dives
-│       ├── swag-authelia.md
+│       ├── swag.md
+│       ├── authelia.md
 │       ├── librechat.md
+│       ├── perplexica.md
+│       ├── dockhand.md
+│       ├── open-notebook.md
 │       ├── qmd.md
 │       ├── memsearch.md
 │       └── memory-sync.md
@@ -253,9 +267,9 @@ homelab-agent/
 │       └── memory-sync.md
 ├── docker/
 │   ├── swag/
-│   │   └── docker-compose.yml       ← Reverse proxy stack
+│   │   └── docker-compose.yml       ← Reverse proxy + wildcard SSL
 │   ├── authelia/
-│   │   └── docker-compose.yml       ← SSO authentication
+│   │   └── docker-compose.yml       ← SSO authentication gateway
 │   ├── librechat/
 │   │   ├── docker-compose.yml       ← Multi-provider chat + MongoDB + Meilisearch
 │   │   └── librechat.yaml.example   ← LibreChat config with web search and MCP
@@ -268,7 +282,7 @@ homelab-agent/
 │   ├── perplexica/
 │   │   └── docker-compose.yml       ← AI search + SearXNG + Valkey
 │   ├── dockhand/
-│   │   └── docker-compose.yml       ← Docker stack manager
+│   │   └── docker-compose.yml       ← Docker stack manager UI
 │   └── open-notebook/
 │       └── docker-compose.yml       ← AI notebook + SurrealDB
 ├── pm2/
@@ -305,9 +319,9 @@ The system described here is running in production on my homelab. This repo is b
 | CLAUDE.md examples | ✅ Done |
 | PM2 ecosystem config | ✅ Done |
 | Repo structure scaffolding | 🔲 In progress |
-| Docker compose files | 🔨 In progress (LibreChat, firecrawl-simple, reranker done) |
+| Docker compose files | ✅ Done (SWAG, Authelia, LibreChat, firecrawl-simple, reranker, Perplexica, Dockhand, Open Notebook) |
 | Scripts | 🔲 Planned |
-| Component docs | 🔨 In progress ([LibreChat](docs/components/librechat.md) done) |
+| Component docs | 🔨 In progress ([SWAG](docs/components/swag.md), [Authelia](docs/components/authelia.md), [LibreChat](docs/components/librechat.md), [Perplexica](docs/components/perplexica.md), [Dockhand](docs/components/dockhand.md), [Open Notebook](docs/components/open-notebook.md) done) |
 
 The repo structure shown above reflects the planned layout — most directories are placeholders for now. If something you want isn't here yet, open an issue.
 

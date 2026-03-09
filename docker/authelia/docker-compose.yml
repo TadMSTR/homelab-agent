@@ -1,0 +1,27 @@
+# Authelia — SSO authentication gateway
+#
+# Single sign-on for all services behind SWAG. File-based user backend
+# with argon2id password hashing. One-factor auth with cookie-based sessions.
+# https://www.authelia.com/
+#
+# Authelia doesn't expose any ports to the host — SWAG proxies to it
+# via Docker DNS on port 9091. Enable Authelia on any service by
+# uncommenting two include lines in its SWAG proxy conf.
+
+services:
+  authelia:
+    image: authelia/authelia:4.38
+    container_name: authelia
+    environment:
+      - TZ=America/New_York
+    volumes:
+      - /opt/appdata/authelia:/config
+    expose:
+      - "9091"
+    networks:
+      - your-network  # Replace with your shared Docker network
+    restart: unless-stopped
+
+networks:
+  your-network:
+    external: true
