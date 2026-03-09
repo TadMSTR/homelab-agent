@@ -12,6 +12,8 @@ A modular reference implementation of an AI-powered homelab operations platform.
 
 ## Contents
 
+> **AI agents:** See [`index.md`](index.md) for a machine-readable navigation index — load only the context relevant to your current task.
+
 - [How This Started](#how-this-started)
 - [Architecture](#architecture)
   - [Layer 1 — Host & Core Tooling](#layer-1--host--core-tooling)
@@ -199,6 +201,9 @@ You don't need all of this to get value. See the component breakdown above for w
 
 Files that exist now, with direct links:
 
+**Navigation**
+- [`index.md`](index.md) — Machine-readable document index for AI agents — topic/layer/task mappings for scoped context loading
+
 **MCP Servers**
 - [`mcp-servers/README.md`](mcp-servers/README.md) — All MCP servers in the stack: what each does, config patterns, standalone value, and a prioritized adoption path
 
@@ -229,6 +234,7 @@ Files that exist now, with direct links:
 ```
 homelab-agent/
 ├── README.md                        ← You are here
+├── index.md                         ← Agent navigation index (scoped context loading)
 ├── docs/
 │   ├── architecture.md              ← Detailed system architecture and data flows
 │   ├── getting-started.md           ← Setup overview and prerequisites
@@ -294,6 +300,7 @@ The system described here is running in production on my homelab. This repo is b
 | Component | Status |
 |-----------|--------|
 | README | ✅ Done |
+| Agent index (`index.md`) | ✅ Done |
 | MCP servers doc | ✅ Done |
 | CLAUDE.md examples | ✅ Done |
 | PM2 ecosystem config | ✅ Done |

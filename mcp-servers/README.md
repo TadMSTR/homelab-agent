@@ -336,3 +336,12 @@ Some servers also support **HTTP** transport, which is useful when:
 
 For HTTP transport, run the server as a PM2 service and point clients at
 `http://localhost:PORT`. See the `pm2/` directory for examples.
+
+---
+
+## Related Docs
+
+- [Architecture overview](../README.md#layer-1--host--core-tooling) — Layer 1 context for MCP servers
+- [PM2 ecosystem config](../pm2/ecosystem.config.js.example) — service definitions for always-on MCP servers (qmd HTTP mode)
+- [LibreChat MCP integration](../docs/components/librechat.md#mcp-integration) — connecting LibreChat to host-level MCP servers
+- [CLAUDE.md examples](../claude-code/) — how agents reference MCP tools in their project context

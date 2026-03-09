@@ -184,3 +184,14 @@ You don't need the CLAUDE.md hierarchy, memsearch, or PM2 agents to get value fr
 - [FlashRank](https://github.com/PrithivirajDamodaran/FlashRank)
 - [LibreChat web search config reference](https://www.librechat.ai/docs/configuration/librechat_yaml/object_structure/web_search)
 - [LibreChat reranker discussion #9102](https://github.com/danny-avila/LibreChat/discussions/9102)
+
+---
+
+## Related Docs
+
+- [Architecture overview](../../README.md#architecture) — where LibreChat fits in the three-layer stack
+- [MCP servers reference](../../mcp-servers/README.md) — qmd config for LibreChat's MCP integration
+- [PM2 services](../../pm2/ecosystem.config.js.example) — qmd and other services LibreChat depends on
+- [Docker compose files](../../docker/librechat/) — LibreChat stack compose and config
+- [firecrawl-simple compose](../../docker/firecrawl-simple/) — web scraper for the search pipeline
+- [Reranker source + Dockerfile](../../docker/reranker/) — FlashRank wrapper referenced above
