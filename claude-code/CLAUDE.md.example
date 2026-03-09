@@ -1,0 +1,81 @@
+# Homelab — System Context
+
+You are operating on YOUR_HOSTNAME (describe your hardware, OS, IP).
+This is a dedicated AI agent workstation for homelab operations.
+
+## Key Paths
+
+- Repos: ~/repos/personal/, ~/repos/third-party/
+- Docker stacks: ~/docker/ (compose files)
+- Docker appdata: /opt/appdata/
+- Memory: ~/.claude/memory/ (memsearch-indexed, see Layer 3)
+- Context repo: ~/repos/YOUR_CONTEXT_REPO/
+
+## Infrastructure Context
+
+Describe your hosts here. The AI loads this every session, so it needs to know
+what exists, where it lives, and how to reach it.
+
+Example format:
+
+- Server1 (primary Docker host): 192.168.1.x
+  - Runs: reverse proxy, media stack, monitoring
+- Server2 (storage/backup): 192.168.1.x
+  - Runs: NFS exports, backup targets, Grafana stack
+- AI Host (this machine): 192.168.1.x
+  - Runs: Claude Desktop, Claude Code, MCP servers, Docker services
+- NFS mounts from Server2: /mnt/server2/backups (rw), /mnt/server2/media (ro)
+
+## Rules
+
+- Always check memsearch for relevant context before starting work.
+- Write durable decisions and learnings to ~/.claude/memory/shared/.
+- Never modify deploy or backup scripts without explicit approval.
+- Use git branches for code repos; documentation repos can commit to main.
+- Third-party repos clone to ~/repos/third-party/.
+
+---
+
+## How This File Works
+
+This is the root CLAUDE.md. Claude Code loads it automatically for every session
+on this machine. It gives the AI baseline knowledge about your environment so you
+don't have to re-explain your setup every time.
+
+### What to put here
+
+- **Host inventory**: hostnames, IPs, what each machine runs. Keep it concise —
+  just enough that the AI knows what exists and how to reach it.
+- **Key paths**: where repos, Docker files, configs, and memory live on this host.
+- **Global rules**: things that should apply to every session regardless of project.
+- **NFS/storage mounts**: what's mounted from where, read-only vs read-write.
+
+### What NOT to put here
+
+- Project-specific context — that goes in per-project CLAUDE.md files (see
+  `projects/` directory for examples).
+- Secrets, API keys, tokens — never put credentials in context files.
+- Verbose documentation — this file is loaded every session, keep it tight.
+  Link to detailed docs instead of inlining them.
+
+### File hierarchy
+
+Claude Code loads CLAUDE.md files in order of specificity:
+
+```
+~/.claude/CLAUDE.md                          ← This file (always loaded)
+~/.claude/projects/<project>/CLAUDE.md       ← Loaded when working in that project
+~/repos/<repo>/CLAUDE.md                     ← Loaded when in a specific repo
+```
+
+The root file provides infrastructure context. Project files add domain-specific
+tools, conventions, and memory paths. Repo-level files add repo-specific build
+instructions, test commands, and coding standards.
+
+### Tips
+
+- Keep this under ~60 lines. If it's getting long, you're putting too much here.
+- Update it when infrastructure changes (new host, new IP, new mount).
+- The AI reads this literally — be precise about paths and IPs.
+- Test changes by starting a new Claude Code session and asking "what do you know
+  about my infrastructure?" — the answer should be accurate from this file alone.

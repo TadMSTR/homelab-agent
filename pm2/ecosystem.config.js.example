@@ -1,0 +1,130 @@
+// PM2 Ecosystem Configuration — Example
+//
+// PM2 manages long-running services and scheduled jobs on the AI host.
+// Services fall into two categories:
+//   - Always-on: daemons that run continuously (qmd, cui)
+//   - Scheduled: cron jobs that run at set intervals, then stop (backups, syncs, monitors)
+//
+// Install PM2: npm install -g pm2
+// Load this config: pm2 start ecosystem.config.js
+// Save state: pm2 save
+// Enable startup: pm2 startup (follow the printed command)
+//
+// Logs: ~/.pm2/logs/<name>-out.log, <name>-error.log
+// Monitor: pm2 monit
+
+module.exports = {
+  apps: [
+
+    // =========================================================================
+    // ALWAYS-ON SERVICES
+    // =========================================================================
+
+    {
+      // Semantic search MCP server (HTTP transport for multi-client access)
+      // Claude Desktop uses stdio transport separately; this serves LibreChat
+      // and any other HTTP MCP clients.
+      name: "qmd",
+      script: "/usr/bin/bash",
+      args: "-c 'qmd mcp --http --port 8181'",
+      env: {
+        QMD_HOST: "0.0.0.0",   // Bind to all interfaces (needed if other hosts connect)
+      },
+      autorestart: true,        // Restart if it crashes
+      max_restarts: 10,
+    },
+
+    {
+      // Claude Code web UI — browser-based terminal for Claude Code sessions
+      // with push notifications for long-running tasks.
+      // See: https://github.com/wbopan/cui
+      name: "cui",
+      script: "/usr/bin/cui-server",  // Adjust to your install path
+      interpreter: "/usr/bin/node",
+      autorestart: true,
+      max_restarts: 10,
+    },
+
+    // =========================================================================
+    // SCHEDULED JOBS (cron-triggered, run once then stop)
+    // =========================================================================
+    //
+    // Pattern: autorestart: false + cron_restart = "run at schedule, don't loop"
+    // PM2 starts the script at cron time, script runs to completion, PM2 marks
+    // it as "stopped" until next cron trigger.
+
+    {
+      // Backup Docker appdata to NFS/remote storage
+      // Stops containers, rsyncs appdata, restarts containers.
+      name: "docker-stack-backup",
+      script: "/home/YOUR_USER/scripts/docker-stack-backup.sh",
+      interpreter: "bash",
+      cron_restart: "0 1 * * *",   // Daily at 1:00 AM
+      autorestart: false,
+      watch: false,
+    },
+
+    {
+      // Pull latest from all indexed git repos, re-embed for semantic search.
+      // Keeps qmd index fresh with recent code and doc changes.
+      name: "qmd-reindex",
+      script: "/home/YOUR_USER/scripts/qmd-reindex.sh",
+      interpreter: "bash",
+      cron_restart: "0 5 * * *",   // Daily at 5:00 AM
+      autorestart: false,
+      watch: false,
+    },
+
+    {
+      // Memory distillation — reads recent Claude Code + chat memory,
+      // extracts durable knowledge, commits to context repo.
+      // See: claude-code/projects/memory-sync.md for the agent's instructions.
+      name: "memory-sync",
+      script: "/home/YOUR_USER/.claude/scripts/memory-sync.sh",
+      interpreter: "bash",
+      cron_restart: "0 4 * * *",   // Daily at 4:00 AM
+      autorestart: false,
+      watch: false,
+    },
+
+    {
+      // Check for updates to pinned dependencies (qmd, memsearch, Authelia,
+      // Claude Code, etc). Alerts via ntfy if updates are available.
+      name: "dep-update-check",
+      script: "/home/YOUR_USER/scripts/check-dep-updates.sh",
+      interpreter: "bash",
+      cron_restart: "0 12 * * 3",  // Wednesdays at noon
+      autorestart: false,
+      watch: false,
+    },
+
+    {
+      // Health check — RAM, disk, Docker containers, PM2 services, NFS mounts.
+      // Sends alerts via ntfy if anything is unhealthy.
+      name: "resource-monitor",
+      script: "/home/YOUR_USER/scripts/check-resources.sh",
+      interpreter: "bash",
+      cron_restart: "0 */6 * * *", // Every 6 hours
+      autorestart: false,
+      watch: false,
+    },
+
+    // =========================================================================
+    // OPTIONAL: Issue/bug watchers
+    // =========================================================================
+    //
+    // If you're tracking specific upstream issues that affect your stack,
+    // you can add watchers that check GitHub issue status on a schedule.
+    // Remove these if you don't need them.
+
+    // {
+    //   name: "upstream-issue-check",
+    //   script: "/home/YOUR_USER/scripts/check-upstream-issue.sh",
+    //   interpreter: "bash",
+    //   cron_restart: "0 12 * * 1",  // Mondays at noon
+    //   autorestart: false,
+    //   watch: false,
+    // },
+
+  ],
+};
