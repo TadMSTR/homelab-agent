@@ -16,6 +16,7 @@ A modular reference implementation of an AI-powered homelab operations platform.
 - [The Memory / Context System](#the-memory--context-system)
 - [What Makes This Different](#what-makes-this-different)
 - [Prerequisites](#prerequisites)
+- [What's in This Repo](#whats-in-this-repo)
 - [Repo Structure](#repo-structure)
 - [Related Repos](#related-repos)
 - [Current Status](#current-status)
@@ -186,6 +187,25 @@ To run the full stack, you need:
 - Optional: NFS server for backups (TrueNAS, Unraid, or any NFS-capable host)
 
 You don't need all of this to get value. See the component breakdown above for what each piece requires independently.
+
+## What's in This Repo
+
+Files that exist now, with direct links:
+
+**MCP Servers**
+- [`mcp-servers/README.md`](mcp-servers/README.md) — All MCP servers in the stack: what each does, config patterns, standalone value, and a prioritized adoption path
+
+**PM2**
+- [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) — PM2 service definitions for always-on daemons (qmd, CUI) and scheduled cron jobs (backups, memory sync, monitoring, dep checks)
+
+**Claude Code**
+- [`claude-code/CLAUDE.md.example`](claude-code/CLAUDE.md.example) — Root CLAUDE.md template with infrastructure context, key paths, global rules, and guidance on what to put (and not put) here
+- [`claude-code/projects/homelab-ops.md`](claude-code/projects/homelab-ops.md) — Infrastructure management agent: MCP tools, host context, memory paths, conventions
+- [`claude-code/projects/dev.md`](claude-code/projects/dev.md) — Development agent: repo workflow, conventions, memory paths
+- [`claude-code/projects/research.md`](claude-code/projects/research.md) — Research agent: findings format, memory paths, conventions
+- [`claude-code/projects/memory-sync.md`](claude-code/projects/memory-sync.md) — Memory distillation agent: sources, output paths, workflow, rules for what's worth keeping
+
+---
 
 ## Repo Structure
 
