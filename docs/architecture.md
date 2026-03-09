@@ -196,6 +196,7 @@ In practice, a single mini PC handles everything described in this repo without 
 ## Related Docs
 
 - [Main README](../README.md) — architecture overview and component list
+- [Architecture decisions](decisions.md) — rationale behind major choices
 - [Getting started](getting-started.md) — setup order and stopping points
 - [MCP servers reference](../mcp-servers/README.md) — Layer 1 tool integrations
 - [Component docs](components/) — per-service deep dives

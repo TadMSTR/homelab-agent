@@ -70,6 +70,8 @@ After configuring paths, run `memsearch index` to build the initial database. Re
 
 **Plugin version matters.** The CLI tool and Claude Code plugin are versioned separately. Make sure the plugin version is compatible with your Claude Code version — check the memsearch repo for compatibility notes after Claude Code updates.
 
+**Plugin availability isn't guaranteed.** The Claude Code plugin ecosystem may change between versions. Before setting up the plugin, verify it exists: check `claude --help` for plugin commands, then look for memsearch in the marketplace. If the plugin isn't available, memsearch still works as a standalone CLI tool — you lose the auto-inject hooks but can use `memsearch search "query"` manually or via shell commands from within Claude Code sessions. The core indexing and search functionality doesn't depend on the plugin.
+
 **Memory quality depends on agent discipline.** memsearch is only as good as the memory files agents write. If an agent writes vague session summaries ("did some work on Docker"), memsearch can't surface useful context. The CLAUDE.md project configs in this repo include guidance on writing useful memory entries — specific decisions, rationale, outcomes.
 
 **Overlap with qmd is intentional.** Both tools index `~/.claude/memory/`, which means some content is searchable through both. This isn't a problem — they serve different access patterns. memsearch is automatic and session-scoped; qmd is on-demand and broader. The redundancy is a feature, not a bug.

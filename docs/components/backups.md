@@ -180,6 +180,39 @@ On success, a summary is sent with counts of backed-up, skipped, and failed stac
 
 The docker-stack-backup script is independently useful outside this stack. It's a fork of [TadMSTR/docker-stack-backup](https://github.com/TadMSTR/docker-stack-backup) and works with any Docker Compose setup that uses bind mounts for persistent data. Drop it on any host, configure the three paths, and schedule it.
 
+## Timing Chain
+
+The three backup jobs are the first links in a nightly processing chain. Each step depends on the previous one completing:
+
+| Time | Job | What It Does | Why This Order |
+|------|-----|-------------|----------------|
+| 1:00 AM | docker-stack-backup | Stops containers, archives appdata + compose, restarts | Must complete before Backrest so containers are running again |
+| 2:00 AM | Backrest/restic | Snapshots home, etc, opt | Runs after Docker is back up; covers compose files and dotfiles |
+| 3:00 AM | backup-claude.sh | Syncs Claude config + memory to NFS | Runs last; NFS copies are the deploy script's restore source |
+| 4:00 AM | memory-sync | Distills durable knowledge from agent memory → context repo | Reads from memory dirs that backup-claude.sh just preserved |
+| 5:00 AM | qmd reindex | Pulls latest from git repos, re-embeds | Picks up memory-sync's new distilled notes from the previous hour |
+
+The 4 AM and 5 AM jobs aren't backups — they're downstream consumers. They're listed here because the timing is deliberate: backup jobs run first to ensure data is preserved, then processing jobs run against the preserved data. If any backup job fails, the processing jobs still run against the existing state — they don't depend on fresh backups, just on the data being present.
+
+## Backup Coverage Matrix
+
+This table shows which backup mechanism covers which data. The three mechanisms have complementary scopes — no single job covers everything, and some critical data is intentionally covered by multiple mechanisms.
+
+| Data | Backrest | backup-claude.sh (NFS) | docker-stack-backup (NFS) | Deploy Script Restores |
+|------|----------|------------------------|---------------------------|----------------------|
+| `~/.claude/` (settings, memory, CLAUDE.md, scripts) | Yes (claudebox-home) | Yes (explicit copy) | — | Yes |
+| `~/.memsearch/config.toml` | Yes (claudebox-home) | Yes (explicit copy) | — | Yes |
+| `/opt/appdata/` (SWAG, LibreChat, Authelia appdata) | No (excluded) | — | Yes (stops containers first) | Yes |
+| `~/docker/` (compose files, `.env`) | Yes (claudebox-home) | — | Yes (included in tarball) | Yes |
+| PM2 ecosystem (`~/.pm2/dump.pm2`) | Yes (claudebox-home) | Yes (explicit copy) | — | Yes (pm2 resurrect) |
+| SSH keys | Yes (claudebox-home) | Yes (NFS) | — | Yes |
+| API tokens / secrets (`.env` files, MCP config) | Yes (claudebox-home) | Yes (NFS) | Yes (in compose tarballs) | Yes |
+| qmd index (`~/.cache/qmd/`) | No (rebuildable) | No | — | Rebuilt via `qmd embed` |
+| memsearch vector DB (`~/.memsearch/milvus.db`) | No (rebuildable) | No | — | Rebuilt via `memsearch index` |
+| Git repos (`~/repos/`) | Yes (claudebox-home) | — | — | Cloned from manifest |
+
+The "rebuildable" entries (qmd index, memsearch DB) are derived caches that reconstruct from source data. Backing them up would waste space — they rebuild in minutes.
+
 ## What's Not Backed Up
 
 Worth being explicit about what falls outside the backup scope:

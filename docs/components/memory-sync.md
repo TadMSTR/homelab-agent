@@ -81,6 +81,16 @@ The memory-sync agent follows specific rules to keep the output useful:
 
 **Chat memory export is the fragile part.** The Claude Code memory side is straightforward — it's just markdown files on disk. The chat interface export depends on your specific chat UI. For LibreChat, this means querying MongoDB for memory entries. If you change chat UIs, the export adapter needs updating. The project config describes the staging file format so the distillation side stays stable regardless of the source.
 
+**Headless Claude Code has quirks.** Running Claude Code non-interactively took some trial and error. The key findings:
+
+- Passing the prompt as a positional argument (`claude -p "prompt"`) hangs without a TTY. Pipe the prompt via stdin instead: `echo "prompt" | claude -p`.
+- The `--project` flag doesn't exist in current Claude Code versions. Instead, `cd` into the project directory before invoking `claude` — it picks up CLAUDE.md from cwd via project resolution.
+- Headless mode requires `--dangerously-skip-permissions` because there's no TTY to approve tool use. This is expected for automated agent runs but means you should review the agent's CLAUDE.md carefully to ensure it can't do anything destructive.
+- Add a timeout wrapper (`timeout 300 claude -p ...`) to prevent runaway sessions. Five minutes is generous for a memory distillation task.
+- Use `--add-dir` to grant the headless session access to directories outside cwd (memory dirs, context repo) that the agent needs to read and write.
+
+These details matter if you're building any PM2-scheduled Claude Code job, not just memory-sync.
+
 **Review the output occasionally.** The agent does a good job of filtering, but it's worth skimming the distilled notes weekly to catch anything that slipped through as noise or to spot knowledge gaps where something durable was missed. This gets better over time as the agent's CLAUDE.md instructions get refined.
 
 **Git conflicts are unlikely but possible.** If you're manually committing to the context repo's distilled directory at the same time the agent runs, you could get a merge conflict. The agent runs at 4 AM specifically to avoid this, but if you're a night owl, be aware.
