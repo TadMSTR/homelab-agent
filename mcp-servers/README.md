@@ -82,8 +82,17 @@ Configuration depends on your Grafana deployment.
 **Transport:** Claude.ai built-in connector (or via `@modelcontextprotocol/server-github`)
 
 **Why it's here:** Claude can search your repos, read code, create issues, and
-review PRs without you switching to a browser. Especially useful for the
-memory-sync agent that commits to your context repo.
+review PRs without you switching to a browser.
+
+**Important — use Desktop Commander for local git, not this.** GitHub MCP is for
+remote operations that require the GitHub API: opening issues, creating PRs,
+reviewing code, reading files from repos you haven't checked out locally. For
+anything involving a repo that already exists on disk — committing files, pushing,
+running git log — use Desktop Commander's shell access instead. It's faster,
+doesn't require API calls, and works exactly as you'd expect from the terminal.
+Claude left to its own devices will reach for GitHub MCP for local git operations;
+nudging it toward Desktop Commander in your CLAUDE.md or agent instructions avoids
+unnecessary API round-trips and the confusion of mixing local and remote tool use.
 
 **Tip:** If you have multiple GitHub accounts (personal + work), configure
 separate MCP server entries with different SSH keys or tokens. Label them
