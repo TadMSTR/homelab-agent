@@ -28,3 +28,4 @@ For the architecture overview and how these components relate, see the [main REA
 | Component | Doc | What It Covers |
 |-----------|-----|---------------|
 | Backups | [backups.md](backups.md) | Backrest/restic, Claude Desktop backup, Docker appdata backup — schedules, retention, restore |
+| Config Version Control | [config-version-control.md](config-version-control.md) | Gitea-backed git tracking for `~/docker/` and `/opt/appdata/`, nightly snapshot, Claude edit workflow |
