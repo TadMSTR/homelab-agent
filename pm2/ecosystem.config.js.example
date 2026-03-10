@@ -76,6 +76,20 @@ module.exports = {
     },
 
     {
+      // Scan repos directory for collections not yet in the QMD index.
+      // Repos matching keywords (claude, claudebox, mcp) are auto-added to
+      // ~/.config/qmd/index.yml and a reindex is triggered. Everything else
+      // is reported via push notification for manual review.
+      // State is tracked — won't re-notify for the same pending set.
+      name: "qmd-repo-check",
+      script: "/home/YOUR_USER/scripts/check-qmd-repos.sh",
+      interpreter: "bash",
+      cron_restart: "0 9 * * *",   // Daily at 9:00 AM
+      autorestart: false,
+      watch: false,
+    },
+
+    {
       // Memory distillation — reads recent Claude Code + chat memory,
       // extracts durable knowledge, commits to context repo.
       // See: claude-code/projects/memory-sync.md for the agent's instructions.

@@ -15,6 +15,7 @@ PM2 manages both always-on services and scheduled cron jobs on the host. The eco
 | docker-stack-backup | cron | 1:00 AM daily | Container-safe appdata backup to NFS |
 | memory-sync | cron | 4:00 AM daily | Knowledge distillation from agent memory |
 | qmd-reindex | cron | 5:00 AM daily | Re-embed repos and docs for semantic search |
+| qmd-repo-check | cron | 9:00 AM daily | Scan repos dir for collections missing from QMD index; auto-adds keyword matches, notifies on others |
 | resource-monitor | cron | every 6 hours | Health checks with push notifications |
 | dep-update-check | cron | Wednesdays noon | Check for dependency updates |
 

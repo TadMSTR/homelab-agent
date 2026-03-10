@@ -63,6 +63,14 @@ After defining collections, build the index with `qmd index`. This scans all con
 
 The index doesn't auto-update when files change. This setup runs a PM2 cron job (`qmd-reindex`) at 5:00 AM daily that pulls the latest from all git repos and re-runs `qmd index`. If you're making frequent changes and need fresher results, run `qmd index` manually or increase the cron frequency.
 
+### Collection Discovery
+
+The index only covers repos explicitly listed in `~/.config/qmd/index.yml`. It won't automatically pick up new repos you clone. A second PM2 cron job (`qmd-repo-check`, runs at 9:00 AM daily) handles this by scanning the repos directory and comparing against the index config.
+
+Repos matching configured keywords (`claude`, `claudebox`, `mcp` by default) are auto-added to `index.yml` and a reindex is triggered immediately. Everything else lands in a push notification for manual review. State is hashed on the unreviewed set, so you won't get re-notified daily for the same backlog — only when the set changes (new repo cloned, or you manually add one).
+
+The script lives at [`scripts/check-qmd-repos.sh`](../../scripts/check-qmd-repos.sh). Keywords and the repos directory are configured at the top of the file.
+
 ### HTTP Bind Address
 
 By default, qmd's HTTP mode binds to `localhost`, which means Docker containers can't reach it. To bind to all interfaces, set the `QMD_HOST` environment variable to `0.0.0.0` in your PM2 ecosystem config.
@@ -85,6 +93,8 @@ This patch needs to be reapplied after every `npm update -g @tobilu/qmd`. It's t
 **memsearch:** Separate from qmd. memsearch handles Claude Code's auto-injected memory recall; qmd handles broader document search. They index overlapping content (both cover `~/.claude/memory/`) but serve different purposes and different clients.
 
 **qmd-reindex cron:** PM2 cron job that keeps the index fresh. Pulls git repos, re-runs embedding generation.
+
+**qmd-repo-check cron:** PM2 cron job that watches for new repos not yet in the QMD index. Auto-adds repos matching configured keywords; notifies for anything else. See [Collection Discovery](#collection-discovery) above.
 
 ## Gotchas and Lessons Learned
 
