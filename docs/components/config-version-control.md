@@ -8,8 +8,8 @@ This isn't a substitute for backups. The docker-stack-backup job and Backrest bo
 
 | Local Path | Gitea Repo | Contents |
 |------------|------------|----------|
-| `~/docker/` | `homelab-docker` | All Docker Compose stacks and associated files |
-| `/opt/appdata/` | `homelab-appdata` | Container config files by service |
+| `~/docker/` | `claudebox-docker` | All Docker Compose stacks and associated files |
+| `/opt/appdata/` | `claudebox-appdata` | Container config files by service |
 
 Gitea runs on atlas as a single-container Docker stack with a SQLite backend — simple enough for a homelab and plenty sufficient for two repos with light commit frequency.
 
