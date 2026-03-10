@@ -11,7 +11,7 @@ For the architecture overview and how these components relate, see the [main REA
 | SWAG | [swag.md](swag.md) | Reverse proxy, wildcard SSL, Cloudflare DNS validation, proxy conf pattern |
 | Authelia | [authelia.md](authelia.md) | SSO gateway, file-based user backend, SWAG integration |
 | LibreChat | [librechat.md](librechat.md) | Multi-provider chat UI, web search pipeline, reranker wrapper, MCP integration |
-| Perplexica | [perplexica.md](perplexica.md) | AI search, SearXNG shared backend, network topology |
+| SearXNG | [searxng.md](searxng.md) | Private meta-search backend, Valkey cache, LibreChat web search |
 | Dockhand | [dockhand.md](dockhand.md) | Docker stack manager, socket access, multi-host visibility |
 | Open Notebook | [open-notebook.md](open-notebook.md) | AI research tool, SurrealDB, dual-port proxy config |
 

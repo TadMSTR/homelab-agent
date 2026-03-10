@@ -23,7 +23,7 @@ This document expands on the architecture overview in the [main README](../READM
 │  Layer 2: Self-Hosted Service Stack (Docker)                         │
 │                                                                      │
 │  ┌──────┐  ┌──────────┐  ┌───────────┐  ┌──────────┐  ┌─────────┐    │
-│  │ SWAG │──│ Authelia │  │ LibreChat │  │Perplexica│  │Dockhand │    │
+│  │ SWAG │──│ Authelia │  │ LibreChat │  │ SearXNG  │  │Dockhand │    │
 │  │(proxy)│ │  (SSO)   │  │           │  │+ SearXNG │  │         │    │
 │  └──┬───┘  └──────────┘  └─────┬─────┘  └──────────┘  └─────────┘    │
 │     │                          │                                     │
@@ -68,15 +68,14 @@ Docker bridge network (claudebox-net):
   ├── swag (443 → host, routes *.yourdomain)
   │     ├── → authelia:9091  (SSO checks)
   │     ├── → librechat:3080
-  │     ├── → perplexica:3000
   │     ├── → dockhand:3000
   │     ├── → open-notebook:8502
   │     └── → cui:3001 (host service, via host.docker.internal)
   ├── authelia
   ├── librechat + mongodb + meilisearch
   │     └── → host:8181 (qmd HTTP, for RAG)
-  ├── perplexica + searxng + valkey
-  │     └── searxng also serves librechat search queries
+  ├── searxng + valkey
+  │     └── searxng serves librechat web search queries
   ├── dockhand (+ Docker socket mount)
   └── open-notebook + surrealdb
 ```

@@ -44,7 +44,7 @@ The system has three layers. Each is independently useful — you don't need all
 │  PM2 background agents · automated memory sync          │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 2: Self-Hosted Service Stack (Docker)            │
-│  SWAG/Authelia · LibreChat · qmd · CUI · Perplexica     │
+│  SWAG/Authelia · LibreChat · qmd · CUI · SearXNG        │
 │  Dockhand · Open Notebook                               │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 1: Host & Core Tooling                           │
@@ -95,7 +95,7 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 | **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
 | **LibreChat** | Multi-provider chat UI (Anthropic, OpenAI, Ollama, etc.) | Web-based chat with agent support, MCP tool integration, built-in memory, and RAG. The primary interface for interactive agent work. |
 | **Open Notebook** | AI research/notebook tool | Document analysis and research with SurrealDB backend. |
-| **Perplexica + SearXNG** | AI-powered search | Self-hosted alternative to Perplexity. SearXNG does meta-search across engines, Perplexica adds AI synthesis. No external API keys needed. |
+| **SearXNG** | Private meta-search | Self-hosted search backend. Aggregates results from multiple engines with no API keys or per-query costs. Powers LibreChat's web search pipeline. |
 | **qmd** | Semantic search MCP server | Hybrid search (BM25 + vector + LLM reranking) over all repos, docs, and agent memory. Local embeddings via GGUF models, GPU-accelerated on AMD iGPU via Vulkan. |
 | **SWAG** | Nginx reverse proxy with Let's Encrypt wildcard SSL | Single entry point for all `*.yourdomain` services. DNS validation via Cloudflare — internal-only domain, no ports exposed to the internet. |
 
@@ -178,7 +178,7 @@ The key differences:
 
 **Version-controlled infrastructure.** When AI agents have filesystem access, they will edit your config files directly — compose files, `.env` files, proxy confs. This is powerful, but it means you need version control on everything the AI can touch. All Docker compose files in this setup live in a git repo. Every change is tracked, diffable, and reversible. If an agent makes a bad edit, `git diff` shows what happened and `git checkout` recovers it. This isn't optional — it's the safety net that makes AI-assisted infrastructure management viable.
 
-**Model-agnostic in practice.** The core engine runs on Claude, but LibreChat supports any provider (OpenAI, Ollama, etc.). Perplexica provides self-hosted search without API keys. The architecture doesn't lock you into a single vendor.
+**Model-agnostic in practice.** The core engine runs on Claude, but LibreChat supports any provider (OpenAI, Ollama, etc.). SearXNG provides self-hosted search without API keys. The architecture doesn't lock you into a single vendor.
 
 ## Prerequisites
 
@@ -211,7 +211,7 @@ homelab-agent/
 │       ├── swag.md                  ← Reverse proxy, Cloudflare DNS, proxy conf pattern
 │       ├── authelia.md              ← SSO config, file-based user backend, SWAG integration
 │       ├── librechat.md             ← Setup, web search pipeline, reranker wrapper, gotchas
-│       ├── perplexica.md            ← Perplexica + SearXNG, shared search backend
+│       ├── searxng.md               ← SearXNG + Valkey, shared search backend
 │       ├── dockhand.md              ← Docker socket access, multi-host stack visibility
 │       ├── open-notebook.md         ← SurrealDB, dual-port proxy config
 │       ├── qmd.md                   ← Semantic search, dual transport, GPU acceleration
@@ -239,8 +239,8 @@ homelab-agent/
 │   │   ├── docker-compose.yml       ← Jina-compatible reranker wrapper
 │   │   ├── Dockerfile               ← FlashRank + FastAPI build
 │   │   └── main.py                  ← Reranker API source (~115 lines)
-│   ├── perplexica/
-│   │   └── docker-compose.yml       ← AI search + SearXNG + Valkey
+│   ├── searxng/
+│   │   └── docker-compose.yml       ← SearXNG + Valkey
 │   ├── dockhand/
 │   │   └── docker-compose.yml       ← Docker stack manager UI
 │   └── open-notebook/

@@ -6,7 +6,7 @@ It sits in [Layer 2](../../README.md#layer-2--self-hosted-service-stack) of the 
 
 ## Why Open Notebook
 
-Open Notebook fills a different niche than LibreChat or Perplexica. LibreChat is for general chat and agent interactions. Perplexica is for web search with AI synthesis. Open Notebook is for working with your own documents — uploading a PDF, asking questions about it, building a research notebook around a topic.
+Open Notebook fills a different niche than LibreChat. LibreChat is for general chat, agent interactions, and web research. Open Notebook is for working with your own documents — uploading a PDF, asking questions about it, building a research notebook around a topic.
 
 It's the newest addition to the stack and the one I'm still evaluating. The document analysis capabilities are solid, and SurrealDB's GraphQL support makes it interesting for future integrations. Whether it stays long-term depends on how much I use it versus just feeding documents to LibreChat directly.
 

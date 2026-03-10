@@ -15,7 +15,7 @@ homelab-agent/
 │       ├── swag.md                    # SWAG reverse proxy, Cloudflare DNS, proxy conf pattern
 │       ├── authelia.md                # Authelia SSO, file-based user backend, SWAG integration
 │       ├── librechat.md               # LibreChat setup, web search pipeline, reranker
-│       ├── perplexica.md              # Perplexica AI search, SearXNG, shared search backend
+│       ├── searxng.md               # SearXNG + Valkey, search backend
 │       ├── dockhand.md                # Dockhand Docker stack manager, socket access
 │       ├── open-notebook.md           # Open Notebook AI research, SurrealDB, dual-port proxy
 │       ├── qmd.md                     # qmd semantic search, dual transport, GPU acceleration
@@ -35,7 +35,7 @@ homelab-agent/
 │   ├── librechat/                     # LibreChat compose + config
 │   ├── firecrawl-simple/              # Web scraper for LibreChat search pipeline
 │   ├── reranker/                      # Jina-compatible FlashRank reranker
-│   ├── perplexica/                    # Perplexica + SearXNG + Valkey compose
+│   ├── searxng/                    # SearXNG + Valkey compose
 │   ├── dockhand/                      # Dockhand Docker stack manager compose
 │   └── open-notebook/                 # Open Notebook + SurrealDB compose
 ├── mcp-servers/
@@ -63,7 +63,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | LibreChat / web search | `docs/components/librechat.md`, `docker/librechat/`, `docker/firecrawl-simple/`, `docker/reranker/` | MCP, Claude Code, PM2 |
 | Reverse proxy / SSL | `docs/components/swag.md`, `docker/swag/` | Claude Code, MCP |
 | SSO / authentication | `docs/components/authelia.md`, `docker/authelia/` | Claude Code, MCP |
-| AI search (Perplexica) | `docs/components/perplexica.md`, `docker/perplexica/` | Claude Code, MCP |
+| AI search (SearXNG) | `docs/components/searxng.md`, `docker/searxng/` | Claude Code, MCP |
 | Docker management (Dockhand) | `docs/components/dockhand.md`, `docker/dockhand/` | Claude Code, MCP |
 | AI notebook (Open Notebook) | `docs/components/open-notebook.md`, `docker/open-notebook/` | Claude Code, MCP |
 | Claude Code / CLAUDE.md | `claude-code/CLAUDE.md.example`, `claude-code/projects/` | Docker, MCP |
@@ -91,7 +91,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | "I want to set up MCP servers" | `mcp-servers/README.md` — has adoption path and all config patterns |
 | "I want to deploy LibreChat with web search" | `docs/components/librechat.md` — then `docker/librechat/` and `docker/firecrawl-simple/` |
 | "I want to set up reverse proxy + SSO" | `docs/components/swag.md` → `docs/components/authelia.md` — then `docker/swag/` and `docker/authelia/` |
-| "I want to deploy Perplexica" | `docs/components/perplexica.md` — then `docker/perplexica/` |
+| "I want to deploy SearXNG" | `docs/components/searxng.md` — then `docker/searxng/` |
 | "I want to set up Claude Code agents" | `claude-code/CLAUDE.md.example` — then `claude-code/projects/` for per-agent examples |
 | "I want to add PM2 background jobs" | `pm2/ecosystem.config.js.example` — self-contained |
 | "I want to replicate the memory system" | `README.md` (§Memory / Context System) → `docs/components/memsearch.md` → `docs/components/memory-sync.md` |
@@ -112,12 +112,12 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/librechat.md` | ✅ Complete | 2026-03 |
 | `docs/components/swag.md` | ✅ Complete | 2026-03 |
 | `docs/components/authelia.md` | ✅ Complete | 2026-03 |
-| `docs/components/perplexica.md` | ✅ Complete | 2026-03 |
+| `docs/components/searxng.md` | ✅ Complete | 2026-03 |
 | `docs/components/dockhand.md` | ✅ Complete | 2026-03 |
 | `docs/components/open-notebook.md` | ✅ Complete | 2026-03 |
 | `docker/swag/` | ✅ Complete | 2026-03 |
 | `docker/authelia/` | ✅ Complete | 2026-03 |
-| `docker/perplexica/` | ✅ Complete | 2026-03 |
+| `docker/searxng/` | ✅ Complete | 2026-03 |
 | `docker/dockhand/` | ✅ Complete | 2026-03 |
 | `docker/open-notebook/` | ✅ Complete | 2026-03 |
 | `docker/librechat/` | ✅ Complete | 2026-03 |
@@ -141,7 +141,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | SWAG | [`docs/components/swag.md`](docs/components/swag.md) | — | `docker/swag/docker-compose.yml` |
 | Authelia | [`docs/components/authelia.md`](docs/components/authelia.md) | — | `docker/authelia/docker-compose.yml` |
 | qmd | [`docs/components/qmd.md`](docs/components/qmd.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§qmd) | — | (host-level service) |
-| Perplexica + SearXNG | [`docs/components/perplexica.md`](docs/components/perplexica.md) | — | `docker/perplexica/docker-compose.yml` |
+| SearXNG | [`docs/components/searxng.md`](docs/components/searxng.md) | — | `docker/searxng/docker-compose.yml` |
 | Dockhand | [`docs/components/dockhand.md`](docs/components/dockhand.md) | — | `docker/dockhand/docker-compose.yml` |
 | Open Notebook | [`docs/components/open-notebook.md`](docs/components/open-notebook.md) | — | `docker/open-notebook/docker-compose.yml` |
 | MCP servers (all) | [`mcp-servers/README.md`](mcp-servers/README.md) | Config patterns inline | — |

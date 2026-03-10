@@ -110,7 +110,7 @@ With Authelia SSO in front of LibreChat, only authenticated users can reach the 
 **Choice:** Full self-hosted search pipeline with zero recurring API costs.
 **Alternatives considered:** Jina API, Cohere reranker API, Perplexity API, no web search.
 
-LibreChat's built-in web search goes beyond MCP-based search (which only returns snippets) — it scrapes full page content, converts to markdown, and reranks by relevance before feeding to the model. The pipeline uses SearXNG for meta-search (already running for Perplexica), firecrawl-simple (Trieve's lightweight fork) for scraping, and a custom FastAPI wrapper around FlashRank for reranking. The FlashRank wrapper exposes Jina's API format so LibreChat thinks it's talking to Jina. Total RAM overhead is ~1.2GB. See the [LibreChat component doc](components/librechat.md) for the full breakdown.
+LibreChat's built-in web search goes beyond MCP-based search (which only returns snippets) — it scrapes full page content, converts to markdown, and reranks by relevance before feeding to the model. The pipeline uses SearXNG for meta-search (standalone stack), firecrawl-simple (Trieve's lightweight fork) for scraping, and a custom FastAPI wrapper around FlashRank for reranking. The FlashRank wrapper exposes Jina's API format so LibreChat thinks it's talking to Jina. Total RAM overhead is ~1.2GB. See the [LibreChat component doc](components/librechat.md) for the full breakdown.
 
 ---
 

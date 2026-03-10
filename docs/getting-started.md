@@ -90,7 +90,7 @@ The remaining Layer 2 services are independent of each other. Deploy whichever o
 
 **LibreChat** — if you want a web-based multi-provider chat UI with agents, MCP tool access, and memory. This is the most feature-rich option and the primary interactive interface beyond Claude Desktop. See [`docs/components/librechat.md`](components/librechat.md).
 
-**Perplexica + SearXNG** — if you want self-hosted AI search. SearXNG also serves as the search backend for LibreChat's web search pipeline, so if you're deploying both, deploy Perplexica first to get SearXNG running. See [`docs/components/perplexica.md`](components/perplexica.md).
+**SearXNG** — if you want self-hosted private search and the LibreChat web search pipeline. SearXNG is also the search backend for LibreChat's research agent. See [`docs/components/searxng.md`](components/searxng.md).
 
 **Dockhand** — if you want a visual Docker stack manager. Lightweight, single container. See [`docs/components/dockhand.md`](components/dockhand.md).
 
@@ -100,7 +100,7 @@ The remaining Layer 2 services are independent of each other. Deploy whichever o
 
 ### Stopping Point #3
 
-You now have a full self-hosted AI service stack accessible from any browser, protected by SSO. Household members or team members can use LibreChat, Perplexica, and other tools without needing Claude Desktop access.
+You now have a full self-hosted AI service stack accessible from any browser, protected by SSO. Household members or team members can use LibreChat and other tools without needing Claude Desktop access.
 
 ## Layer 3: Multi-Agent Claude Code Engine
 

@@ -14,7 +14,7 @@ The alternatives were Traefik and Caddy. Traefik's label-based config is elegant
 
 SWAG runs as a single container that combines nginx, certbot, and fail2ban. On startup, it requests a wildcard SSL certificate from Let's Encrypt using Cloudflare DNS-01 validation. This means the domain doesn't need to resolve publicly — it can point to an internal IP via split-horizon DNS or a local DNS server. No ports forwarded to the internet.
 
-All services share a single Docker network. SWAG routes traffic based on subdomain: `chat.yourdomain` goes to LibreChat, `auth.yourdomain` goes to Authelia, `perplexica.yourdomain` goes to Perplexica, and so on. Each service gets its own proxy conf file in `/config/nginx/proxy-confs/`.
+All services share a single Docker network. SWAG routes traffic based on subdomain: `chat.yourdomain` goes to LibreChat, `auth.yourdomain` goes to Authelia, and so on. Each service gets its own proxy conf file in `/config/nginx/proxy-confs/`.
 
 | Subdomain | Service | Port |
 |-----------|---------|------|
@@ -25,7 +25,7 @@ All services share a single Docker network. SWAG routes traffic based on subdoma
 | `dashboard.*` | SWAG Dashboard | 81 (internal) |
 | `dockhand.*` | Dockhand | 3000 |
 | `notebook.*` | Open Notebook | 8502 / 5055 |
-| `perplexica.*` | Perplexica | 3000 |
+| `searxng.*` | SearXNG | 8080 |
 
 ## Prerequisites
 
@@ -106,7 +106,7 @@ SWAG also handles SSL for all inter-service communication from the browser's per
 
 **Proxy conf naming convention.** SWAG auto-detects proxy confs based on filename pattern: `servicename.subdomain.conf` or `servicename.subfolder.conf`. The file must not end in `.sample` to be active. If your proxy conf isn't loading, check the filename.
 
-**WebSocket support isn't automatic.** Services that use WebSockets (Dockhand, Perplexica, Open Notebook's Streamlit UI, LibreChat) need the `Upgrade` and `Connection` headers set in their proxy conf. Without these, the connection drops or falls back to polling.
+**WebSocket support isn't automatic.** Services that use WebSockets (Dockhand, Open Notebook's Streamlit UI, LibreChat) need the `Upgrade` and `Connection` headers set in their proxy conf. Without these, the connection drops or falls back to polling.
 
 **The `resolver.conf` include is important.** It tells nginx to use Docker's embedded DNS for container name resolution. Without it, nginx resolves container names at startup and caches the IP — if a container restarts and gets a new IP, nginx routes to a dead address until it's reloaded.
 

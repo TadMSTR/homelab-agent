@@ -13,7 +13,7 @@ All services share a single Docker bridge network. Secrets and environment-speci
 | [firecrawl-simple/](firecrawl-simple/) | Firecrawl API, Puppeteer, Redis, worker | [docs/components/librechat.md](../docs/components/librechat.md) (§Web Search Pipeline) |
 | [librechat/](librechat/) | LibreChat, MongoDB, Meilisearch | [docs/components/librechat.md](../docs/components/librechat.md) |
 | [open-notebook/](open-notebook/) | Open Notebook, SurrealDB | [docs/components/open-notebook.md](../docs/components/open-notebook.md) |
-| [perplexica/](perplexica/) | Perplexica, SearXNG, Valkey | [docs/components/perplexica.md](../docs/components/perplexica.md) |
+| [searxng/](searxng/) | SearXNG, Valkey | [docs/components/searxng.md](../docs/components/searxng.md) |
 | [reranker/](reranker/) | FlashRank reranker (custom build) | [docs/components/librechat.md](../docs/components/librechat.md) (§Rerank) |
 | [swag/](swag/) | SWAG reverse proxy | [docs/components/swag.md](../docs/components/swag.md) |
 

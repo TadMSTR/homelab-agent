@@ -112,7 +112,7 @@ The pipeline has three stages, each handled by a separate service:
 
 **1. Search — SearXNG** (`http://searxng:8080`)
 
-SearXNG was already in the stack for Perplexica. LibreChat points at the same instance. No additional deployment needed. It performs meta-search across multiple search engines and returns URLs + snippets.
+SearXNG runs as its own standalone stack (see [SearXNG component doc](searxng.md)). LibreChat points at the same instance. No additional deployment needed. It performs meta-search across multiple search engines and returns URLs + snippets.
 
 **2. Scrape — firecrawl-simple** (`http://firecrawl-api:3002`)
 
@@ -148,11 +148,11 @@ Only `firecrawl-api` joins `claudebox-net`. All firecrawl internal services (pup
 
 ### Total Resource Cost
 
-The full web search pipeline adds about 1.2GB RAM on top of LibreChat's base footprint (SearXNG was already running for Perplexica):
+The full web search pipeline adds about 1.2GB RAM on top of LibreChat's base footprint:
 
 | Component | RAM |
 |-----------|-----|
-| SearXNG | ~165MB (shared with Perplexica) |
+| SearXNG | ~165MB (standalone stack) |
 | firecrawl-simple (4 containers) | ~1.1GB |
 | FlashRank reranker | ~110MB |
 
