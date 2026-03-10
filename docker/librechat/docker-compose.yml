@@ -42,6 +42,36 @@ services:
       - your-network
     restart: unless-stopped
 
+  backrest-mcp:
+    image: ghcr.io/supercorp-ai/supergateway:latest
+    container_name: librechat-backrest-mcp
+    command: >
+      --stdio "node /app/build/src/index.js"
+      --outputTransport streamableHttp
+      --port 8000
+    volumes:
+      - /path/to/backrest-mcp-server:/app  # path to cloned backrest-mcp-server repo
+    environment:
+      - BACKREST_URL=http://host.docker.internal:9898
+      - BACKREST_USERNAME=YOUR_BACKREST_USERNAME
+      - BACKREST_PASSWORD=${BACKREST_MCP_PASSWORD}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - your-network
+    restart: unless-stopped
+
+  grafana-mcp:
+    image: mcp/grafana:latest
+    container_name: librechat-grafana-mcp
+    command: ["-t", "streamable-http"]
+    environment:
+      - GRAFANA_URL=http://YOUR_GRAFANA_HOST:3000
+      - GRAFANA_SERVICE_ACCOUNT_TOKEN=${GRAFANA_SERVICE_ACCOUNT_TOKEN}
+    networks:
+      - your-network
+    restart: unless-stopped
+
   meilisearch:
     image: getmeili/meilisearch:v1.37.0
     container_name: librechat-meilisearch

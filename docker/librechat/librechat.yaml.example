@@ -44,8 +44,13 @@ mcpSettings:
   allowedDomains:
     - "host.docker.internal"
 
-# Add MCP servers as needed. Example for qmd semantic search:
-# mcpServers:
-#   qmd:
-#     type: streamable-http
-#     url: http://host.docker.internal:8181/mcp
+mcpServers:
+  qmd:
+    type: streamable-http
+    url: http://host.docker.internal:8181/mcp
+  backrest:
+    type: streamable-http
+    url: http://librechat-backrest-mcp:8000/mcp
+  grafana:
+    type: streamable-http
+    url: http://librechat-grafana-mcp:3000/mcp

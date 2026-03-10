@@ -158,9 +158,13 @@ The full web search pipeline adds about 1.2GB RAM on top of LibreChat's base foo
 
 ## MCP Integration
 
-LibreChat supports MCP servers for agent tool access. The config uses `host.docker.internal` to reach MCP servers running on the host machine. In my setup, qmd (semantic search) runs as a host-level service and exposes an HTTP MCP endpoint that LibreChat connects to.
+LibreChat supports MCP servers for agent tool access via the `mcpServers` block in `librechat.yaml`. There are two patterns for how MCP servers connect:
 
-The `extra_hosts` entry in the compose file maps `host.docker.internal` to the host gateway IP, and `mcpSettings.allowedDomains` in `librechat.yaml` whitelists that hostname for MCP connections.
+**Host-level services** (like qmd) run outside Docker and are reached via `host.docker.internal`. The `extra_hosts` mapping in the compose file resolves that hostname to the host gateway IP, and `mcpSettings.allowedDomains` whitelists it for MCP connections.
+
+**Sidecar containers** run as additional services in the LibreChat compose stack, on the same Docker network. This is the pattern for backrest-mcp and grafana-mcp — each wraps an MCP server and exposes a `streamable-http` endpoint that LibreChat reaches by container name. The backrest-mcp sidecar uses [supergateway](https://github.com/supercorp-ai/supergateway) to wrap the stdio-based backrest-mcp-server and expose it over HTTP. The grafana-mcp sidecar uses Grafana's official MCP image with HTTP transport enabled.
+
+Sidecar containers are the right pattern when the MCP server doesn't already run as a persistent host-level service, or when you want the MCP server lifecycle tied to the LibreChat stack.
 
 ## Token Usage Tracking
 
