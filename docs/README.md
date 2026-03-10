@@ -6,6 +6,7 @@ Detailed documentation for the homelab-agent platform. Start with the [main READ
 
 - **[Getting Started](getting-started.md)** — Dependency-ordered setup guide with five natural stopping points. Read this if you want to build the stack.
 - **[Architecture](architecture.md)** — Data flows, network topology, security model, and scaling considerations. Read this if you want to understand how the pieces connect.
+- **[Architecture Decisions](decisions.md)** — Consolidated rationale behind major architectural choices. Read this if you want to understand *why* specific tools were chosen.
 
 ## Component Docs
 
