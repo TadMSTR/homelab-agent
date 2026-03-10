@@ -71,7 +71,7 @@ The memory-sync agent follows specific rules to keep the output useful:
 
 **memsearch:** Indexes the raw memory files that memory-sync reads from. The pipeline is: agents write raw memory → memsearch makes it available for immediate recall → memory-sync distills the durable parts → qmd makes the distilled output searchable long-term.
 
-**GitHub MCP:** The memory-sync agent uses git to commit and push distilled notes. If you're running this on a machine with GitHub SSH keys configured, it works without additional setup.
+**git:** The memory-sync agent commits and pushes distilled notes using plain git shell commands — not GitHub MCP. If you're running this on a machine with GitHub SSH keys configured, it works without additional setup. GitHub MCP is for remote operations (PRs, issues, reading unchecked-out repos) and isn't involved here.
 
 ## Gotchas and Lessons Learned
 
