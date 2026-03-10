@@ -29,7 +29,7 @@ I watched a TechnoTim video on TrueNAS and Docker, needed a backup script, and u
 
 Once Claude had persistent context about my environment, the interactions changed. Instead of explaining my setup every time, I could say "check if the Plex container is healthy on unraid" and it already knew unraid's IP, what monitoring tools were available, and how my Docker stacks were organized. That was the inflection point.
 
-I built a dedicated mini PC (claudebox) to run Claude Desktop full-time with MCP tool integrations — direct access to Netdata, Grafana, GitHub, the filesystem, and a browser. Then I layered on a self-hosted service stack: reverse proxy with SSO, a multi-provider chat UI, semantic search over all my docs and repos, and a Claude Code web interface. On top of that, a multi-agent Claude Code engine with scoped memory, background jobs, and automated knowledge sync.
+I built a dedicated mini PC (claudebox) to run Claude Desktop full-time with Model Context Protocol (MCP) tool integrations — direct access to Netdata, Grafana, GitHub, the filesystem, and a browser. Then I layered on a self-hosted service stack: reverse proxy with SSO, a multi-provider chat UI, semantic search over all my docs and repos, and a Claude Code web interface. On top of that, a multi-agent Claude Code engine with scoped memory, background jobs, and automated knowledge sync.
 
 It grew organically from "AI writes me a script" to "AI operates alongside me as infrastructure."
 
