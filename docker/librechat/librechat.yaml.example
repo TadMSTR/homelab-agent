@@ -7,6 +7,11 @@
 version: 1.3.5
 cache: true
 
+balance:
+  enabled: false
+transactions:
+  enabled: true
+
 interface:
   webSearch: true
 
