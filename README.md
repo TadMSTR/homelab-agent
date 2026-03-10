@@ -8,7 +8,7 @@
 [![Built with Claude](https://img.shields.io/badge/Built%20with-Claude-blueviolet)](https://claude.ai)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-enabled-blueviolet)](https://claude.ai/code)
 
-A modular reference implementation of an AI-powered homelab operations platform. Peer-to-peer reference for the homelab community — adopt the full stack or pick the pieces that solve your problems.
+This repo documents how I run Claude as an always-on infrastructure assistant across my homelab — with persistent context, live tool access to my hosts, and a self-hosted service stack to support it. Modular by design: take the whole thing or just the parts that fit your setup.
 
 ## Contents
 
