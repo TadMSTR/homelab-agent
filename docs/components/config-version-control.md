@@ -1,6 +1,6 @@
 # Config Version Control
 
-Two directories on claudebox contain the bulk of operational configuration: `~/docker/` holds all Compose stacks, and `/opt/appdata/` holds the runtime config files for running containers (YAML, TOML, JSON, INI). Claude edits files in both directories directly — which means changes needed a version history. A self-hosted Gitea instance on atlas tracks both directories, and a skill enforces pre/post-edit commits whenever Claude touches a tracked file.
+Three directories on claudebox contain the bulk of operational configuration and automation: `~/docker/` holds all Compose stacks, `/opt/appdata/` holds the runtime config files for running containers (YAML, TOML, JSON, INI), and `~/scripts/` holds the utility and maintenance scripts that run as PM2 jobs. Claude edits files in all three directories directly — which means changes needed a version history. A self-hosted Gitea instance on atlas tracks all three directories, and a skill enforces pre/post-edit commits whenever Claude touches a tracked file.
 
 This isn't a substitute for backups. The docker-stack-backup job and Backrest both cover these paths. Version control adds something different: a timestamped audit trail of *what changed* and *why*, with the ability to diff or roll back individual files without restoring a full snapshot.
 
@@ -10,8 +10,9 @@ This isn't a substitute for backups. The docker-stack-backup job and Backrest bo
 |------------|------------|----------|
 | `~/docker/` | `claudebox-docker` | All Docker Compose stacks and associated files |
 | `/opt/appdata/` | `claudebox-appdata` | Container config files by service |
+| `~/scripts/` | `claudebox-scripts` | Utility and maintenance scripts |
 
-Gitea runs on atlas as a single-container Docker stack with a SQLite backend — simple enough for a homelab and plenty sufficient for two repos with light commit frequency.
+Gitea runs on atlas as a single-container Docker stack with a SQLite backend — simple enough for a homelab and plenty sufficient for three repos with light commit frequency.
 
 ## .gitignore Strategy
 
@@ -55,7 +56,7 @@ This catches any manual edits Ted makes directly — changes that weren't made t
 
 ## Claude Edit Workflow
 
-A `git-config-tracking` skill enforces the commit discipline. Whenever Claude edits a file in `~/docker/` or `/opt/appdata/`, it follows this sequence:
+A `git-config-tracking` skill enforces the commit discipline. Whenever Claude edits a file in `~/docker/`, `/opt/appdata/`, or `~/scripts/`, it follows this sequence:
 
 1. **Pre-edit commit** — captures the current state before the change
 2. **Make the edit**
@@ -72,7 +73,7 @@ Most files in `/opt/appdata/` are owned by container UIDs (e.g., `root`, `nobody
 
 Version control and backups cover the same directories but serve different purposes:
 
-- **Backrest** (2 AM daily) snapshots `/home/ted` which includes `~/docker/`. Full restic snapshot, 90-day retention, recoverable as a point-in-time filesystem state.
+- **Backrest** (2 AM daily) snapshots `/home/ted` which includes `~/docker/` and `~/scripts/`. Full restic snapshot, 90-day retention, recoverable as a point-in-time filesystem state.
 - **docker-stack-backup** (1 AM daily) archives compose files + appdata into tarballs on NFS.
 - **Git + Gitea** provides per-file change history with commit messages, diffing, and the ability to roll back individual files without a full restore.
 
