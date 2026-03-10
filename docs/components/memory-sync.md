@@ -81,6 +81,21 @@ The memory-sync agent follows specific rules to keep the output useful:
 
 **Chat memory export is the fragile part.** The Claude Code memory side is straightforward — it's just markdown files on disk. The chat interface export depends on your specific chat UI. For LibreChat, this means querying MongoDB for memory entries. If you change chat UIs, the export adapter needs updating. The project config describes the staging file format so the distillation side stays stable regardless of the source.
 
+**Scope your LibreChat export to your own user if you share the instance.** LibreChat stores memory entries per user in MongoDB, but a naive `find({})` query returns every user's entries. If other people have LibreChat accounts on the same instance, their memory ends up in the staging file and gets distilled into your context repo. Filter the query by your user ObjectId:
+
+```js
+db.memoryentries.find({ user: ObjectId("YOUR_USER_OBJECTID") })
+```
+
+Find your ObjectId with:
+
+```bash
+docker exec librechat-mongodb mongosh --quiet --eval \
+  'db = db.getSiblingDB("LibreChat"); printjson(db.users.find({}, {_id:1, username:1}).toArray());'
+```
+
+Other users' memories stay in MongoDB and are covered by your Docker backup strategy — they just don't flow into your context repo.
+
 **Headless Claude Code has quirks.** Running Claude Code non-interactively took some trial and error. The key findings:
 
 - Passing the prompt as a positional argument (`claude -p "prompt"`) hangs without a TTY. Pipe the prompt via stdin instead: `echo "prompt" | claude -p`.
