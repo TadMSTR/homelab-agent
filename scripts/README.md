@@ -6,6 +6,7 @@ Utility scripts for backup, monitoring, reindexing, and maintenance. Most are ex
 
 | Script | PM2 Job | What It Does |
 |--------|---------|-------------|
+| [git-snapshot.sh](git-snapshot.sh) | *(system cron)* | Commits and pushes uncommitted changes in tracked config repos (docker, scripts, appdata, context repo). Runs nightly before backup. Skips repos with no changes. |
 | [docker-stack-backup.sh](docker-stack-backup.sh) | docker-stack-backup | Discovers Compose stacks, stops containers, archives appdata + compose files, restarts. Supports dry-run, configurable compression, retry logic, and notifications (ntfy, Pushover, email). |
 | [memory-sync.sh](memory-sync.sh) | memory-sync | Runs Claude Code in headless mode to distill durable knowledge from agent memory and LibreChat conversations into the context repo. |
 | [qmd-reindex.sh](qmd-reindex.sh) | qmd-reindex | Pulls latest from all configured git repos and re-runs `qmd index` to refresh the semantic search index. |

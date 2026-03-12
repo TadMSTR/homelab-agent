@@ -64,12 +64,15 @@ module.exports = {
     },
 
     {
-      // Homelab operations MCP server — exposes shell exec, file ops, and
-      // process inspection to Claude agents via HTTP MCP transport (port 8282).
-      // Wired into LibreChat and Claude Code via the MCP server config.
+      // Homelab operations MCP server — shell exec, file ops, and process
+      // inspection for Claude agents via HTTP MCP transport (port 8282).
+      // Desktop Commander (https://github.com/wonderwhy-er/DesktopCommanderMCP)
+      // is the typical underlying package; run it in HTTP mode so LibreChat
+      // and Claude Code can both reach it simultaneously.
+      // Wired into agents via the MCP server config (see mcp-servers/README.md).
       name: "homelab-ops-mcp",
       cwd: "/home/YOUR_USER/apps/homelab-ops-mcp",
-      script: "YOUR_START_COMMAND",  // e.g. "src/server.py" with interpreter, or npm/node
+      script: "YOUR_START_COMMAND",
       env: {
         PORT: 8282,
       },

@@ -11,8 +11,43 @@ This isn't a substitute for backups. The docker-stack-backup job and Backrest bo
 | `~/docker/` | `claudebox-docker` | All Docker Compose stacks and associated files |
 | `/opt/appdata/` | `claudebox-appdata` | Container config files by service |
 | `~/scripts/` | `claudebox-scripts` | Utility and maintenance scripts |
+| `~/repos/personal/YOUR_CONTEXT_REPO` | `your-context-repo` | Skills, project instructions, infrastructure docs |
+
+The context repo is handled differently from the others — it lives in a personal repos directory rather than a config path, and it's already a git repo tracking its own content. The nightly snapshot covers it the same way: commit any changes, push. This catches edits made by Claude agents to skills or project instruction files that weren't committed inline.
 
 Gitea runs on atlas as a single-container Docker stack with a SQLite backend — simple enough for a homelab and plenty sufficient for three repos with light commit frequency.
+
+## Skills and Project Instructions
+
+Claude Code loads skills from `~/.claude/skills/<name>/SKILL.md` and project instructions from `~/.claude/projects/<name>/CLAUDE.md`. Both live in `~/.claude/` which is outside the version-controlled config directories — so they need their own approach.
+
+The pattern is symlinks from the context repo. The actual files live in the context repo; `~/.claude/` holds symlinks pointing at them:
+
+```bash
+# Skills — symlink the whole skill directory
+~/.claude/skills/docker-stack-setup -> ~/repos/personal/YOUR_CONTEXT_REPO/skills/docker-stack-setup/
+
+# Project instructions — symlink the file (the containing directory has session data)
+~/.claude/projects/homelab-ops/CLAUDE.md -> ~/repos/personal/YOUR_CONTEXT_REPO/claude-projects/homelab-ops/CLAUDE.md
+```
+
+Context repo structure for Claude Code content:
+
+```
+YOUR_CONTEXT_REPO/
+├── skills/
+│   ├── docker-stack-setup/
+│   │   └── SKILL.md
+│   └── security-audit/
+│       └── SKILL.md
+└── claude-projects/
+    ├── homelab-ops/
+    │   └── CLAUDE.md
+    └── dev/
+        └── CLAUDE.md
+```
+
+This means edits to skills or project instructions — whether made by Claude agents or directly in a text editor — are immediately reflected in `~/.claude/` and are tracked in git without any copy step. The nightly snapshot picks up any uncommitted changes. Inline commits happen whenever Claude edits a skill or instruction file as part of a task.
 
 ## .gitignore Strategy
 
