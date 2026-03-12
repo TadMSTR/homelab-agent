@@ -14,6 +14,8 @@ For the architecture overview and how these components relate, see the [main REA
 | SearXNG | [searxng.md](searxng.md) | Private meta-search backend, Valkey cache, LibreChat web search |
 | Dockhand | [dockhand.md](dockhand.md) | Docker stack manager, socket access, multi-host visibility |
 | Open Notebook | [open-notebook.md](open-notebook.md) | AI research tool, SurrealDB, dual-port proxy config |
+| CUI | *(doc pending)* | Claude Code web UI — headless agent monitoring, push notifications |
+| CloudCLI | [cloudcli.md](cloudcli.md) | Claude Code web UI — file explorer, git integration, shell terminal, MCP management, WebSocket/SWAG proxy config |
 
 ## Layer 3 — Multi-Agent Engine
 
