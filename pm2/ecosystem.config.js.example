@@ -45,6 +45,51 @@ module.exports = {
       max_restarts: 10,
     },
 
+    {
+      // CloudCLI — richer browser-based Claude Code UI with file explorer,
+      // git integration, shell terminal, and MCP server management.
+      // Complements CUI rather than replacing it.
+      // See: https://github.com/siteboon/claudecodeui
+      // See: docs/components/cloudcli.md for proxy config and gotchas.
+      name: "cloudcli",
+      cwd: "/home/YOUR_USER/apps/cloudcli",
+      script: "npm",
+      args: "start",
+      env: {
+        PORT: 3004,
+        VITE_IS_PLATFORM: "true",   // Required — routing breaks without this
+      },
+      autorestart: true,
+      max_restarts: 10,
+    },
+
+    {
+      // Homelab operations MCP server — exposes shell exec, file ops, and
+      // process inspection to Claude agents via HTTP MCP transport (port 8282).
+      // Wired into LibreChat and Claude Code via the MCP server config.
+      name: "homelab-ops-mcp",
+      cwd: "/home/YOUR_USER/apps/homelab-ops-mcp",
+      script: "YOUR_START_COMMAND",  // e.g. "src/server.py" with interpreter, or npm/node
+      env: {
+        PORT: 8282,
+      },
+      autorestart: true,
+      max_restarts: 10,
+    },
+
+    {
+      // Agent panel — lightweight web UI for monitoring PM2 services,
+      // viewing logs, and inspecting agent activity from a browser.
+      name: "agent-panel",
+      cwd: "/home/YOUR_USER/apps/agent-panel",
+      script: "YOUR_START_COMMAND",
+      env: {
+        PORT: 3003,
+      },
+      autorestart: true,
+      max_restarts: 10,
+    },
+
     // =========================================================================
     // SCHEDULED JOBS (cron-triggered, run once then stop)
     // =========================================================================
@@ -131,14 +176,17 @@ module.exports = {
     // you can add watchers that check GitHub issue status on a schedule.
     // Remove these if you don't need them.
 
-    // {
-    //   name: "upstream-issue-check",
-    //   script: "/home/YOUR_USER/scripts/check-upstream-issue.sh",
-    //   interpreter: "bash",
-    //   cron_restart: "0 12 * * 1",  // Mondays at noon
-    //   autorestart: false,
-    //   watch: false,
-    // },
+    {
+      // Check whether a specific upstream GitHub issue is resolved.
+      // Useful for issues that affect your stack and would require
+      // a config change or workaround once resolved. Alerts via ntfy.
+      name: "upstream-issue-check",
+      script: "/home/YOUR_USER/scripts/check-upstream-issue.sh",
+      interpreter: "bash",
+      cron_restart: "0 12 * * 1",  // Mondays at noon
+      autorestart: false,
+      watch: false,
+    },
 
   ],
 };
