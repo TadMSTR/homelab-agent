@@ -63,20 +63,25 @@ The foundation is a dedicated machine running Claude Desktop with MCP (Model Con
 
 **Claude Desktop** runs as the primary AI interface, with MCP servers providing tool access:
 
-| MCP Server | What It Does |
-|------------|-------------|
-| basic-memory | Persistent knowledge base as Obsidian-compatible markdown files |
-| Backrest | Trigger backup plans, fetch operation history for restic-based backups via Backrest |
-| Bluesky | Social media management via AT Protocol |
-| Desktop Commander | Filesystem operations, terminal commands, process management on the host |
-| GitHub | Repo management, issues, PRs, code search across multiple accounts |
-| Grafana | Dashboard management, alert rules, Loki log queries, InfluxDB metrics |
-| InfluxDB | Time-series queries and writes for Telegraf-shipped metrics |
-| Netdata | Real-time metrics from any monitored host (CPU, RAM, disk, containers, alerts) |
-| Playwright | Browser automation — navigate, click, fill forms, take screenshots |
-| qmd | Semantic search over repos, docs, and agent memory — stdio for Claude Desktop, HTTP for LibreChat (see Layer 2) |
-| TrueNAS | Datasets, pools, snapshots, users, SMB/NFS/iSCSI via REST API |
-| Unraid | Array status, disk health, Docker containers, shares via GraphQL API |
+| MCP Server | What It Does | Built by |
+|------------|-------------|----------|
+| Backrest | Trigger backup plans, fetch operation history for restic-based backups | me |
+| basic-memory | Persistent knowledge base as Obsidian-compatible markdown files | community |
+| Bluesky | Social media management via AT Protocol | me (fork) |
+| Desktop Commander | Filesystem operations, terminal commands, process management (Claude Desktop) | Anthropic |
+| Fluxer | Chat bot gateway + MCP tools for the Fluxer platform (shelved) | me |
+| GitHub | Repo management, issues, PRs, code search across multiple accounts | Anthropic |
+| Grafana | Dashboard management, alert rules, Loki log queries, InfluxDB metrics | Grafana |
+| homelab-ops | Shell, file, and process operations over HTTP (Claude Code + LibreChat) | me |
+| InfluxDB | Time-series queries and writes for Telegraf-shipped metrics | community |
+| jobsearch-mcp | Multi-board job search, resume scoring, application tracking (LibreChat) | me |
+| memsearch | Memory recall from past Claude Code sessions (plugin, not MCP) | community |
+| Netdata | Real-time metrics from any monitored host (CPU, RAM, disk, containers, alerts) | Netdata |
+| Playwright | Browser automation — navigate, click, fill forms, take screenshots | Anthropic |
+| qmd | Semantic search over repos, docs, and agent memory — stdio and HTTP modes | community |
+| SearXNG | Private web search via self-hosted SearXNG — no API costs | me |
+| TrueNAS | Datasets, pools, snapshots, users, SMB/NFS/iSCSI via REST API | community |
+| Unraid | Array status, disk health, Docker containers, shares via GraphQL API | me |
 
 For config patterns, standalone value ratings, and a prioritized adoption path, see [`mcp-servers/README.md`](mcp-servers/README.md).
 
