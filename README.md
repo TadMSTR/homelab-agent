@@ -44,7 +44,7 @@ The system has three layers. Each is independently useful — you don't need all
 │  PM2 background agents · automated memory sync          │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 2: Self-Hosted Service Stack (Docker)            │
-│  SWAG/Authelia · LibreChat · qmd · CUI · SearXNG        │
+│  SWAG/Authelia · LibreChat · qmd · CloudCLI · SearXNG    │
 │  Dockhand · Open Notebook                               │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 1: Host & Core Tooling                           │
@@ -96,7 +96,7 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 | Service | What It Does | Why It's Here |
 |---------|-------------|---------------|
 | **Authelia** | SSO authentication gateway | One login for all services. SWAG has first-class Authelia support — two lines uncommented per proxy conf. |
-| **CUI** | Claude Code web UI | Browser-based Claude Code terminal sessions with push notifications. Useful for monitoring headless agent runs. |
+| **CloudCLI** | Claude Code browser UI | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Primary day-to-day interface for infrastructure work. |
 | **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
 | **LibreChat** | Multi-provider chat UI (Anthropic, OpenAI, Ollama, etc.) | Web-based chat with agent support, MCP tool integration, built-in memory, and RAG. The primary interface for interactive agent work. |
 | **Open Notebook** | AI research/notebook tool | Document analysis and research with SurrealDB backend. |
@@ -104,7 +104,7 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 | **qmd** | Semantic search MCP server | Hybrid search (BM25 + vector + LLM reranking) over all repos, docs, and agent memory. Local embeddings via GGUF models, GPU-accelerated on AMD iGPU via Vulkan. |
 | **SWAG** | Nginx reverse proxy with Let's Encrypt wildcard SSL | Single entry point for all `*.yourdomain` services. DNS validation via Cloudflare — internal-only domain, no ports exposed to the internet. |
 
-All containers share a single Docker network. SWAG handles SSL termination and routes `chat.yourdomain`, `auth.yourdomain`, `cui.yourdomain`, etc. to the appropriate container. Authelia sits in front of everything — one-factor auth with a file-based user backend (sufficient for a single-user or household setup).
+All containers share a single Docker network. SWAG handles SSL termination and routes `chat.yourdomain`, `auth.yourdomain`, `cloudcli.yourdomain`, etc. to the appropriate container. Authelia sits in front of everything — one-factor auth with a file-based user backend (sufficient for a single-user or household setup).
 
 **Standalone value:** The SWAG + Authelia + LibreChat stack is useful even without Claude Desktop or the agent engine. LibreChat gives you a self-hosted ChatGPT-like interface that works with multiple AI providers, and Authelia keeps it locked down.
 
