@@ -12,23 +12,57 @@ Memory sync acts as an editorial filter. It reads the raw memory, applies the "w
 
 Without memory sync, you'd need to manually review agent memory files and copy the good parts into your context repo. That's exactly the kind of busywork that should be automated.
 
+## Memory Tiers
+
+Memory-sync manages a 3-tier memory system. Each tier has different retention, purpose, and storage:
+
+| Tier | Location | Retention | Purpose |
+|------|----------|-----------|---------|
+| Session | `.memsearch/memory/YYYY-MM-DD.md` (per-project) | 30 days | Raw session notes, auto-captured by memsearch Stop hook |
+| Working | `~/.claude/memory/shared/` and `~/.claude/memory/agents/*/` | 90 days (unless refreshed) | Promoted from session or written by agents during work |
+| Distilled | Context repo `memory/distilled/` | Permanent (git-backed) | Passes the "would this matter in 3 months?" test |
+
+Working and distilled notes use YAML frontmatter for metadata:
+
+```yaml
+# Working note
+---
+tier: working
+created: 2026-03-13
+source: memory-sync
+expires: 2026-06-13
+tags: [docker, decision]
+---
+
+# Distilled note
+---
+tier: distilled
+date: 2026-03-13
+source: claude-code
+promoted_from: some-working-note.md
+tags: [docker, decision]
+---
+```
+
 ## How It Works
 
-The memory-sync agent is defined in [`claude-code/projects/memory-sync.md`](../../claude-code/projects/memory-sync.md) and runs as a PM2 cron job. The workflow:
+The memory-sync agent is defined in [`claude-code/projects/memory-sync.md`](../../claude-code/projects/memory-sync.md) and runs as a PM2 cron job. The workflow is an 8-step consolidation pipeline:
 
-1. **(Optional) Export chat interface memory.** If you use LibreChat or another chat UI with memory features, an export script dumps recent memory entries to a staging file. This is adapter-specific — the project config describes the staging format but the export mechanism depends on your chat UI.
+1. **Session scan.** Read memsearch session files from the last 7 days across all project stores. Identify entries containing infrastructure decisions, tool configurations, bug fixes, architectural decisions, or lessons learned. Skip empty session headers.
 
-2. **Read Claude Code memory files.** The agent scans `~/.claude/memory/shared/` and each agent's directory (`~/.claude/memory/agents/*/`), looking for entries from the last 7 days.
+2. **Promote to working.** For each durable session entry, check if a working note already covers the topic. If not, write a new working note with frontmatter. If partially covered, update the existing note and refresh its expiry date.
 
-3. **Read any chat memory exports.** If a staging file exists from step 1, the agent reads it.
+3. **Chat import.** Read the latest chat interface memory export (e.g., LibreChat MongoDB dump). Apply the same criteria as step 1 — promote durable entries to working notes.
 
-4. **Identify durable knowledge.** The agent filters for entries that contain infrastructure decisions, new tool configurations, bug fixes worth remembering, architectural decisions with rationale, or lessons learned. Ephemeral details (debug sessions, temporary workarounds, routine maintenance) get skipped.
+4. **Working review.** Read all working notes. For notes older than 14 days, evaluate: ready for distillation? Still relevant but not ready? Superseded or inaccurate? Delete notes that are no longer valid.
 
-5. **Check for duplicates.** Before writing anything, the agent reads existing distilled notes to avoid re-capturing knowledge that's already in the context repo.
+5. **Promote to distilled.** Distill qualifying working notes into permanent records in the context repo. Check existing distilled notes first to avoid duplicates. Git pull, commit, and push.
 
-6. **Write distilled notes.** New knowledge gets written as dated markdown files (`YYYY-MM-DD-<topic-slug>.md`) with structured metadata: date, source (claude-code or chat), summary, details, and rationale.
+6. **Expire stale.** Delete working notes past their 90-day expiry date that weren't promoted to distilled. Log each deletion.
 
-7. **Commit and push.** The agent commits the new files to the context repo and pushes to GitHub. The next qmd reindex (5:00 AM) picks up the new content and makes it searchable.
+7. **Dedup check.** Scan working memory for topical duplicates — notes covering the same decision, fact, or event. Merge into the more complete note and delete the other.
+
+8. **Log metrics and health report.** Output counts (sessions scanned, notes promoted/updated/distilled/expired/deduped, errors) plus health stats (note counts by tier, upcoming expirations, notes with missing frontmatter).
 
 ## Configuration
 
@@ -36,12 +70,14 @@ The agent itself is configured via its CLAUDE.md project file (see [`claude-code
 
 Key paths to configure:
 
-| Path | Purpose |
-|------|---------|
-| `~/.claude/memory/shared/` | Cross-agent shared memory (input) |
-| `~/.claude/memory/agents/*/` | Per-agent memory directories (input) |
-| `~/.claude/memory/chat-staging/` | Chat interface memory exports (optional input) |
-| `~/repos/YOUR_CONTEXT_REPO/memory/distilled/` | Distilled output (committed to git) |
+| Path | Purpose | Tier |
+|------|---------|------|
+| `.memsearch/memory/` (per-project) | Session notes (auto-captured) | Session |
+| `~/.claude/memory/shared/` | Cross-agent working memory | Working |
+| `~/.claude/memory/agents/*/` | Per-agent working memory | Working |
+| `~/.claude/memory/chat-staging/` | Chat interface exports (optional input) | — |
+| `~/repos/YOUR_CONTEXT_REPO/memory/distilled/` | Permanent distilled output | Distilled |
+| `~/.claude/memory/shared/memory-schema.md` | Tier schema, frontmatter format, tag taxonomy | — |
 
 ## Prerequisites
 
@@ -69,7 +105,7 @@ The memory-sync agent follows specific rules to keep the output useful:
 
 **qmd:** Indexes the distilled output directory as part of the context repo collection. Once qmd reindexes, the distilled knowledge is searchable by all agents.
 
-**memsearch:** Indexes the raw memory files that memory-sync reads from. The pipeline is: agents write raw memory → memsearch makes it available for immediate recall → memory-sync distills the durable parts → qmd makes the distilled output searchable long-term.
+**memsearch:** Indexes session-tier memory files. The pipeline is: memsearch auto-captures session summaries → makes them available for immediate recall → memory-sync scans sessions and promotes durable items to working tier → reviews working notes and promotes mature ones to distilled tier → qmd indexes distilled output for long-term search.
 
 **git:** The memory-sync agent commits and pushes distilled notes using plain git shell commands — not GitHub MCP. If you're running this on a machine with GitHub SSH keys configured, it works without additional setup. GitHub MCP is for remote operations (PRs, issues, reading unchecked-out repos) and isn't involved here.
 
@@ -101,14 +137,20 @@ Other users' memories stay in MongoDB and are covered by your Docker backup stra
 - Passing the prompt as a positional argument (`claude -p "prompt"`) hangs without a TTY. Pipe the prompt via stdin instead: `echo "prompt" | claude -p`.
 - The `--project` flag doesn't exist in current Claude Code versions. Instead, `cd` into the project directory before invoking `claude` — it picks up CLAUDE.md from cwd via project resolution.
 - Headless mode requires `--dangerously-skip-permissions` because there's no TTY to approve tool use. This is expected for automated agent runs but means you should review the agent's CLAUDE.md carefully to ensure it can't do anything destructive.
-- Add a timeout wrapper (`timeout 300 claude -p ...`) to prevent runaway sessions. Five minutes is generous for a memory distillation task.
+- Add a timeout wrapper (`timeout 600 claude -p ...`) to prevent runaway sessions. Ten minutes is generous for the 8-step consolidation pipeline.
 - Use `--add-dir` to grant the headless session access to directories outside cwd (memory dirs, context repo) that the agent needs to read and write.
 
 These details matter if you're building any PM2-scheduled Claude Code job, not just memory-sync.
 
 **Review the output occasionally.** The agent does a good job of filtering, but it's worth skimming the distilled notes weekly to catch anything that slipped through as noise or to spot knowledge gaps where something durable was missed. This gets better over time as the agent's CLAUDE.md instructions get refined.
 
-**Git conflicts are unlikely but possible.** If you're manually committing to the context repo's distilled directory at the same time the agent runs, you could get a merge conflict. The agent runs at 4 AM specifically to avoid this, but if you're a night owl, be aware.
+**Concurrency and lock file.** The wrapper script uses a lock file (`~/.claude/memory-sync.lock`) to prevent overlapping runs. Stale locks older than 10 minutes are automatically removed. If the agent crashes, the lock is cleaned up via a bash `trap`.
+
+**Timeout.** The wrapper script uses `timeout 600` (10 minutes) to prevent runaway sessions. The expanded 8-step pipeline needs more time than the original single-step distillation.
+
+**Idempotent by design.** Runs are safe to repeat. The agent checks for existing working notes before creating new ones, checks existing distilled notes before promoting, and only expires notes with a valid `expires` date strictly in the past. Notes without valid frontmatter are flagged in the health report rather than deleted.
+
+**Git conflicts are unlikely but possible.** If you're manually committing to the context repo's distilled directory at the same time the agent runs, you could get a merge conflict. The agent uses `git pull --rebase` before committing and aborts cleanly if the rebase fails. The agent runs at 4 AM specifically to avoid this, but if you're a night owl, be aware.
 
 ## Standalone Value
 

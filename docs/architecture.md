@@ -98,32 +98,39 @@ This flow is identical for every service behind SWAG. Adding a new service means
 
 ### Memory Flow (Knowledge Accumulation)
 
-This is the core data flow that makes the system self-improving:
+This is the core data flow that makes the system self-improving. Memory is organized into three tiers:
 
 ```
 Claude Code session
   │
-  ├── Agent writes session summary → ~/.claude/memory/agents/<name>/
-  │                                     │
-  │                                     ├── memsearch indexes it
-  │                                     │   (available for auto-recall in next session)
-  │                                     │
-  │                                     └── memory-sync reads it (4 AM daily)
-  │                                           │
-  │                                           ├── Filters for durable knowledge
-  │                                           ├── Writes distilled notes → context repo
-  │                                           └── Git commit + push
-  │                                                 │
-  │                                                 └── qmd reindex (5 AM daily)
-  │                                                       │
-  │                                                       └── Searchable by all agents
+  ├── memsearch Stop hook auto-captures session summary
+  │   └── SESSION TIER: .memsearch/memory/YYYY-MM-DD.md (per-project, 30-day retention)
+  │         │
+  │         └── memsearch indexes it (available for auto-recall in next session)
   │
-  └── Claude Desktop / LibreChat conversations
+  ├── Agent writes working notes during sessions
+  │   └── WORKING TIER: ~/.claude/memory/shared/ or agents/<name>/ (90-day expiry)
+  │         │
+  │         └── YAML frontmatter: tier, created, source, expires, tags
+  │
+  └── memory-sync consolidation pipeline (4 AM daily, 8 steps)
         │
-        └── (Optional) memory export → chat-staging/
+        ├── 1. Scan session notes (last 7 days, all project stores)
+        ├── 2. Promote durable items → working tier
+        ├── 3. Import LibreChat memory (optional)
+        ├── 4. Review working notes >14 days old
+        ├── 5. Promote qualifying notes → DISTILLED TIER
+        │      └── context repo/memory/distilled/ (permanent, git-backed)
+        ├── 6. Expire stale working notes (past 90 days)
+        ├── 7. Dedup check (merge topical duplicates)
+        └── 8. Log metrics + health report
               │
-              └── memory-sync reads this too
+              └── qmd reindex (5 AM daily)
+                    │
+                    └── Distilled knowledge searchable by all agents
 ```
+
+The three tiers serve different purposes: **session** is raw auto-captured context for immediate recall, **working** is agent-curated knowledge with a 90-day TTL, and **distilled** is permanent knowledge that passed the "would this matter in 3 months?" test. Notes flow upward through tiers — never skipping one — and each promotion is checked for duplicates.
 
 The timing is deliberate: memory-sync at 4 AM, qmd-reindex at 5 AM, docker-stack-backup at 1 AM. Each depends on the previous one completing. PM2 cron handles the scheduling.
 

@@ -16,7 +16,7 @@ This is different from [qmd](qmd.md), which provides on-demand search across a b
 
 memsearch has two components:
 
-**CLI tool** (`memsearch`, v0.1.7) — indexes markdown files, generates embeddings using the `all-MiniLM-L6-v2` sentence-transformer model, and stores vectors in a local Milvus Lite database (`~/.memsearch/milvus.db`). Runs entirely on CPU, no API keys needed.
+**CLI tool** (`memsearch`) — indexes markdown files, generates embeddings using the `all-MiniLM-L6-v2` sentence-transformer model, and stores vectors in a local Milvus Lite database (`~/.memsearch/milvus.db`). Runs entirely on CPU, no API keys needed.
 
 **Claude Code plugin** (v0.2.2) — hooks into Claude Code sessions. On session start, it retrieves memories relevant to the project context. On each prompt, it searches for memories relevant to the current conversation. Relevant results are silently injected into the context so the agent has them available without being explicitly asked.
 
@@ -60,7 +60,7 @@ After configuring paths, run `memsearch index` to build the initial database. Re
 
 **qmd:** Complementary, not competing. qmd indexes a broader document set (infrastructure docs, compose files, repos) and serves on-demand search queries via MCP. memsearch indexes a narrower set (agent memory files) and auto-injects context. In practice, both run simultaneously — qmd for "search my docs" and memsearch for "remember what happened last session."
 
-**memory-sync agent:** The nightly memory-sync job (see [memory-sync](memory-sync.md)) reads from the same memory directories that memsearch indexes. After memory-sync distills durable knowledge into the context repo, the next qmd reindex picks it up. The flow is: agent writes memory → memsearch makes it searchable for future sessions → memory-sync distills the durable parts → qmd indexes the distilled output.
+**memory-sync agent:** memsearch captures the **session tier** — raw session summaries auto-written by the Stop hook. The nightly memory-sync job (see [memory-sync](memory-sync.md)) scans these session notes and promotes durable items to the **working tier** (`~/.claude/memory/`). Working notes that pass the "would this matter in 3 months?" test are further promoted to the **distilled tier** (context repo). The flow across tiers: session (memsearch auto-capture) → working (memory-sync promotion) → distilled (memory-sync distillation) → qmd indexes distilled output for long-term search.
 
 ## Gotchas and Lessons Learned
 
