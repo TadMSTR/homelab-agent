@@ -401,13 +401,20 @@ content without sending queries through a commercial search API.
 
 **Why it's here:** Claude Code doesn't have built-in web search. Rather than
 paying for a search API or sending every query through Google, this connects to
-a self-hosted SearXNG instance that aggregates results from multiple engines
-with no tracking. Three tools: `search` (query with category/engine filters),
-`fetch_url` (retrieve full page content), and `search_and_fetch` (search + fetch
-top results in one call).
+three self-hosted services that together form a full search pipeline:
 
-**Prerequisites:** A running SearXNG instance with JSON format enabled in
-`settings.yml`.
+1. **SearXNG** — meta-search engine, aggregates results from multiple upstream engines
+2. **Reranker** — a local ms-marco-MiniLM-L-12-v2 model that reranks search results by relevance to the query, so Claude sees the best matches first
+3. **Firecrawl-simple** — scrapes full page content from URLs and returns clean markdown, used by `fetch_url` and `search_and_fetch`
+
+Three tools: `search` (query with category/engine filters, results reranked),
+`fetch_url` (scrape a URL via Firecrawl, returns markdown), and
+`search_and_fetch` (search + rerank + fetch top results in one call).
+
+**Prerequisites:** Three Docker stacks running on the same network — SearXNG
+(see [component doc](../docs/components/searxng.md)), Firecrawl-simple
+(Trieve's lightweight Firecrawl fork), and a reranker service. All communicate
+over `claudebox-net`.
 
 **Config pattern (Claude Code `settings.json`):**
 ```json
