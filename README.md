@@ -44,7 +44,7 @@ The system has three layers. Each is independently useful — you don't need all
 │  PM2 background agents · automated memory sync          │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 2: Self-Hosted Service Stack (Docker)            │
-│  SWAG/Authelia · LibreChat · qmd · CloudCLI · SearXNG    │
+│  SWAG/Authelia · LibreChat · qmd · CloudCLI · SearXNG   │
 │  Dockhand · Open Notebook                               │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 1: Host & Core Tooling                           │
