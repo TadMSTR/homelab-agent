@@ -270,7 +270,8 @@ homelab-agent/
 | [TadMSTR/bsky-mcp-server](https://github.com/TadMSTR/bsky-mcp-server) | Bluesky MCP server (personal fork) — AT Protocol integration for Claude |
 | [TadMSTR/unraid-mcp-server](https://github.com/TadMSTR/unraid-mcp-server) | Unraid MCP server — array status, disk health, Docker, shares via GraphQL |
 | [tobi/qmd](https://github.com/tobi/qmd) | Semantic search engine with MCP server mode — hybrid BM25 + vector + LLM reranking |
-| [wbopan/cui](https://github.com/wbopan/cui) | Claude Code web UI — browser-based terminal sessions with notifications |
+| [siteboon/claudecodeui](https://github.com/siteboon/claudecodeui) | CloudCLI — Claude Code browser UI with file explorer, multi-session tabs, and notifications |
+| [wbopan/cui](https://github.com/wbopan/cui) | CUI — Claude Code web UI with browser-based terminal sessions |
 | [danny-avila/LibreChat](https://github.com/danny-avila/LibreChat) | Multi-provider chat interface with agents, MCP, memory, and RAG |
 
 ## License
