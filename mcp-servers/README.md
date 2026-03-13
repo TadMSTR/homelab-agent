@@ -100,20 +100,47 @@ clearly (`github-personal`, `github-work`) so Claude knows which to use.
 
 ---
 
+### Desktop Commander
+
+**Purpose:** Filesystem operations, terminal commands, process management on the
+host machine.
+
+**Package:** `@anthropic/desktop-commander` (npm)
+
+**Why it's here:** Claude Desktop's stdio transport works fine with Desktop
+Commander, and it covers the basics well: file reads/writes, shell commands,
+process management. I still use it in Claude Desktop for day-to-day work.
+
+**Config pattern:**
+```json
+{
+  "desktop-commander": {
+    "command": "npx",
+    "args": ["-y", "@anthropic/desktop-commander"]
+  }
+}
+```
+
+**Standalone value:** High. If you only use Claude Desktop (not Claude Code or
+LibreChat), this is all you need for filesystem and shell access.
+
+---
+
 ### homelab-ops
 
 **Purpose:** Filesystem operations, shell commands, file editing, process
-inspection on the host machine.
+inspection on the host machine — over HTTP.
 
 **Built by:** me — a FastMCP (Python) server purpose-built for homelab operations.
 
 **GitHub:** https://github.com/TadMSTR/homelab-agent (see `mcp-servers/` notes)
 
-**Why it's here:** Claude needs to read and write files, run shell commands, and
-manage processes. This is the hands and feet of the operation. I originally used
-Desktop Commander for this but replaced it with a custom server that exposes
-exactly the tools I need and runs as an HTTP service — making it available to
-both Claude Code and LibreChat agents simultaneously.
+**Why it's here:** Desktop Commander works great for Claude Desktop, but Claude
+Code and LibreChat agents need HTTP transport — stdio doesn't work when the
+client isn't launching the server as a subprocess. I built homelab-ops to expose
+exactly the tools I need as a shared HTTP service. Multiple clients connect to
+the same running instance. I primarily use Claude Code via CloudCLI now, so
+homelab-ops handles most of my day-to-day infrastructure work.
 
 **Tools:**
 
@@ -399,21 +426,22 @@ session private web search with zero API costs.
 
 ### Fluxer MCP
 
-**Purpose:** Discord bot gateway + MCP tools for community interaction via the
+**Purpose:** Chat bot gateway + MCP tools for community interaction via the
 Fluxer platform.
 
-**Built by:** me — TypeScript, runs as a PM2 service.
+**Built by:** me — TypeScript, currently shelved.
 
 **GitHub:** https://github.com/TadMSTR/fluxer-mcp-server
 
-**Why it's here:** Optional. I maintain a Discord bot in a homelab community
-that answers questions about this project. The MCP server exposes three tools
-(`get_bot_status`, `send_message`, `get_messages`) for manual control from
-Claude Desktop, while the gateway listener handles autonomous responses using
-Claude Haiku.
+**Why it's here:** A work-in-progress. Fluxer is a chat platform, and this
+server connects to its gateway to maintain a bot presence in a homelab
+community. The MCP side exposes three tools (`get_bot_status`, `send_message`,
+`get_messages`) for manual control from Claude Desktop, while the gateway
+listener handles autonomous responses using Claude Haiku. Shelved for now —
+the concept works but needs more polish.
 
-**Standalone value:** Low unless you're active in a Discord community and want
-Claude to help manage a bot presence.
+**Standalone value:** Low. Niche use case, and the Fluxer platform itself is
+still maturing.
 
 ---
 
@@ -460,7 +488,7 @@ enable in Claude Code settings.
 You don't need all of these. Here's a prioritized adoption path:
 
 **Start here (essential):**
-1. homelab-ops (or any shell/file MCP server) — filesystem and shell access
+1. Desktop Commander (Claude Desktop) or homelab-ops (Claude Code / LibreChat) — filesystem and shell access
 2. basic-memory — persistent notes between sessions
 
 **Add web search:**
@@ -482,7 +510,7 @@ You don't need all of these. Here's a prioritized adoption path:
 **Add as needed:**
 11. Playwright — browser automation
 12. Backrest — backup management (if you use Backrest/restic)
-13. Fluxer — Discord bot management (community use case)
+13. Fluxer — chat bot for Fluxer platform (shelved, community use case)
 14. jobsearch-mcp — job search and application tracking
 15. Bluesky — social media (niche use case)
 
