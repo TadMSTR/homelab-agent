@@ -1,21 +1,32 @@
 # Config Version Control
 
-Three directories on claudebox contain the bulk of operational configuration and automation: `~/docker/` holds all Compose stacks, `/opt/appdata/` holds the runtime config files for running containers (YAML, TOML, JSON, INI), and `~/scripts/` holds the utility and maintenance scripts that run as PM2 jobs. Claude edits files in all three directories directly — which means changes needed a version history. A self-hosted Gitea instance on atlas tracks all three directories, and a skill enforces pre/post-edit commits whenever Claude touches a tracked file.
+Three directories on claudebox contain the bulk of operational configuration and automation: `~/docker/` holds all Compose stacks, `/opt/appdata/` holds the runtime config files for running containers (YAML, TOML, JSON, INI), and `~/scripts/` holds the utility and maintenance scripts that run as PM2 jobs. Claude edits files in all three directories directly — which means changes needed a version history. A skill enforces pre/post-edit commits whenever Claude touches a tracked file, and a nightly snapshot catches anything that slipped through.
 
 This isn't a substitute for backups. The docker-stack-backup job and Backrest both cover these paths. Version control adds something different: a timestamped audit trail of *what changed* and *why*, with the ability to diff or roll back individual files without restoring a full snapshot.
 
+## Two Backends
+
+Not everything tracked in git goes to the same place. Infrastructure state — compose files, appdata configs, maintenance scripts — goes to a self-hosted Gitea instance running on atlas. Code and projects meant to be shared or reused go to GitHub.
+
+Gitea is appropriate for infra state: it's private, it's on the LAN, and it doesn't require an internet connection. These repos change frequently, may contain environment-specific context, and have no value outside this particular build. Keeping them off GitHub also avoids accidentally publishing configs that weren't fully sanitized.
+
+GitHub is appropriate for code and documentation that has value beyond this machine — the context repo (skills, project instructions, infrastructure docs), public reference implementations like this one, and any MCP servers or tools worth releasing. If claudebox is rebuilt from scratch, these repos need to be clonable from somewhere reliable.
+
+The split isn't mandatory. Running everything on GitHub or everything on a self-hosted Gitea both work fine. The distinction just reflects how the two categories of content are actually used.
+
+Gitea runs on atlas as a single-container Docker stack with a SQLite backend — simple enough for a homelab and plenty sufficient for a few repos with light commit frequency.
+
 ## What's Tracked
 
-| Local Path | Gitea Repo | Contents |
-|------------|------------|----------|
-| `~/docker/` | `claudebox-docker` | All Docker Compose stacks and associated files |
-| `/opt/appdata/` | `claudebox-appdata` | Container config files by service |
-| `~/scripts/` | `claudebox-scripts` | Utility and maintenance scripts |
-| `~/repos/personal/YOUR_CONTEXT_REPO` | `your-context-repo` | Skills, project instructions, infrastructure docs |
+| Local Path | Remote | Contents |
+|------------|--------|----------|
+| `~/docker/` | Gitea: `claudebox-docker` | All Docker Compose stacks and associated files |
+| `/opt/appdata/` | Gitea: `claudebox-appdata` | Container config files by service |
+| `~/scripts/` | Gitea: `claudebox-scripts` | Utility and maintenance scripts |
+| `~/repos/personal/YOUR_CONTEXT_REPO` | GitHub: `your-context-repo` | Skills, project instructions, infrastructure docs |
+| `~/repos/personal/homelab-agent` | GitHub: `homelab-agent` | Public reference repo (this repo) |
 
-The context repo is handled differently from the others — it lives in a personal repos directory rather than a config path, and it's already a git repo tracking its own content. The nightly snapshot covers it the same way: commit any changes, push. This catches edits made by Claude agents to skills or project instruction files that weren't committed inline.
-
-Gitea runs on atlas as a single-container Docker stack with a SQLite backend — simple enough for a homelab and plenty sufficient for three repos with light commit frequency.
+The context repo is handled differently from the config directories — it lives in a personal repos directory, is already a git repo tracking its own content, and pushes to GitHub rather than Gitea. The nightly snapshot covers it the same way: commit any changes, push. This catches edits made by Claude agents to skills or project instruction files that weren't committed inline.
 
 ## Skills and Project Instructions
 
