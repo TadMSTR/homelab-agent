@@ -36,6 +36,7 @@ For the architecture overview and how these components relate, see the [main REA
 | Component | Doc | What It Covers |
 |-----------|-----|---------------|
 | homelab-ops MCP | [homelab-ops-mcp.md](homelab-ops-mcp.md) | FastMCP HTTP tool server — shell, files, processes; shared by Claude Code and LibreChat |
+| claudebox-deploy | [claudebox-deploy.md](claudebox-deploy.md) | Provisioning script — full machine rebuild from NFS backup, repo cloning, state restore |
 
 ## Cross-Cutting
 

@@ -8,29 +8,17 @@
 [![Built with Claude](https://img.shields.io/badge/Built%20with-Claude-blueviolet)](https://claude.ai)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-enabled-blueviolet)](https://claude.ai/code)
 
-This repo documents how I run Claude as an always-on infrastructure assistant across my homelab — with persistent context, live tool access to my hosts, and a self-hosted service stack to support it. Modular by design: take the whole thing or just the parts that fit your setup.
+I run a multi-user AI platform out of a mini PC in my homelab. Claude has persistent context about my infrastructure, live tool access to my servers, purpose-built agents for specific tasks, and a web frontend accessible from any browser on the network. This repo documents the full build.
 
-## Recent Updates
+## What This Is
 
-- **2026-03-14** — AI cost tracking: Claude Code JSONL parser + Telegraf pipeline → local InfluxDB → Grafana dashboard for token usage and estimated costs
-- **2026-03-14** — Local Grafana + InfluxDB stack on claudebox for agent observability, separate from atlas infrastructure monitoring
-- **2026-03-14** — Doc-health agent: weekly automated documentation audit (drift, index, coverage, staleness, sanitization) with Opus model
-- **2026-03-14** — Component docs for homelab-ops MCP, diag-check, and doc-health
-- **2026-03-14** — Build plan handoff workflow: research agents design plans, implementation agents pick them up on session start
-- **2026-03-13** — 3-tier memory system with automated nightly consolidation (session → working → distilled)
+This is more than "I use AI to write scripts." It's a three-layer platform: a dedicated host running Claude Desktop with MCP server integrations for direct infrastructure access, a self-hosted Docker stack with LibreChat as the multi-user frontend and supporting AI services, and a multi-agent Claude Code engine with scoped memory, background jobs, and automated knowledge accumulation.
 
-## Contents
+The LibreChat frontend is where the platform shows its depth. It's not just a chat UI — it hosts specialized agents, each configured with its own tools, context, and purpose. The first: a job search agent with multi-board scraping, resume scoring, and application tracking. More are being added. Any browser on the network can access the platform; anyone with an account can use the agents.
 
-- [How This Started](#how-this-started)
-- [Architecture](#architecture)
-  - [Layer 1 — Host & Core Tooling](#layer-1--host--core-tooling)
-  - [Layer 2 — Self-Hosted Service Stack](#layer-2--self-hosted-service-stack)
-  - [Layer 3 — Multi-Agent Claude Code Engine](#layer-3--multi-agent-claude-code-engine)
-- [The Memory / Context System](#the-memory--context-system)
-- [What Makes This Different](#what-makes-this-different)
-- [Prerequisites](#prerequisites)
-- [Repo Structure](#repo-structure)
-- [Related Repos](#related-repos)
+What makes it work over time is the memory system. Claude doesn't start from zero every session. It loads infrastructure context, recalls relevant decisions from past work, and accumulates knowledge automatically through nightly memory sync. Add the version-controlled infrastructure (everything the AI can touch is in git), and you have a system that can operate alongside you without being a liability.
+
+Modular by design. Take the whole thing or just the parts that fit your setup.
 
 ## How This Started
 
@@ -38,9 +26,17 @@ I watched a TechnoTim video on TrueNAS and Docker, needed a backup script, and u
 
 Once Claude had persistent context about my environment, the interactions changed. Instead of explaining my setup every time, I could say "check if the Plex container is healthy on unraid" and it already knew unraid's IP, what monitoring tools were available, and how my Docker stacks were organized. That was the inflection point.
 
-I built a dedicated mini PC (claudebox) to run Claude Desktop full-time with Model Context Protocol (MCP) tool integrations — direct access to Netdata, Grafana, GitHub, the filesystem, and a browser. Then I layered on a self-hosted service stack: reverse proxy with SSO, a multi-provider chat UI, semantic search over all my docs and repos, and a Claude Code web interface. On top of that, a multi-agent Claude Code engine with scoped memory, background jobs, and automated knowledge sync.
+I built a dedicated mini PC (claudebox) to run Claude Desktop full-time with MCP tool integrations — direct access to Netdata, Grafana, GitHub, the filesystem, and a browser. Then I layered on a self-hosted service stack: reverse proxy with SSO, a multi-provider chat UI with purpose-built agents, semantic search over all my docs and repos, and a Claude Code web interface. On top of that, a multi-agent Claude Code engine with scoped memory, background jobs, and automated knowledge sync.
 
 It grew organically from "AI writes me a script" to "AI operates alongside me as infrastructure."
+
+## Recent Updates
+
+- **2026-03-14** — AI cost tracking: Claude Code JSONL parser + Telegraf pipeline → local InfluxDB → Grafana dashboard for token usage and estimated costs
+- **2026-03-14** — Local Grafana + InfluxDB stack on claudebox for agent observability, separate from atlas infrastructure monitoring
+- **2026-03-14** — Doc-health agent: weekly automated documentation audit (drift, index, coverage, staleness, sanitization) with Opus model
+- **2026-03-14** — Build plan handoff workflow: research agents design plans, implementation agents pick them up on session start
+- **2026-03-13** — 3-tier memory system with automated nightly consolidation (session → working → distilled)
 
 ## Architecture
 
@@ -53,8 +49,8 @@ The system has three layers. Each is independently useful — you don't need all
 │  PM2 background agents · automated memory sync          │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 2: Self-Hosted Service Stack (Docker)            │
-│  SWAG/Authelia · LibreChat · qmd · CloudCLI · SearXNG   │
-│  Dockhand · Open Notebook · Grafana + InfluxDB          │
+│  SWAG/Authelia · LibreChat · purpose-built agents       │
+│  qmd · CloudCLI · SearXNG · Grafana + InfluxDB          │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 1: Host & Core Tooling                           │
 │  Debian mini PC · Claude Desktop · MCP servers          │
@@ -104,17 +100,17 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 
 | Service | What It Does | Why It's Here |
 |---------|-------------|---------------|
-| **Authelia** | SSO authentication gateway | One login for all services. SWAG has first-class Authelia support — two lines uncommented per proxy conf. |
-| **CloudCLI** | Claude Code browser UI _(PM2 host service, not Docker)_ | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Runs as a PM2-managed Node.js process on the host, proxied through SWAG. Primary day-to-day interface for infrastructure work. |
-| **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
-| **Grafana + InfluxDB** | Local agent observability stack | Dashboards for Claude Code session metrics, token usage, estimated costs, and LibreChat activity. Separate from atlas infrastructure monitoring — see [grafana-claudebox](docs/components/grafana-claudebox.md). |
-| **LibreChat** | Multi-provider chat UI (Anthropic, OpenAI, Ollama, etc.) | Web-based chat with agent support, MCP tool integration, built-in memory, and RAG. The primary interface for interactive agent work. |
-| **Open Notebook** | AI research/notebook tool | Document analysis and research with SurrealDB backend. |
+| **LibreChat** | Multi-provider chat UI (Anthropic, OpenAI, Ollama, etc.) | The multi-user AI platform. Hosts specialized agents with their own tools and context. Built-in memory, RAG, MCP integration, and web search pipeline. See [Purpose-Built Agents](#purpose-built-agents) below. |
 | **SearXNG** | Private meta-search | Self-hosted search backend. Aggregates results from multiple engines with no API keys or per-query costs. Powers LibreChat's web search pipeline. |
-| **qmd** | Semantic search MCP server | Hybrid search (BM25 + vector + LLM reranking) over all repos, docs, and agent memory. Local embeddings via GGUF models, GPU-accelerated on AMD iGPU via Vulkan. |
 | **SWAG** | Nginx reverse proxy with Let's Encrypt wildcard SSL | Single entry point for all `*.yourdomain` services. DNS validation via Cloudflare — internal-only domain, no ports exposed to the internet. |
+| **Authelia** | SSO authentication gateway | One login for all services. SWAG has first-class Authelia support — two lines uncommented per proxy conf. |
+| **Grafana + InfluxDB** | Local agent observability stack | Dashboards for Claude Code session metrics, token usage, estimated costs, and LibreChat activity. Separate from atlas infrastructure monitoring — see [grafana-claudebox](docs/components/grafana-claudebox.md). |
+| **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
+| **CloudCLI** | Claude Code browser UI _(PM2 host service, not Docker)_ | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Runs as a PM2-managed Node.js process on the host, proxied through SWAG. Primary day-to-day interface for infrastructure work. |
+| **Open Notebook** | AI research/notebook tool | Document analysis and research with SurrealDB backend. |
+| **qmd** | Semantic search MCP server | Hybrid search (BM25 + vector + LLM reranking) over all repos, docs, and agent memory. Local embeddings via GGUF models, GPU-accelerated on AMD iGPU via Vulkan. |
 
-All containers share a single Docker network. SWAG handles SSL termination and routes `chat.yourdomain`, `auth.yourdomain`, `cloudcli.yourdomain`, etc. to the appropriate container. Authelia sits in front of everything — one-factor auth with a file-based user backend (sufficient for a single-user or household setup).
+All containers share a single Docker network. SWAG handles SSL termination and routes `chat.yourdomain`, `auth.yourdomain`, `cloudcli.yourdomain`, etc. to the appropriate container.
 
 **Standalone value:** The SWAG + Authelia + LibreChat stack is useful even without Claude Desktop or the agent engine. LibreChat gives you a self-hosted ChatGPT-like interface that works with multiple AI providers, and Authelia keeps it locked down.
 
@@ -164,6 +160,16 @@ See [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) for ful
 
 **Standalone value:** The CLAUDE.md hierarchy alone is worth adopting. Even without memsearch or the background agents, giving Claude Code structured context about your infrastructure dramatically improves the quality of its responses. Start with a root CLAUDE.md and one project, expand from there.
 
+## Purpose-Built Agents
+
+LibreChat isn't just a chat interface — it's the platform that hosts specialized agents, each configured with their own MCP servers, system prompt, and domain context. The difference from a generic AI chat: these agents know their job, have the right tools wired up, and keep state across sessions.
+
+**Job Search Agent** — the first purpose-built agent in the stack. Backed by its own FastMCP server with tools for multi-board job scraping, resume scoring against job descriptions, and application tracking in Postgres. A user can ask "find senior DevOps roles remote in the US, score them against my resume, and add the top five to the tracker" and get back structured results — not a list of links.
+
+The agent/platform model means adding a new agent is a matter of writing a FastMCP server and configuring it in LibreChat. The infrastructure (reverse proxy, SSO, memory, search) is already there. More agents are being added as new use cases emerge.
+
+See [`docs/components/jobsearch-mcp.md`](docs/components/jobsearch-mcp.md) for the job search agent's architecture and the pattern for building additional agents.
+
 ## The Memory / Context System
 
 This is the connective tissue that makes the whole thing more than the sum of its parts. Most people's experience with AI assistants is stateless — every conversation starts from zero. This system has four layers of persistent context:
@@ -182,19 +188,50 @@ The result: when I start a session on Monday, the agent already knows about the 
 
 Most AI homelab setups are "I use ChatGPT to write scripts." This is a persistent, context-aware system where the AI knows the infrastructure, remembers decisions, and improves over time.
 
-The key differences:
-
 **Persistent context, not copy-paste.** The AI doesn't need you to explain your setup every session. It loads infrastructure docs, reads recent memory, and picks up where you left off.
 
-**Multi-agent with scoped memory.** Different agents handle different domains without context bleed. The homelab-ops agent knows about Docker and monitoring. The dev agent knows about git workflows and code standards. They share infrastructure knowledge but keep domain-specific learnings separate.
+**Multi-user platform with purpose-built agents.** LibreChat gives the whole household or team access to specialized AI agents — not just one person's Claude Desktop session. Each agent is purpose-built: specific tools, specific context, specific job.
+
+**Multi-agent with scoped memory.** Different Claude Code agents handle different domains without context bleed. The homelab-ops agent knows about Docker and monitoring. The dev agent knows about git workflows and code standards. They share infrastructure knowledge but keep domain-specific learnings separate.
 
 **Automated knowledge accumulation.** The memory sync agent means you don't have to manually maintain documentation. Durable decisions and learnings flow from work sessions into the persistent knowledge base automatically.
 
 **Tool access, not just chat.** Via MCP, the AI can directly query Netdata metrics, check Grafana dashboards, search GitHub repos, read and write files, and automate browser tasks. It's not just answering questions — it's operating.
 
-**Version-controlled infrastructure.** When AI agents have filesystem access, they will edit your config files directly — compose files, `.env` files, proxy confs. This is powerful, but it means you need version control on everything the AI can touch. All Docker compose files in this setup live in a git repo. Every change is tracked, diffable, and reversible. If an agent makes a bad edit, `git diff` shows what happened and `git checkout` recovers it. This isn't optional — it's the safety net that makes AI-assisted infrastructure management viable.
+**Version-controlled infrastructure.** When AI agents have filesystem access, they will edit your config files directly — compose files, `.env` files, proxy confs. This is powerful, but it means you need version control on everything the AI can touch. All Docker compose files in this setup live in a git repo. Every change is tracked, diffable, and reversible. This isn't optional — it's the safety net that makes AI-assisted infrastructure management viable.
 
 **Model-agnostic in practice.** The core engine runs on Claude, but LibreChat supports any provider (OpenAI, Ollama, etc.). SearXNG provides self-hosted search without API keys. The architecture doesn't lock you into a single vendor.
+
+## Planned Additions
+
+The platform model makes it straightforward to add new integrations as new use cases emerge. On the roadmap:
+
+**Home Assistant** — pulling device state and automation context into Claude's awareness. The goal is agents that understand what's happening in the house, not just on the servers.
+
+**MQTT** — event-driven triggers for agents. When something happens on the network or in the house, an agent can respond rather than waiting to be asked.
+
+**n8n** — workflow automation to connect the AI platform to the broader service ecosystem. Handling webhooks, routing events, and automating multi-step processes that span systems.
+
+## Using This Repo
+
+This repo has two audiences: humans and AI agents.
+
+**For humans:** Start with this README to understand the architecture, then [`docs/getting-started.md`](docs/getting-started.md) for the setup path. The docs are designed so you can stop at any layer and still have a working system. Component docs in [`docs/components/`](docs/components/) go deep on individual services.
+
+**For AI agents:** [`index.md`](index.md) is a machine-readable navigation index of the entire repo — every file, what it covers, and task-based routing so an agent can load only the context it needs. It's designed for Claude Code, but it works with any AI that can read files.
+
+This last point is worth calling out directly. If you want to build your own version of this stack, you can hand your AI assistant this repo and let it help you work through it:
+
+```
+I want to build an AI-powered homelab setup similar to the one in this repo.
+Please read index.md to understand the full structure, then help me plan
+which components to adopt based on my current setup.
+
+My setup: [describe your hardware, OS, existing services]
+My goals: [what you want Claude to be able to do]
+```
+
+The index covers every component and links to the relevant docs. Your AI can use it to ask the right questions, identify dependencies, and walk you through setup in the right order.
 
 ## Prerequisites
 
@@ -210,19 +247,17 @@ To run the full stack, you need:
 - A domain name (for SWAG SSL — can be internal-only with DNS validation via Cloudflare)
 - Optional: NFS server for backups (TrueNAS, Unraid, or any NFS-capable host)
 
-You don't need all of this to get value. See the component breakdown above for what each piece requires independently.
+You don't need all of this to get value. See [`docs/getting-started.md`](docs/getting-started.md) for clear stopping points where each layer is independently useful.
 
 ## Repo Structure
-
-> **AI agents:** See [`index.md`](index.md) for a machine-readable navigation index — load only the context relevant to your current task.
 
 ```
 homelab-agent/
 ├── README.md                        ← You are here
-├── index.md                         ← Agent navigation index (scoped context loading)
+├── index.md                         ← Machine-readable nav index for AI agents
 ├── docs/
 │   ├── architecture.md              ← Detailed system architecture and data flows
-│   ├── getting-started.md           ← Setup overview and prerequisites
+│   ├── getting-started.md           ← Setup guide with stopping points per layer
 │   └── components/                  ← Per-component deep dives
 │       ├── swag.md                  ← Reverse proxy, Cloudflare DNS, proxy conf pattern
 │       ├── authelia.md              ← SSO config, file-based user backend, SWAG integration
@@ -241,7 +276,9 @@ homelab-agent/
 │       ├── doc-health.md            ← Weekly doc audit — drift, coverage, staleness, sanitization
 │       ├── ai-cost-tracking.md      ← Claude Code JSONL parser, cost metrics, Telegraf pipeline
 │       ├── homelab-ops-mcp.md       ← FastMCP HTTP tool server — shell, files, processes
+│       ├── claudebox-deploy.md      ← Provisioning script — full machine rebuild from NFS backup
 │       ├── config-version-control.md ← Git tracking for docker/ and appdata configs
+│       ├── jobsearch-mcp.md         ← Job search agent — multi-board scraping, resume scoring, tracking
 │       └── backups.md               ← Backrest/restic, Claude backup, Docker appdata backup
 ├── claude-code/
 │   ├── CLAUDE.md.example            ← Root CLAUDE.md template
@@ -251,23 +288,18 @@ homelab-agent/
 │       ├── research.md              ← Research agent
 │       └── memory-sync.md           ← Memory distillation agent
 ├── docker/
-│   ├── swag/
-│   │   └── docker-compose.yml       ← Reverse proxy + wildcard SSL
-│   ├── authelia/
-│   │   └── docker-compose.yml       ← SSO authentication gateway
+│   ├── swag/docker-compose.yml      ← Reverse proxy + wildcard SSL
+│   ├── authelia/docker-compose.yml  ← SSO authentication gateway
 │   ├── librechat/
 │   │   ├── docker-compose.yml       ← Multi-provider chat + MongoDB + Meilisearch
 │   │   └── librechat.yaml.example   ← LibreChat config with web search and MCP
-│   ├── firecrawl-simple/
-│   │   └── docker-compose.yml       ← Web scraper for LibreChat search pipeline
+│   ├── firecrawl-simple/docker-compose.yml  ← Web scraper for LibreChat search pipeline
 │   ├── reranker/
 │   │   ├── docker-compose.yml       ← Jina-compatible reranker wrapper
 │   │   ├── Dockerfile               ← FlashRank + FastAPI build
 │   │   └── main.py                  ← Reranker API source (~115 lines)
-│   ├── dockhand/
-│   │   └── docker-compose.yml       ← Docker stack manager UI
-│   └── open-notebook/
-│       └── docker-compose.yml       ← AI notebook + SurrealDB
+│   ├── dockhand/docker-compose.yml  ← Docker stack manager UI
+│   └── open-notebook/docker-compose.yml  ← AI notebook + SurrealDB
 ├── pm2/
 │   └── ecosystem.config.js.example  ← PM2 service definitions
 ├── scripts/
