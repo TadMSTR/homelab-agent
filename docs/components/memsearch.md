@@ -52,6 +52,8 @@ The `[paths] extra` config is where you tell memsearch which directories to inde
 
 After configuring paths, run `memsearch index` to build the initial database. Re-run it after new memory files are added — or let the memory-sync cron handle it (see [memory-sync](memory-sync.md)).
 
+A companion PM2 job (`memsearch-compact`, cron at 4:30 AM daily) runs compaction on the Milvus Lite database after each nightly sync. Milvus accumulates fragmented segments over time; compaction merges them and reclaims disk space. It's not strictly required — memsearch works fine without it — but without periodic compaction the database grows faster than necessary. See [`pm2/ecosystem.config.js.example`](../../pm2/ecosystem.config.js.example) for the job definition.
+
 ## Integration Points
 
 **Claude Code plugin:** The primary consumer. The plugin auto-loads when Claude Code starts a session, queries memsearch for relevant context, and injects it. You don't interact with memsearch directly during a session — it works in the background.

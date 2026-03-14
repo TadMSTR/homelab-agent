@@ -12,15 +12,18 @@ The alternatives I evaluated were Open WebUI and LobeChat. Open WebUI is excelle
 
 ## What's in the Stack
 
-LibreChat deploys as three containers plus the web search pipeline (covered below):
+LibreChat deploys as six containers plus the web search pipeline (covered below):
 
 | Container | Image | Purpose | RAM |
 |-----------|-------|---------|-----|
-| librechat | ghcr.io/danny-avila/librechat | App server | ~300MB |
+| librechat | ghcr.io/danny-avila/librechat:v0.8.3 | App server | ~300MB |
 | librechat-mongodb | mongo:7 | Conversation storage, user data | ~200MB |
 | librechat-meilisearch | getmeili/meilisearch | Conversation search index | ~150MB |
+| librechat-backrest-mcp | supercorp-ai/supergateway | Wraps backrest-mcp-server for LibreChat agents | ~50MB |
+| librechat-grafana-mcp | mcp/grafana | Grafana MCP server for LibreChat agents | ~100MB |
+| librechat-exporter | virtuos/librechat_exporter | Prometheus metrics exporter for Grafana | ~80MB |
 
-All three join `claudebox-net` (the shared Docker network). No host port mappings — SWAG handles ingress.
+All join the shared Docker network. No host port mappings — SWAG handles ingress.
 
 ## Configuration
 
@@ -162,7 +165,29 @@ LibreChat supports MCP servers for agent tool access via the `mcpServers` block 
 
 **Host-level services** (like qmd) run outside Docker and are reached via `host.docker.internal`. The `extra_hosts` mapping in the compose file resolves that hostname to the host gateway IP, and `mcpSettings.allowedDomains` whitelists it for MCP connections.
 
-**Sidecar containers** run as additional services in the LibreChat compose stack, on the same Docker network. This is the pattern for backrest-mcp and grafana-mcp — each wraps an MCP server and exposes a `streamable-http` endpoint that LibreChat reaches by container name. The backrest-mcp sidecar uses [supergateway](https://github.com/supercorp-ai/supergateway) to wrap the stdio-based backrest-mcp-server and expose it over HTTP. The grafana-mcp sidecar uses Grafana's official MCP image with HTTP transport enabled.
+**Sidecar containers** run as additional services in the LibreChat compose stack, on the same Docker network. This is the pattern for backrest-mcp and grafana-mcp — each wraps an MCP server and exposes a `streamable-http` endpoint that LibreChat reaches by container name.
+
+**backrest-mcp sidecar** (`librechat-backrest-mcp`) — uses [supergateway](https://github.com/supercorp-ai/supergateway) to wrap the stdio-based [backrest-mcp-server](https://github.com/TadMSTR/backrest-mcp-server) and expose it as a `streamable-http` service. LibreChat agents can trigger backup plans and query operation history without leaving the chat. Wire it in `librechat.yaml`:
+
+```yaml
+mcpServers:
+  backrest:
+    type: streamable-http
+    url: http://librechat-backrest-mcp:8000/mcp
+```
+
+The supergateway container needs a volume mount pointing at the cloned backrest-mcp-server repo — it runs the server process via `node /app/build/src/index.js`. See the compose file for the full config.
+
+**grafana-mcp sidecar** (`librechat-grafana-mcp`) — uses [Grafana's official MCP image](https://github.com/grafana/mcp-grafana) with HTTP transport enabled via `-t streamable-http`. Gives LibreChat agents access to dashboards, alert rules, Loki log queries, and InfluxDB metrics queries — the same surface as the Grafana MCP server in Claude Desktop but scoped to the LibreChat stack. Wire it in `librechat.yaml`:
+
+```yaml
+mcpServers:
+  grafana:
+    type: streamable-http
+    url: http://librechat-grafana-mcp:3000/mcp
+```
+
+Needs a `GRAFANA_SERVICE_ACCOUNT_TOKEN` pointing at your Grafana instance. See the compose file for the environment block.
 
 Sidecar containers are the right pattern when the MCP server doesn't already run as a persistent host-level service, or when you want the MCP server lifecycle tied to the LibreChat stack.
 
@@ -172,7 +197,11 @@ LibreChat has two related systems for token tracking: transactions (logging) and
 
 With `transactions.enabled: true`, every API call writes a record to the `Transactions` collection in MongoDB capturing prompt tokens, completion tokens, model, cost, and user. With `balance.enabled: false`, there's no credit enforcement — usage is tracked but never blocked. This is the right setup for a personal/household instance where you want visibility without artificial limits.
 
-The transaction data in MongoDB can be queried for dashboards (see the Grafana integration notes below) or exported for cost analysis. LibreChat also exposes Prometheus-compatible metrics via an OpenMetrics endpoint for real-time monitoring.
+The transaction data in MongoDB can be queried for dashboards or exported for cost analysis.
+
+**librechat-exporter** is a Prometheus metrics exporter ([virtUOS/librechat_exporter](https://github.com/virtUOS/librechat_exporter)) that reads from the LibreChat MongoDB instance and exposes metrics on port 8000. It's wired into the Grafana claudebox stack as a Prometheus scrape target, making LibreChat activity — active users, message counts, model distribution, conversation stats — visible alongside the AI cost tracking dashboards. See [grafana-claudebox](grafana-claudebox.md) for the dashboard setup.
+
+The exporter runs in the LibreChat compose stack (see `docker/librechat/docker-compose.yml`) with a `MONGODB_URI` pointing at the `librechat-mongodb` container. No additional configuration needed — it auto-discovers collections on startup.
 
 **Known issue (as of v0.8.3-rc2):** Agent transactions record the agent ID (e.g., `agent_8aWN5tLYRAdtV8knVWmod`) in the model field instead of the underlying model name. This causes incorrect pricing lookups for agent interactions. Tracked in [#11978](https://github.com/danny-avila/LibreChat/issues/11978). If you're building cost dashboards, filter or map agent IDs to their configured models until this is fixed.
 
@@ -210,6 +239,7 @@ You don't need the CLAUDE.md hierarchy, memsearch, or PM2 agents to get value fr
 
 - [Architecture overview](../../README.md#architecture) — where LibreChat fits in the three-layer stack
 - [MCP servers reference](../../mcp-servers/README.md) — qmd config for LibreChat's MCP integration
+- [Grafana claudebox](grafana-claudebox.md) — dashboards that consume librechat-exporter metrics
 - [PM2 services](../../pm2/ecosystem.config.js.example) — qmd and other services LibreChat depends on
 - [Docker compose files](../../docker/librechat/) — LibreChat stack compose and config
 - [firecrawl-simple compose](../../docker/firecrawl-simple/) — web scraper for the search pipeline

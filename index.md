@@ -30,6 +30,7 @@ homelab-agent/
 │       ├── ai-cost-tracking.md        # Claude Code JSONL → Telegraf → InfluxDB → Grafana cost metrics
 │       ├── homelab-ops-mcp.md         # FastMCP HTTP tool server — shell, files, processes
 │       ├── config-version-control.md  # Git tracking for docker/ and appdata configs
+│       ├── jobsearch-mcp.md           # Multi-board job search, resume scoring, application tracking
 │       └── backups.md                 # Backup strategy: Backrest/restic, Claude backup, Docker appdata
 ├── claude-code/
 │   ├── CLAUDE.md.example              # Root CLAUDE.md template
@@ -45,6 +46,7 @@ homelab-agent/
 │   ├── firecrawl-simple/              # Web scraper for LibreChat search pipeline
 │   ├── reranker/                      # Jina-compatible FlashRank reranker
 │   ├── dockhand/                      # Dockhand Docker stack manager compose
+│   ├── jobsearch/                     # jobsearch-mcp stack (MCP server + Postgres + Qdrant)
 │   └── open-notebook/                 # Open Notebook + SurrealDB compose
 ├── mcp-servers/
 │   └── README.md                      # MCP server reference, config patterns, adoption path
@@ -81,6 +83,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Scheduled diagnostics | `docs/components/diag-check.md`, `docs/components/agent-panel.md` | Docker compose, MCP |
 | Agent observability (Grafana) | `docs/components/grafana-claudebox.md` | MCP, Claude Code |
 | AI cost tracking | `docs/components/ai-cost-tracking.md` | Docker, MCP |
+| Job search agent | `docs/components/jobsearch-mcp.md`, `docker/jobsearch/` | Claude Code, MCP |
 | Config version control | `docs/components/config-version-control.md` | MCP, Claude Code |
 | Claude Code / CLAUDE.md | `claude-code/CLAUDE.md.example`, `claude-code/projects/` | Docker, MCP |
 | PM2 services / cron | `pm2/ecosystem.config.js.example` | Docker compose, MCP config |
@@ -148,6 +151,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/ai-cost-tracking.md` | ✅ Complete | 2026-03 |
 | `docs/components/homelab-ops-mcp.md` | ✅ Complete | 2026-03 |
 | `docs/components/config-version-control.md` | ✅ Complete | 2026-03 |
+| `docs/components/jobsearch-mcp.md` | ✅ Complete | 2026-03 |
 | `docs/components/backups.md` | ✅ Complete | 2026-03 |
 | `docker/swag/` | ✅ Complete | 2026-03 |
 | `docker/authelia/` | ✅ Complete | 2026-03 |
@@ -156,6 +160,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docker/librechat/` | ✅ Complete | 2026-03 |
 | `docker/firecrawl-simple/` | ✅ Complete | 2026-03 |
 | `docker/reranker/` | ✅ Complete | 2026-03 |
+| `docker/jobsearch/` | ✅ Complete | 2026-03 |
 | `docs/architecture.md` | ✅ Complete | 2026-03 |
 | `docs/getting-started.md` | ✅ Complete | 2026-03 |
 | `scripts/` | ✅ Complete | 2026-03 |
@@ -184,6 +189,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | AI Cost Tracking | [`docs/components/ai-cost-tracking.md`](docs/components/ai-cost-tracking.md) | — | (host script + PM2) |
 | homelab-ops MCP | [`docs/components/homelab-ops-mcp.md`](docs/components/homelab-ops-mcp.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§homelab-ops) | — | (PM2 host service) |
 | Config Version Control | [`docs/components/config-version-control.md`](docs/components/config-version-control.md) | — | — |
+| jobsearch-mcp | [`docs/components/jobsearch-mcp.md`](docs/components/jobsearch-mcp.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§jobsearch-mcp) | `.env` | `docker/jobsearch/docker-compose.yml` |
 | MCP servers (all) | [`mcp-servers/README.md`](mcp-servers/README.md) | Config patterns inline | — |
 | PM2 services | [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) | Inline | — |
 | CLAUDE.md hierarchy | [`claude-code/CLAUDE.md.example`](claude-code/CLAUDE.md.example), [`claude-code/projects/`](claude-code/projects/) | — | — |

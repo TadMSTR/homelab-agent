@@ -17,6 +17,7 @@ For the architecture overview and how these components relate, see the [main REA
 | CUI | [cui.md](cui.md) | Claude Code web UI — headless agent monitoring, push notifications |
 | CloudCLI | [cloudcli.md](cloudcli.md) | Claude Code web UI — file explorer, git integration, shell terminal, MCP management, WebSocket/SWAG proxy config |
 | Agent Panel | [agent-panel.md](agent-panel.md) | Homelab operations panel — service health, PM2, Docker, file browser, diagnostics, Backrest; SWAG token injection auth model |
+| jobsearch-mcp | [jobsearch-mcp.md](jobsearch-mcp.md) | Multi-board job search, resume scoring, application tracking — FastMCP server for LibreChat agents |
 | Diag-Check | [diag-check.md](diag-check.md) | Scheduled lightweight diagnostics via agent panel API, failure alerting |
 | Grafana (claudebox) | [grafana-claudebox.md](grafana-claudebox.md) | Local Grafana + InfluxDB for AI agent observability — separate from atlas infrastructure monitoring |
 
