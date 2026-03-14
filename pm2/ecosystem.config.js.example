@@ -152,6 +152,20 @@ module.exports = {
     },
 
     {
+      // Documentation health audit — drift, index, coverage, staleness, sanitization.
+      // Opus model for editorial judgment. Report-first: findings go to
+      // ~/.claude/memory/shared/doc-health-report.md, only index.md fixes auto-commit.
+      // Lock file at ~/.claude/doc-health.lock prevents overlapping runs.
+      // 20-minute timeout (Opus needs headroom for deeper reasoning).
+      name: "doc-health",
+      script: "/home/YOUR_USER/.claude/scripts/doc-health.sh",
+      interpreter: "bash",
+      cron_restart: "0 23 * * 0",   // Sundays at 11:00 PM
+      autorestart: false,
+      watch: false,
+    },
+
+    {
       // Check for updates to pinned dependencies (qmd, memsearch, Authelia,
       // Claude Code, etc). Alerts via ntfy if updates are available.
       name: "dep-update-check",
