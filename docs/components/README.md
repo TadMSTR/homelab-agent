@@ -18,6 +18,7 @@ For the architecture overview and how these components relate, see the [main REA
 | CloudCLI | [cloudcli.md](cloudcli.md) | Claude Code web UI — file explorer, git integration, shell terminal, MCP management, WebSocket/SWAG proxy config |
 | Agent Panel | [agent-panel.md](agent-panel.md) | Homelab operations panel — service health, PM2, Docker, file browser, diagnostics, Backrest; SWAG token injection auth model |
 | Diag-Check | [diag-check.md](diag-check.md) | Scheduled lightweight diagnostics via agent panel API, failure alerting |
+| Grafana (claudebox) | [grafana-claudebox.md](grafana-claudebox.md) | Local Grafana + InfluxDB for AI agent observability — separate from atlas infrastructure monitoring |
 
 ## Layer 3 — Multi-Agent Engine
 
@@ -27,6 +28,7 @@ For the architecture overview and how these components relate, see the [main REA
 | memsearch | [memsearch.md](memsearch.md) | Memory recall for Claude Code, plugin integration, config |
 | memory-sync | [memory-sync.md](memory-sync.md) | Automated knowledge distillation pipeline, distillation rules, PM2 cron |
 | doc-health | [doc-health.md](doc-health.md) | Weekly documentation audit — drift, index, coverage, staleness, sanitization |
+| AI Cost Tracking | [ai-cost-tracking.md](ai-cost-tracking.md) | Claude Code JSONL parsing, token/cost metrics, LibreChat Prometheus → InfluxDB → Grafana |
 
 ## Layer 1 — Core Tooling
 
@@ -38,5 +40,5 @@ For the architecture overview and how these components relate, see the [main REA
 
 | Component | Doc | What It Covers |
 |-----------|-----|---------------|
-| Backups | [backups.md](backups.md) | Backrest/restic, Claude Desktop backup, Docker appdata backup — schedules, retention, restore |
+| Backups | [backups.md](backups.md) | Backrest/restic, Claude backup, Docker appdata backup — schedules, retention, restore |
 | Config Version Control | [config-version-control.md](config-version-control.md) | Gitea-backed git tracking for `~/docker/` and `/opt/appdata/`, nightly snapshot, Claude edit workflow |
