@@ -200,6 +200,20 @@ module.exports = {
       watch: false,
     },
 
+    {
+      // Automated diagnostics — calls the agent panel's lightweight diagnostics
+      // API on a schedule and sends push alerts on failures. Covers Docker
+      // containers, PM2 services, NFS mounts, ports, TLS expiry, DNS, and
+      // cross-host ping. The panel defines the checks; this job triggers them.
+      // See: docs/components/diag-check.md
+      name: "diag-check",
+      script: "/home/YOUR_USER/scripts/run-diagnostics.sh",
+      interpreter: "bash",
+      cron_restart: "0 */6 * * *", // Every 6 hours
+      autorestart: false,
+      watch: false,
+    },
+
     // =========================================================================
     // OPTIONAL: Issue/bug watchers
     // =========================================================================
