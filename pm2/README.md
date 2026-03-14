@@ -12,7 +12,7 @@ PM2 manages both always-on services and scheduled cron jobs on the host. The eco
 |---------|------|----------|---------|
 | qmd | daemon | always-on | Semantic search HTTP endpoint for LibreChat and other clients |
 | cui | daemon | always-on | Claude Code web UI |
-| CloudCLI | daemon | always-on | Claude Code UI |
+| CloudCLI | daemon | always-on | Claude Code web UI |
 | docker-stack-backup | cron | 1:00 AM daily | Container-safe appdata backup to NFS |
 | memory-sync | cron | 4:00 AM daily | Knowledge distillation from agent memory |
 | qmd-reindex | cron | 5:00 AM daily | Re-embed repos and docs for semantic search |
