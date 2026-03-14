@@ -12,7 +12,7 @@
 
 services:
   librechat:
-    image: ghcr.io/danny-avila/librechat:latest
+    image: ghcr.io/danny-avila/librechat:v0.8.3
     container_name: librechat
     environment:
       - MONGO_URI=mongodb://mongodb:27017/LibreChat
@@ -84,6 +84,20 @@ services:
       - /opt/appdata/librechat/meilisearch:/meili_data
     networks:
       - your-network
+    restart: unless-stopped
+
+  librechat-exporter:
+    image: ghcr.io/virtuos/librechat_exporter:main
+    container_name: librechat-exporter
+    environment:
+      - MONGODB_URI=mongodb://YOUR_MONGO_USER:YOUR_MONGO_PASSWORD@mongodb:27017/?authSource=admin
+      - LOGGING_LEVEL=info
+    expose:
+      - "8000"
+    depends_on:
+      - mongodb
+    networks:
+      - your-network  # Replace with your shared Docker network
     restart: unless-stopped
 
 networks:

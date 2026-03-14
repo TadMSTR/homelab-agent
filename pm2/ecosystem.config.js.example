@@ -152,6 +152,19 @@ module.exports = {
     },
 
     {
+      // Compact and optimize the memsearch vector database.
+      // Milvus Lite accumulates fragmented segments over time — compaction
+      // merges them and reclaims disk space. Runs 30 minutes after memory-sync
+      // so newly promoted notes are included before compaction.
+      name: "memsearch-compact",
+      script: "/home/YOUR_USER/.claude/scripts/memsearch-compact.sh",
+      interpreter: "bash",
+      cron_restart: "30 4 * * *",  // Daily at 4:30 AM (after memory-sync at 4:00 AM)
+      autorestart: false,
+      watch: false,
+    },
+
+    {
       // Documentation health audit — drift, index, coverage, staleness, sanitization.
       // Opus model for editorial judgment. Report-first: findings go to
       // ~/.claude/memory/shared/doc-health-report.md, only index.md fixes auto-commit.
@@ -196,11 +209,12 @@ module.exports = {
     // Remove these if you don't need them.
 
     {
-      // Check whether a specific upstream GitHub issue is resolved.
-      // Useful for issues that affect your stack and would require
-      // a config change or workaround once resolved. Alerts via ntfy.
-      name: "upstream-issue-check",
-      script: "/home/YOUR_USER/scripts/check-upstream-issue.sh",
+      // Check whether a tracked upstream GitHub issue is resolved.
+      // Useful for issues that affect your stack and require a config
+      // change or workaround once fixed. Alerts via ntfy.
+      // Rename and update the script path to match the issue you're tracking.
+      name: "qmd-issue-check",
+      script: "/home/YOUR_USER/scripts/check-qmd-issue.sh",
       interpreter: "bash",
       cron_restart: "0 12 * * 1",  // Mondays at noon
       autorestart: false,

@@ -12,11 +12,12 @@ This repo documents how I run Claude as an always-on infrastructure assistant ac
 
 ## Recent Updates
 
+- **2026-03-14** — AI cost tracking: Claude Code JSONL parser + Telegraf pipeline → local InfluxDB → Grafana dashboard for token usage and estimated costs
+- **2026-03-14** — Local Grafana + InfluxDB stack on claudebox for agent observability, separate from atlas infrastructure monitoring
 - **2026-03-14** — Doc-health agent: weekly automated documentation audit (drift, index, coverage, staleness, sanitization) with Opus model
 - **2026-03-14** — Component docs for homelab-ops MCP, diag-check, and doc-health
 - **2026-03-14** — Build plan handoff workflow: research agents design plans, implementation agents pick them up on session start
 - **2026-03-13** — 3-tier memory system with automated nightly consolidation (session → working → distilled)
-- **2026-03-12** — Agent panel component doc: claudebox-panel with health monitoring, PM2 management, diagnostics, and file browser
 
 ## Contents
 
@@ -53,7 +54,7 @@ The system has three layers. Each is independently useful — you don't need all
 ├─────────────────────────────────────────────────────────┤
 │  Layer 2: Self-Hosted Service Stack (Docker)            │
 │  SWAG/Authelia · LibreChat · qmd · CloudCLI · SearXNG   │
-│  Dockhand · Open Notebook                               │
+│  Dockhand · Open Notebook · Grafana + InfluxDB          │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 1: Host & Core Tooling                           │
 │  Debian mini PC · Claude Desktop · MCP servers          │
@@ -104,8 +105,9 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 | Service | What It Does | Why It's Here |
 |---------|-------------|---------------|
 | **Authelia** | SSO authentication gateway | One login for all services. SWAG has first-class Authelia support — two lines uncommented per proxy conf. |
-| **CloudCLI** | Claude Code browser UI | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Primary day-to-day interface for infrastructure work. |
+| **CloudCLI** | Claude Code browser UI _(PM2 host service, not Docker)_ | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Runs as a PM2-managed Node.js process on the host, proxied through SWAG. Primary day-to-day interface for infrastructure work. |
 | **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
+| **Grafana + InfluxDB** | Local agent observability stack | Dashboards for Claude Code session metrics, token usage, estimated costs, and LibreChat activity. Separate from atlas infrastructure monitoring — see [grafana-claudebox](docs/components/grafana-claudebox.md). |
 | **LibreChat** | Multi-provider chat UI (Anthropic, OpenAI, Ollama, etc.) | Web-based chat with agent support, MCP tool integration, built-in memory, and RAG. The primary interface for interactive agent work. |
 | **Open Notebook** | AI research/notebook tool | Document analysis and research with SurrealDB backend. |
 | **SearXNG** | Private meta-search | Self-hosted search backend. Aggregates results from multiple engines with no API keys or per-query costs. Powers LibreChat's web search pipeline. |
@@ -156,6 +158,7 @@ Agents read from shared + their own directory, write to their own directory. Cro
 | qmd-reindex | 5:00 AM daily | Pulls latest from all git repos, re-embeds for semantic search |
 | resource-monitor | Every 6 hours | Checks RAM, disk, Docker health, PM2 status, NFS mounts; alerts via ntfy |
 | dep-update-check | Wednesdays noon | Checks for updates to pinned dependencies (qmd, Authelia, Claude Code) |
+| doc-health | Sundays 11:00 PM | Automated documentation audit — drift, index, coverage, staleness, sanitization |
 
 See [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) for full configuration including an optional upstream issue watcher.
 
@@ -227,9 +230,18 @@ homelab-agent/
 │       ├── searxng.md               ← SearXNG + Valkey, shared search backend
 │       ├── dockhand.md              ← Docker socket access, multi-host stack visibility
 │       ├── open-notebook.md         ← SurrealDB, dual-port proxy config
+│       ├── cloudcli.md              ← Claude Code web UI — file explorer, git, shell, MCP management
+│       ├── cui.md                   ← Claude Code web UI — headless monitoring, push notifications
+│       ├── agent-panel.md           ← Homelab operations panel — PM2, Docker, diagnostics, files
+│       ├── diag-check.md            ← Scheduled diagnostics via agent panel API, failure alerts
+│       ├── grafana-claudebox.md     ← Local Grafana + InfluxDB for agent observability
 │       ├── qmd.md                   ← Semantic search, dual transport, GPU acceleration
 │       ├── memsearch.md             ← Memory recall for Claude Code, plugin integration
 │       ├── memory-sync.md           ← Knowledge distillation pipeline, PM2 cron
+│       ├── doc-health.md            ← Weekly doc audit — drift, coverage, staleness, sanitization
+│       ├── ai-cost-tracking.md      ← Claude Code JSONL parser, cost metrics, Telegraf pipeline
+│       ├── homelab-ops-mcp.md       ← FastMCP HTTP tool server — shell, files, processes
+│       ├── config-version-control.md ← Git tracking for docker/ and appdata configs
 │       └── backups.md               ← Backrest/restic, Claude backup, Docker appdata backup
 ├── claude-code/
 │   ├── CLAUDE.md.example            ← Root CLAUDE.md template
@@ -252,8 +264,6 @@ homelab-agent/
 │   │   ├── docker-compose.yml       ← Jina-compatible reranker wrapper
 │   │   ├── Dockerfile               ← FlashRank + FastAPI build
 │   │   └── main.py                  ← Reranker API source (~115 lines)
-│   ├── searxng/
-│   │   └── docker-compose.yml       ← SearXNG + Valkey
 │   ├── dockhand/
 │   │   └── docker-compose.yml       ← Docker stack manager UI
 │   └── open-notebook/
@@ -285,4 +295,3 @@ homelab-agent/
 ## License
 
 MIT
-

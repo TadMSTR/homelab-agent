@@ -1,0 +1,73 @@
+# jobsearch-mcp Docker Stack
+#
+# Multi-board job search MCP server with per-user application tracking.
+# Three containers: the FastMCP server (local build), Postgres for tracking
+# state, and Qdrant for semantic job matching.
+#
+# The MCP server exposes a streamable-http endpoint on port 8383.
+# LibreChat reaches it via host.docker.internal — see docs/components/jobsearch-mcp.md
+# for the librechat.yaml wiring.
+#
+# Prerequisites:
+#   - Built image from source: docker compose build jobsearch-mcp
+#   - .env file with API keys (see .env.example in the source repo)
+#   - firecrawl-simple running and accessible (for job description fetching)
+#
+# Source repo: https://github.com/TadMSTR/jobsearch-mcp
+
+services:
+  jobsearch-mcp:
+    build:
+      context: /path/to/jobsearch-mcp  # Path to cloned source repo
+      dockerfile: Dockerfile
+    container_name: jobsearch-mcp
+    ports:
+      - "8383:8383"
+    environment:
+      - POSTGRES_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@jobsearch-postgres:5432/jobsearch
+      - QDRANT_URL=http://jobsearch-qdrant:6333
+      - ADZUNA_APP_ID=${ADZUNA_APP_ID}
+      - ADZUNA_APP_KEY=${ADZUNA_APP_KEY}
+      - FIRECRAWL_URL=${FIRECRAWL_URL}
+      - VOYAGE_API_KEY=${VOYAGE_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MCP_PORT=8383
+    depends_on:
+      jobsearch-postgres:
+        condition: service_healthy
+      jobsearch-qdrant:
+        condition: service_started
+    networks:
+      - jobsearch-net
+    restart: unless-stopped
+
+  jobsearch-postgres:
+    image: postgres:16
+    container_name: jobsearch-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=jobsearch
+    volumes:
+      - /opt/appdata/jobsearch/postgres:/var/lib/postgresql/data
+    networks:
+      - jobsearch-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d jobsearch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  jobsearch-qdrant:
+    image: qdrant/qdrant
+    container_name: jobsearch-qdrant
+    volumes:
+      - /opt/appdata/jobsearch/qdrant:/qdrant/storage
+    networks:
+      - jobsearch-net
+    restart: unless-stopped
+
+networks:
+  jobsearch-net:
+    name: jobsearch-net
