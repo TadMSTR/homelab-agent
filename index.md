@@ -15,12 +15,21 @@ homelab-agent/
 │       ├── swag.md                    # SWAG reverse proxy, Cloudflare DNS, proxy conf pattern
 │       ├── authelia.md                # Authelia SSO, file-based user backend, SWAG integration
 │       ├── librechat.md               # LibreChat setup, web search pipeline, reranker
-│       ├── searxng.md               # SearXNG + Valkey, search backend
+│       ├── searxng.md                 # SearXNG + Valkey, search backend
 │       ├── dockhand.md                # Dockhand Docker stack manager, socket access
 │       ├── open-notebook.md           # Open Notebook AI research, SurrealDB, dual-port proxy
+│       ├── cloudcli.md                # CloudCLI web UI — file explorer, git, shell, MCP management
+│       ├── cui.md                     # CUI web UI — headless agent monitoring, push notifications
+│       ├── agent-panel.md             # Homelab operations panel — PM2, Docker, diagnostics, files
+│       ├── diag-check.md              # Scheduled diagnostics via agent panel API, failure alerts
+│       ├── grafana-claudebox.md       # Local Grafana + InfluxDB for agent observability
 │       ├── qmd.md                     # qmd semantic search, dual transport, GPU acceleration
 │       ├── memsearch.md               # memsearch memory recall for Claude Code sessions
 │       ├── memory-sync.md             # Automated knowledge distillation pipeline
+│       ├── doc-health.md              # Weekly doc audit — drift, coverage, staleness, sanitization
+│       ├── ai-cost-tracking.md        # Claude Code JSONL → Telegraf → InfluxDB → Grafana cost metrics
+│       ├── homelab-ops-mcp.md         # FastMCP HTTP tool server — shell, files, processes
+│       ├── config-version-control.md  # Git tracking for docker/ and appdata configs
 │       └── backups.md                 # Backup strategy: Backrest/restic, Claude backup, Docker appdata
 ├── claude-code/
 │   ├── CLAUDE.md.example              # Root CLAUDE.md template
@@ -35,7 +44,6 @@ homelab-agent/
 │   ├── librechat/                     # LibreChat compose + config
 │   ├── firecrawl-simple/              # Web scraper for LibreChat search pipeline
 │   ├── reranker/                      # Jina-compatible FlashRank reranker
-│   ├── searxng/                    # SearXNG + Valkey compose
 │   ├── dockhand/                      # Dockhand Docker stack manager compose
 │   └── open-notebook/                 # Open Notebook + SurrealDB compose
 ├── mcp-servers/
@@ -60,15 +68,24 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 |-------|-----------|------------|
 | Architecture overview | `README.md` (§Architecture) | Everything else |
 | MCP server setup | `mcp-servers/README.md` | Docker, Claude Code |
+| homelab-ops MCP | `docs/components/homelab-ops-mcp.md`, `mcp-servers/README.md` (§homelab-ops) | Docker compose, Claude Code |
 | LibreChat / web search | `docs/components/librechat.md`, `docker/librechat/`, `docker/firecrawl-simple/`, `docker/reranker/` | MCP, Claude Code, PM2 |
 | Reverse proxy / SSL | `docs/components/swag.md`, `docker/swag/` | Claude Code, MCP |
 | SSO / authentication | `docs/components/authelia.md`, `docker/authelia/` | Claude Code, MCP |
-| AI search (SearXNG) | `docs/components/searxng.md`, `docker/searxng/` | Claude Code, MCP |
+| AI search (SearXNG) | `docs/components/searxng.md` | Claude Code, MCP |
 | Docker management (Dockhand) | `docs/components/dockhand.md`, `docker/dockhand/` | Claude Code, MCP |
 | AI notebook (Open Notebook) | `docs/components/open-notebook.md`, `docker/open-notebook/` | Claude Code, MCP |
+| Claude Code browser UI (CloudCLI) | `docs/components/cloudcli.md` | Docker, MCP |
+| Claude Code browser UI (CUI) | `docs/components/cui.md` | Docker, MCP |
+| Homelab operations panel | `docs/components/agent-panel.md` | Docker compose, MCP |
+| Scheduled diagnostics | `docs/components/diag-check.md`, `docs/components/agent-panel.md` | Docker compose, MCP |
+| Agent observability (Grafana) | `docs/components/grafana-claudebox.md` | MCP, Claude Code |
+| AI cost tracking | `docs/components/ai-cost-tracking.md` | Docker, MCP |
+| Config version control | `docs/components/config-version-control.md` | MCP, Claude Code |
 | Claude Code / CLAUDE.md | `claude-code/CLAUDE.md.example`, `claude-code/projects/` | Docker, MCP |
 | PM2 services / cron | `pm2/ecosystem.config.js.example` | Docker compose, MCP config |
 | Memory system | `README.md` (§The Memory / Context System), `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
+| Documentation health | `docs/components/doc-health.md` | Docker, MCP |
 | Backups | `docs/components/backups.md`, `scripts/docker-stack-backup.sh`, `pm2/ecosystem.config.js.example` | Docker compose, MCP, Claude Code |
 | Docker stacks (general) | `docker/` subdirectories | Claude Code, MCP |
 | Semantic search (qmd) | `docs/components/qmd.md`, `mcp-servers/README.md` (§qmd) | Docker, Claude Code |
@@ -79,19 +96,23 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 
 | Layer | Primary Docs | Config Files |
 |-------|-------------|-------------|
-| Layer 1 — Host & Core Tooling | `README.md` (§Layer 1), `mcp-servers/README.md` | `claude_desktop_config.json` patterns in `mcp-servers/README.md` |
+| Layer 1 — Host & Core Tooling | `README.md` (§Layer 1), `mcp-servers/README.md`, `docs/components/homelab-ops-mcp.md` | `claude_desktop_config.json` patterns in `mcp-servers/README.md` |
 | Layer 2 — Self-Hosted Services | `README.md` (§Layer 2), `docs/components/*.md` | `docker/*/docker-compose.yml` |
 | Layer 3 — Multi-Agent Engine | `README.md` (§Layer 3), `claude-code/`, `docs/components/memsearch.md`, `docs/components/memory-sync.md` | `pm2/ecosystem.config.js.example`, `claude-code/projects/*.md` |
 
 ### By Task
 
 | Task | Start Here |
-|------|-----------|
+|------|-----------| 
 | "I want to understand the overall system" | `README.md` — read top-to-bottom |
 | "I want to set up MCP servers" | `mcp-servers/README.md` — has adoption path and all config patterns |
 | "I want to deploy LibreChat with web search" | `docs/components/librechat.md` — then `docker/librechat/` and `docker/firecrawl-simple/` |
 | "I want to set up reverse proxy + SSO" | `docs/components/swag.md` → `docs/components/authelia.md` — then `docker/swag/` and `docker/authelia/` |
-| "I want to deploy SearXNG" | `docs/components/searxng.md` — then `docker/searxng/` |
+| "I want to deploy SearXNG" | `docs/components/searxng.md` |
+| "I want a browser-based Claude Code UI" | `docs/components/cloudcli.md` (interactive sessions, file explorer) or `docs/components/cui.md` (headless monitoring, push notifications) |
+| "I want to monitor headless agent runs" | `docs/components/cui.md` — then `docs/components/agent-panel.md` for the operations panel |
+| "I want to track Claude API costs" | `docs/components/ai-cost-tracking.md` — then `docs/components/grafana-claudebox.md` |
+| "I want version control on my Docker configs" | `docs/components/config-version-control.md` |
 | "I want to set up Claude Code agents" | `claude-code/CLAUDE.md.example` — then `claude-code/projects/` for per-agent examples |
 | "I want to add PM2 background jobs" | `pm2/ecosystem.config.js.example` — self-contained |
 | "I want to replicate the memory system" | `README.md` (§Memory / Context System) → `docs/components/memsearch.md` → `docs/components/memory-sync.md` |
@@ -115,9 +136,21 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/searxng.md` | ✅ Complete | 2026-03 |
 | `docs/components/dockhand.md` | ✅ Complete | 2026-03 |
 | `docs/components/open-notebook.md` | ✅ Complete | 2026-03 |
+| `docs/components/cloudcli.md` | ✅ Complete | 2026-03 |
+| `docs/components/cui.md` | ✅ Complete | 2026-03 |
+| `docs/components/agent-panel.md` | ✅ Complete | 2026-03 |
+| `docs/components/diag-check.md` | ✅ Complete | 2026-03 |
+| `docs/components/grafana-claudebox.md` | ✅ Complete | 2026-03 |
+| `docs/components/qmd.md` | ✅ Complete | 2026-03 |
+| `docs/components/memsearch.md` | ✅ Complete | 2026-03 |
+| `docs/components/memory-sync.md` | ✅ Complete | 2026-03 |
+| `docs/components/doc-health.md` | ✅ Complete | 2026-03 |
+| `docs/components/ai-cost-tracking.md` | ✅ Complete | 2026-03 |
+| `docs/components/homelab-ops-mcp.md` | ✅ Complete | 2026-03 |
+| `docs/components/config-version-control.md` | ✅ Complete | 2026-03 |
+| `docs/components/backups.md` | ✅ Complete | 2026-03 |
 | `docker/swag/` | ✅ Complete | 2026-03 |
 | `docker/authelia/` | ✅ Complete | 2026-03 |
-| `docker/searxng/` | ✅ Complete | 2026-03 |
 | `docker/dockhand/` | ✅ Complete | 2026-03 |
 | `docker/open-notebook/` | ✅ Complete | 2026-03 |
 | `docker/librechat/` | ✅ Complete | 2026-03 |
@@ -125,10 +158,6 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docker/reranker/` | ✅ Complete | 2026-03 |
 | `docs/architecture.md` | ✅ Complete | 2026-03 |
 | `docs/getting-started.md` | ✅ Complete | 2026-03 |
-| `docs/components/qmd.md` | ✅ Complete | 2026-03 |
-| `docs/components/memsearch.md` | ✅ Complete | 2026-03 |
-| `docs/components/memory-sync.md` | ✅ Complete | 2026-03 |
-| `docs/components/backups.md` | ✅ Complete | 2026-03 |
 | `scripts/` | ✅ Complete | 2026-03 |
 
 ## Cross-Reference: Components → Documents
@@ -140,13 +169,22 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Reranker | [`docs/components/librechat.md`](docs/components/librechat.md) (§Rerank) | — | `docker/reranker/docker-compose.yml` |
 | SWAG | [`docs/components/swag.md`](docs/components/swag.md) | — | `docker/swag/docker-compose.yml` |
 | Authelia | [`docs/components/authelia.md`](docs/components/authelia.md) | — | `docker/authelia/docker-compose.yml` |
-| qmd | [`docs/components/qmd.md`](docs/components/qmd.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§qmd) | — | (host-level service) |
-| SearXNG | [`docs/components/searxng.md`](docs/components/searxng.md) | — | `docker/searxng/docker-compose.yml` |
+| SearXNG | [`docs/components/searxng.md`](docs/components/searxng.md) | — | (compose not in repo) |
 | Dockhand | [`docs/components/dockhand.md`](docs/components/dockhand.md) | — | `docker/dockhand/docker-compose.yml` |
 | Open Notebook | [`docs/components/open-notebook.md`](docs/components/open-notebook.md) | — | `docker/open-notebook/docker-compose.yml` |
+| CloudCLI | [`docs/components/cloudcli.md`](docs/components/cloudcli.md) | — | (PM2 host service) |
+| CUI | [`docs/components/cui.md`](docs/components/cui.md) | — | (PM2 host service) |
+| Agent Panel | [`docs/components/agent-panel.md`](docs/components/agent-panel.md) | — | (PM2 host service) |
+| Diag-Check | [`docs/components/diag-check.md`](docs/components/diag-check.md) | — | (PM2 cron job) |
+| Grafana claudebox | [`docs/components/grafana-claudebox.md`](docs/components/grafana-claudebox.md) | — | (compose not in repo) |
+| qmd | [`docs/components/qmd.md`](docs/components/qmd.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§qmd) | — | (host-level service) |
+| memsearch | [`docs/components/memsearch.md`](docs/components/memsearch.md) | `~/.memsearch/config.toml` | (host-level service) |
+| memory-sync | [`docs/components/memory-sync.md`](docs/components/memory-sync.md), [`claude-code/projects/memory-sync.md`](claude-code/projects/memory-sync.md) | — | (PM2 cron job) |
+| doc-health | [`docs/components/doc-health.md`](docs/components/doc-health.md) | — | (PM2 cron job) |
+| AI Cost Tracking | [`docs/components/ai-cost-tracking.md`](docs/components/ai-cost-tracking.md) | — | (host script + PM2) |
+| homelab-ops MCP | [`docs/components/homelab-ops-mcp.md`](docs/components/homelab-ops-mcp.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§homelab-ops) | — | (PM2 host service) |
+| Config Version Control | [`docs/components/config-version-control.md`](docs/components/config-version-control.md) | — | — |
 | MCP servers (all) | [`mcp-servers/README.md`](mcp-servers/README.md) | Config patterns inline | — |
 | PM2 services | [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) | Inline | — |
 | CLAUDE.md hierarchy | [`claude-code/CLAUDE.md.example`](claude-code/CLAUDE.md.example), [`claude-code/projects/`](claude-code/projects/) | — | — |
-| memsearch | [`docs/components/memsearch.md`](docs/components/memsearch.md) | `~/.memsearch/config.toml` | (host-level service) |
-| memory-sync | [`docs/components/memory-sync.md`](docs/components/memory-sync.md), [`claude-code/projects/memory-sync.md`](claude-code/projects/memory-sync.md) | — | (PM2 cron job) |
 | Backups | [`docs/components/backups.md`](docs/components/backups.md) | [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) | (Backrest systemd + PM2 cron + user crontab) |

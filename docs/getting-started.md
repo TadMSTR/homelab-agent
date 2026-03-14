@@ -158,7 +158,9 @@ You have the complete system: Claude Desktop with MCP tools, a self-hosted servi
 
 This guide covers setup order and stopping points. For detailed configuration of each component, see the individual component docs in [`docs/components/`](components/). For Docker compose files, see [`docker/`](../docker/). For MCP server config patterns, see [`mcp-servers/README.md`](../mcp-servers/README.md).
 
-Guacamole (remote desktop access) is mentioned in the architecture but not covered here — it's standard setup and well-documented upstream. NFS backup configuration is environment-specific and covered in the PM2 ecosystem config comments.
+**Guacamole** (remote desktop access) is mentioned in the architecture but not covered in this repo. It's standard setup — the [upstream docs](https://guacamole.apache.org/doc/gug/) are thorough, and there's nothing homelab-agent-specific about the configuration. The short version: deploy it as a Docker stack, add a SWAG proxy conf, and you have browser-based remote access to the host's GUI. The only homelab-agent-relevant note is that Guacamole is how you access Claude Desktop remotely — if you're away from the desk and need Claude Desktop's GUI rather than Claude Code or LibreChat, Guacamole is the path in.
+
+NFS backup configuration is environment-specific and covered in the PM2 ecosystem config comments.
 
 ---
 

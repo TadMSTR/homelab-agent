@@ -105,7 +105,7 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 | Service | What It Does | Why It's Here |
 |---------|-------------|---------------|
 | **Authelia** | SSO authentication gateway | One login for all services. SWAG has first-class Authelia support — two lines uncommented per proxy conf. |
-| **CloudCLI** | Claude Code browser UI | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Primary day-to-day interface for infrastructure work. |
+| **CloudCLI** | Claude Code browser UI _(PM2 host service, not Docker)_ | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Runs as a PM2-managed Node.js process on the host, proxied through SWAG. Primary day-to-day interface for infrastructure work. |
 | **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
 | **Grafana + InfluxDB** | Local agent observability stack | Dashboards for Claude Code session metrics, token usage, estimated costs, and LibreChat activity. Separate from atlas infrastructure monitoring — see [grafana-claudebox](docs/components/grafana-claudebox.md). |
 | **LibreChat** | Multi-provider chat UI (Anthropic, OpenAI, Ollama, etc.) | Web-based chat with agent support, MCP tool integration, built-in memory, and RAG. The primary interface for interactive agent work. |
@@ -230,11 +230,18 @@ homelab-agent/
 │       ├── searxng.md               ← SearXNG + Valkey, shared search backend
 │       ├── dockhand.md              ← Docker socket access, multi-host stack visibility
 │       ├── open-notebook.md         ← SurrealDB, dual-port proxy config
+│       ├── cloudcli.md              ← Claude Code web UI — file explorer, git, shell, MCP management
+│       ├── cui.md                   ← Claude Code web UI — headless monitoring, push notifications
+│       ├── agent-panel.md           ← Homelab operations panel — PM2, Docker, diagnostics, files
+│       ├── diag-check.md            ← Scheduled diagnostics via agent panel API, failure alerts
 │       ├── grafana-claudebox.md     ← Local Grafana + InfluxDB for agent observability
 │       ├── qmd.md                   ← Semantic search, dual transport, GPU acceleration
 │       ├── memsearch.md             ← Memory recall for Claude Code, plugin integration
 │       ├── memory-sync.md           ← Knowledge distillation pipeline, PM2 cron
+│       ├── doc-health.md            ← Weekly doc audit — drift, coverage, staleness, sanitization
 │       ├── ai-cost-tracking.md      ← Claude Code JSONL parser, cost metrics, Telegraf pipeline
+│       ├── homelab-ops-mcp.md       ← FastMCP HTTP tool server — shell, files, processes
+│       ├── config-version-control.md ← Git tracking for docker/ and appdata configs
 │       └── backups.md               ← Backrest/restic, Claude backup, Docker appdata backup
 ├── claude-code/
 │   ├── CLAUDE.md.example            ← Root CLAUDE.md template
@@ -257,12 +264,8 @@ homelab-agent/
 │   │   ├── docker-compose.yml       ← Jina-compatible reranker wrapper
 │   │   ├── Dockerfile               ← FlashRank + FastAPI build
 │   │   └── main.py                  ← Reranker API source (~115 lines)
-│   ├── searxng/
-│   │   └── docker-compose.yml       ← SearXNG + Valkey
 │   ├── dockhand/
 │   │   └── docker-compose.yml       ← Docker stack manager UI
-│   ├── grafana/
-│   │   └── docker-compose.yml       ← Local Grafana + InfluxDB for agent observability
 │   └── open-notebook/
 │       └── docker-compose.yml       ← AI notebook + SurrealDB
 ├── pm2/
@@ -272,8 +275,7 @@ homelab-agent/
 │   ├── qmd-reindex.sh               ← Semantic search re-indexing
 │   ├── memory-sync.sh               ← Automated knowledge distillation
 │   ├── check-resources.sh           ← Health monitoring with ntfy alerts
-│   ├── check-dep-updates.sh         ← Dependency update checker
-│   └── claude-cost-metrics.py       ← Claude Code JSONL parser for token/cost metrics
+│   └── check-dep-updates.sh         ← Dependency update checker
 └── mcp-servers/
     └── README.md                    ← MCP servers in use, config patterns, adoption path
 ```
