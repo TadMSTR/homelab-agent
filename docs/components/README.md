@@ -16,6 +16,7 @@ For the architecture overview and how these components relate, see the [main REA
 | Open Notebook | [open-notebook.md](open-notebook.md) | AI research tool, SurrealDB, dual-port proxy config |
 | CUI | *(doc pending)* | Claude Code web UI — headless agent monitoring, push notifications |
 | CloudCLI | [cloudcli.md](cloudcli.md) | Claude Code web UI — file explorer, git integration, shell terminal, MCP management, WebSocket/SWAG proxy config |
+| Agent Panel | [agent-panel.md](agent-panel.md) | Homelab operations panel — service health, PM2, Docker, file browser, diagnostics, Backrest; SWAG token injection auth model |
 
 ## Layer 3 — Multi-Agent Engine
 
