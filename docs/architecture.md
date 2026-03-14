@@ -134,6 +134,17 @@ The three tiers serve different purposes: **session** is raw auto-captured conte
 
 The timing is deliberate: memory-sync at 4 AM, qmd-reindex at 5 AM, docker-stack-backup at 1 AM. Each depends on the previous one completing. PM2 cron handles the scheduling.
 
+### Build Plan Handoff (Research → Implementation)
+
+Research agents investigate, compare, and design — but don't execute infrastructure changes. When research produces an actionable plan:
+
+1. The research agent writes a structured plan to a known directory
+2. The plan includes a `handoff.md` with the target agent chat, status, and key decisions already made
+3. The implementing agent checks for pending plans on session start
+4. Status transitions: `pending` → `in-progress` → `complete`
+
+This separation keeps research exploratory (no risk of accidental changes) and gives implementing agents a reviewed, pre-validated starting point. The handoff file is deliberately minimal — just enough context to start, with a path to the full plan for depth.
+
 ### Search Flow (qmd Dual Transport)
 
 qmd serves two clients through different transports:
