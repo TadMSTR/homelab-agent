@@ -17,6 +17,7 @@ For the architecture overview and how these components relate, see the [main REA
 | CUI | *(doc pending)* | Claude Code web UI — headless agent monitoring, push notifications |
 | CloudCLI | [cloudcli.md](cloudcli.md) | Claude Code web UI — file explorer, git integration, shell terminal, MCP management, WebSocket/SWAG proxy config |
 | Agent Panel | [agent-panel.md](agent-panel.md) | Homelab operations panel — service health, PM2, Docker, file browser, diagnostics, Backrest; SWAG token injection auth model |
+| Diag-Check | [diag-check.md](diag-check.md) | Scheduled lightweight diagnostics via agent panel API, failure alerting |
 
 ## Layer 3 — Multi-Agent Engine
 
@@ -25,6 +26,13 @@ For the architecture overview and how these components relate, see the [main REA
 | qmd | [qmd.md](qmd.md) | Semantic search, dual transport (stdio + HTTP), GPU acceleration, config |
 | memsearch | [memsearch.md](memsearch.md) | Memory recall for Claude Code, plugin integration, config |
 | memory-sync | [memory-sync.md](memory-sync.md) | Automated knowledge distillation pipeline, distillation rules, PM2 cron |
+| doc-health | [doc-health.md](doc-health.md) | Weekly documentation audit — drift, index, coverage, staleness, sanitization |
+
+## Layer 1 — Core Tooling
+
+| Component | Doc | What It Covers |
+|-----------|-----|---------------|
+| homelab-ops MCP | [homelab-ops-mcp.md](homelab-ops-mcp.md) | FastMCP HTTP tool server — shell, files, processes; shared by Claude Code and LibreChat |
 
 ## Cross-Cutting
 

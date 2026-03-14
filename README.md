@@ -12,11 +12,11 @@ This repo documents how I run Claude as an always-on infrastructure assistant ac
 
 ## Recent Updates
 
+- **2026-03-14** — Doc-health agent: weekly automated documentation audit (drift, index, coverage, staleness, sanitization) with Opus model
+- **2026-03-14** — Component docs for homelab-ops MCP, diag-check, and doc-health
 - **2026-03-14** — Build plan handoff workflow: research agents design plans, implementation agents pick them up on session start
 - **2026-03-13** — 3-tier memory system with automated nightly consolidation (session → working → distilled)
 - **2026-03-12** — Agent panel component doc: claudebox-panel with health monitoring, PM2 management, diagnostics, and file browser
-- **2026-03-11** — CloudCLI component doc + Layer 2 upgrade: browser-based Claude Code as primary day-to-day interface
-- **2026-03-10** — LibreChat metrics exporter: Prometheus-format token/cost tracking with Authelia bypass for internal scraping
 
 ## Contents
 
