@@ -32,11 +32,11 @@ It grew organically from "AI writes me a script" to "AI operates alongside me as
 
 ## Recent Updates
 
-- **2026-03-14** — AI cost tracking: Claude Code JSONL parser + Telegraf pipeline → local InfluxDB → Grafana dashboard for token usage and estimated costs
-- **2026-03-14** — Local Grafana + InfluxDB stack on claudebox for agent observability, separate from atlas infrastructure monitoring
-- **2026-03-14** — Doc-health agent: weekly automated documentation audit (drift, index, coverage, staleness, sanitization) with Opus model
-- **2026-03-14** — Build plan handoff workflow: research agents design plans, implementation agents pick them up on session start
-- **2026-03-13** — 3-tier memory system with automated nightly consolidation (session → working → distilled)
+- **2026-03-15** — Security agent: dedicated Claude Code project for post-build security audits. Building agents write to a shared queue after deploying services; the security agent picks up on next session start, triages findings into auto-fix / discuss / action plan categories, and routes fixes back. First bidirectional inter-agent workflow in the stack.
+- **2026-03-15** — Panel dep-updates: the operations panel now tracks 7 stack dependencies, applies safe updates as background tasks, delegates complex updates to Claude Code with a pre-filled prompt, and keeps an audit log of everything applied.
+- **2026-03-14** — Doc-health agent: headless Opus session runs weekly as a PM2 cron job, scanning for undocumented services, index drift, and credential leaks in the public repo. Auto-fixes what it can; everything else goes in a report.
+- **2026-03-14** — Multi-agent build plan handoff: research agents design implementation plans and write them to a shared queue; building agents pick them up on next session start without a human relay.
+- **2026-03-13** — 3-tier memory with nightly distillation: a headless agent reads recent sessions from both Claude Code and LibreChat at 4 AM, distills durable knowledge into the prime directive repo, and commits it. The AI maintains its own knowledge base.
 
 ## Architecture
 
