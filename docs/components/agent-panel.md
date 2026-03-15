@@ -129,6 +129,72 @@ The token in `proxy_set_header` must match `PANEL_TOKEN` in `.env`.
 
 **File Browser** — read/write access to a configured whitelist of directories and files. Supports view, edit, save-with-backup, revert, and backup discard. Diff shown before save. `.panelbak` files created on first write; stale backups (>7 days) cleaned up on startup.
 
+**Dependency Updates** — tracks update availability for key agent stack dependencies. A background script populates a JSON sidecar; the panel reads it and shows a badge with the pending update count. Each dependency row shows whether a safe update can be applied in-panel, delegated to an AI agent via CloudCLI, or is pinned/manually managed. Applies safe updates as background tasks with live polling. Maintains an audit log of every update applied.
+
+## Dependency Updates Configuration
+
+The dep-updates feature has two parts: a check script that runs on a schedule and the panel backend that reads and acts on its output.
+
+### Check Script
+
+A shell script runs via PM2 cron (or whatever scheduler you prefer) and writes a JSON sidecar to a known path. The panel reads the sidecar on demand — no polling, no persistent connection.
+
+The script checks each dependency using whatever mechanism makes sense for that package manager:
+
+- npm packages at system prefixes — `npm outdated -g --json`
+- pip packages — `pip show`
+- Self-managed tools — compare installed version against GitHub releases or a published API
+- System packages — compare against the upstream latest via an API call
+
+Each entry in the sidecar follows the same shape:
+
+```json
+{
+  "name": "dep-name",
+  "current": "1.2.3",
+  "latest": "1.4.0",
+  "breaking": false,
+  "pinned": false,
+  "canSafeUpdate": true,
+  "updateCommand": "npm install -g dep-name@latest"
+}
+```
+
+`canSafeUpdate` is true when the dep is on the safe-update allowlist and `breaking` is false. The allowlist in `config/config.js` is the mechanism for overriding what counts as "safe" — if a major-version bump is known-safe for your stack, add the update command to the allowlist.
+
+### Panel Configuration
+
+```js
+depUpdates: {
+  sidecarPath: '/home/YOUR_USER/.local/share/logs/dep-updates-latest.json',
+  safeUpdateCommands: [
+    'npm install -g qmd@latest',
+    'npm install -g cui-server@latest',
+    // add commands for deps you're comfortable auto-updating
+  ],
+  pinned: {
+    'nodejs': 'system-managed — update via OS package manager',
+    'authelia': 'pinned at 4.x — review breaking changes before upgrading',
+  }
+}
+```
+
+`pinned` entries appear in the panel UI with the reason string shown to the user. They never show a safe-update button. This keeps frozen packages out of the badge count and surfaces the freeze reason so you don't forget why you pinned it.
+
+### Delegation to CloudCLI
+
+Dependencies that can't be updated with a single shell command — those with post-update patches, config migrations, or multi-step procedures — can be delegated to a Claude Code agent via CloudCLI. The panel opens a pre-filled prompt in CloudCLI's chat interface. You review and run it there. This keeps complex updates out of the panel's background task system while still surfacing them in the same UI.
+
+### Audit Log
+
+Every update applied through the panel (safe update or delegation) is appended to an audit JSONL file:
+
+```json
+{"ts": "2026-03-15T14:22:00Z", "dep": "qmd", "from": "1.2.3", "to": "1.4.0", "method": "safe-update"}
+```
+
+The panel's audit view shows the log in reverse chronological order. Include the audit log in your backup and deploy-restore coverage — it's the only record of what was updated and when.
+
 ## Diagnostics Configuration
 
 The diagnostics system is driven entirely by `config/config.js`. Key fields:
