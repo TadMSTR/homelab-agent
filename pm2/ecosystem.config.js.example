@@ -113,17 +113,6 @@ module.exports = {
     },
 
     {
-      // Pull latest from all indexed git repos, re-embed for semantic search.
-      // Keeps qmd index fresh with recent code and doc changes.
-      name: "qmd-reindex",
-      script: "/home/YOUR_USER/scripts/qmd-reindex.sh",
-      interpreter: "bash",
-      cron_restart: "0 5 * * *",   // Daily at 5:00 AM
-      autorestart: false,
-      watch: false,
-    },
-
-    {
       // Scan repos directory for collections not yet in the QMD index.
       // Repos matching keywords (claude, claudebox, mcp) are auto-added to
       // ~/.config/qmd/index.yml and a reindex is triggered. Everything else
@@ -138,28 +127,17 @@ module.exports = {
     },
 
     {
-      // Memory consolidation — 8-step pipeline: scan sessions, promote to
-      // working tier, review, distill to permanent, expire stale, dedup.
-      // Lock file at ~/.claude/memory-sync.lock prevents overlapping runs.
-      // 10-minute timeout prevents runaway sessions.
-      // See: claude-code/projects/memory-sync.md for the agent's instructions.
-      name: "memory-sync",
-      script: "/home/YOUR_USER/.claude/scripts/memory-sync.sh",
+      // Sequential memory pipeline — runs memory-sync → memsearch-compact →
+      // qmd-reindex in order, waiting for each to complete before the next.
+      // Replaces three independent crons (4:00, 4:30, 5:00 AM) that had no
+      // dependency enforcement. memory-sync failure is non-fatal: compact and
+      // reindex still run on existing data. Lock at /tmp/memory-pipeline.lock
+      // prevents overlapping runs.
+      // See: claude-code/projects/memory-sync.md for memory-sync agent instructions.
+      name: "memory-pipeline",
+      script: "/home/YOUR_USER/scripts/memory-pipeline.sh",
       interpreter: "bash",
       cron_restart: "0 4 * * *",   // Daily at 4:00 AM
-      autorestart: false,
-      watch: false,
-    },
-
-    {
-      // Compact and optimize the memsearch vector database.
-      // Milvus Lite accumulates fragmented segments over time — compaction
-      // merges them and reclaims disk space. Runs 30 minutes after memory-sync
-      // so newly promoted notes are included before compaction.
-      name: "memsearch-compact",
-      script: "/home/YOUR_USER/.claude/scripts/memsearch-compact.sh",
-      interpreter: "bash",
-      cron_restart: "30 4 * * *",  // Daily at 4:30 AM (after memory-sync at 4:00 AM)
       autorestart: false,
       watch: false,
     },
