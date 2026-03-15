@@ -130,7 +130,9 @@ Claude Code session
                     └── Distilled knowledge searchable by all agents
 ```
 
-The three tiers serve different purposes: **session** is raw auto-captured context for immediate recall, **working** is agent-curated knowledge with a 90-day TTL, and **distilled** is permanent knowledge that passed the "would this matter in 3 months?" test. Notes flow upward through tiers — never skipping one — and each promotion is checked for duplicates.
+The three pipeline tiers serve different purposes: **session** is raw auto-captured context for immediate recall, **working** is agent-curated knowledge with a 90-day TTL, and **distilled** is permanent knowledge that passed the "would this matter in 3 months?" test. Notes flow upward through tiers — never skipping one — and each promotion is checked for duplicates.
+
+A fourth layer sits outside the pipeline: **core context** (`~/.claude/memory/core-context.md`). This is a permanent, manually-managed file containing user profile, active projects, key constraints, and recent decisions. Unlike the other tiers, it is not written by memory-sync — it is updated via the `core-memory-update` skill and injected at every session start via a `SessionStart` hook (`inject-core-context.sh`) before any tool calls run. The 40-line cap keeps it under ~2KB so it never crowds out working memory injection.
 
 The timing is deliberate: memory-sync at 4 AM, qmd-reindex at 5 AM, docker-stack-backup at 1 AM. Each depends on the previous one completing. PM2 cron handles the scheduling.
 

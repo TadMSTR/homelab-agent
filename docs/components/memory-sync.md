@@ -14,13 +14,14 @@ Without memory sync, you'd need to manually review agent memory files and copy t
 
 ## Memory Tiers
 
-Memory-sync manages a 3-tier memory system. Each tier has different retention, purpose, and storage:
+Memory-sync manages a 3-tier memory pipeline plus an always-visible core context layer. Each tier has different retention, purpose, and storage:
 
 | Tier | Location | Retention | Purpose |
 |------|----------|-----------|---------|
 | Session | `.memsearch/memory/YYYY-MM-DD.md` (per-project) | 30 days | Raw session notes, auto-captured by memsearch Stop hook |
 | Working | `~/.claude/memory/shared/` and `~/.claude/memory/agents/*/` | 90 days (unless refreshed) | Promoted from session or written by agents during work |
 | Distilled | Context repo `memory/distilled/` | Permanent (git-backed) | Passes the "would this matter in 3 months?" test |
+| Core Context | `~/.claude/memory/core-context.md` | Permanent (managed) | Always-visible profile/projects/constraints/decisions; injected at every session start via SessionStart hook; 40-line cap; updated via `core-memory-update` skill |
 
 Working and distilled notes use YAML frontmatter for metadata:
 
