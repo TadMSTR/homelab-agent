@@ -330,7 +330,7 @@ homelab-agent/
 | [wbopan/cui](https://github.com/wbopan/cui) | CUI — Claude Code web UI with browser-based terminal sessions |
 | [danny-avila/LibreChat](https://github.com/danny-avila/LibreChat) | Multi-provider chat interface with agents, MCP, memory, and RAG |
 | [zilliztech/memsearch](https://github.com/zilliztech/memsearch) | Semantic memory search for markdown knowledge bases — Claude Code plugin for session recall |
-| [letta-ai/letta](https://github.com/letta-ai/letta) | Stateful AI agent framework with multi-tier memory system — inspiration for this stack's tiered memory architecture (session → working → distilled) |
+| [letta-ai/letta](https://github.com/letta-ai/letta) | Stateful AI agent framework with multi-tier memory system — discovering it prompted refinements to this stack's memory pipeline |
 
 ## License
 
