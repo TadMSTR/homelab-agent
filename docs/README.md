@@ -12,6 +12,12 @@ Detailed documentation for the homelab-agent platform. Start with the [main READ
 
 Per-component deep dives live in [`components/`](components/). Each doc covers what the component does, why it's in the stack, how to configure it, and gotchas from running it in production. See the [components README](components/README.md) for the full list.
 
+## Examples
+
+End-to-end workflow walkthroughs with sanitized placeholder values in [`examples/`](examples/).
+
+- **[Security Audit Workflow](examples/security-audit-workflow.md)** — Building agent writes a completion report → security agent runs audit → triage → action plan routed back to building agent.
+
 ## Other References
 
 These live in the repo root, not in `docs/`:
