@@ -32,11 +32,11 @@ It grew organically from "AI writes me a script" to "AI operates alongside me as
 
 ## Recent Updates
 
+- **2026-03-15** — Agent orchestration: a task queue with a PM2 dispatcher routes submitted tasks to agents via capability-matched manifests and holds anything above an agent's `max_auto_risk` threshold for manual `task-approve` review. First structured agent-to-human approval workflow in the stack.
 - **2026-03-15** — Memory pipeline orchestrator: a single PM2 job now runs memory-sync, memsearch-compact, and qmd-reindex in sequence each night, replacing three independent crons that were racing each other. Fixed a lock guard bug that was silently skipping compaction when called from the pipeline.
-- **2026-03-15** — Security agent: dedicated Claude Code project for post-build security audits. Building agents write to a shared queue after deploying services; the security agent picks up on next session start, triages findings into auto-fix / discuss / action plan categories, and routes fixes back. First bidirectional inter-agent workflow in the stack.
+- **2026-03-15** — Security agent: dedicated Claude Code project for post-build security audits. Building agents write to a shared queue after deploying services; the security agent triages findings into auto-fix / discuss / action plan categories, and routes fixes back. First bidirectional inter-agent workflow in the stack.
 - **2026-03-15** — Panel dep-updates: the operations panel now tracks 7 stack dependencies, applies safe updates as background tasks, delegates complex updates to Claude Code with a pre-filled prompt, and keeps an audit log of everything applied.
 - **2026-03-14** — Doc-health agent: headless Opus session runs weekly as a PM2 cron job, scanning for undocumented services, index drift, and credential leaks in the public repo. Auto-fixes what it can; everything else goes in a report.
-- **2026-03-14** — Multi-agent build plan handoff: research agents design implementation plans and write them to a shared queue; building agents pick them up on next session start without a human relay.
 
 ## Architecture
 
