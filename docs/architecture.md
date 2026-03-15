@@ -147,6 +147,37 @@ Research agents investigate, compare, and design — but don't execute infrastru
 
 This separation keeps research exploratory (no risk of accidental changes) and gives implementing agents a reviewed, pre-validated starting point. The handoff file is deliberately minimal — just enough context to start, with a path to the full plan for depth.
 
+The build plan handoff is one instance of a broader inter-agent communication pattern. The security audit workflow uses the same mechanics bidirectionally — see [Inter-Agent Communication](components/inter-agent-communication.md).
+
+### Security Audit Flow (Building Agent ↔ Security Agent)
+
+After completing a build plan that deploys network-exposed services, modifies auth config, or adds Docker containers, the implementing agent writes a completion report to the security agent's queue. The security agent picks it up on session start, runs an audit, triages findings with the user, and routes action plans back to the appropriate agent.
+
+```
+Building agent completes build plan
+  │
+  ├── writes ~/.claude/projects/security/audit-queue/<build>/request.md (status: pending)
+  └── writes memory pointer to ~/.claude/memory/shared/ (redundant pickup signal)
+
+Security agent session start
+  │
+  └── scans audit-queue/ for status: pending
+        │
+        ├── status: in-progress → runs security audit
+        ├── status: triage → reviews findings with user
+        │     ├── Category A (trivial):  applies fix directly, commits
+        │     ├── Category B (judgment): discusses with user one finding at a time
+        │     └── Category C (complex):  writes action plan → action-plans/<name>/
+        └── status: complete
+
+Building agent session start (next session)
+  │
+  └── scans action-plans/ for target: <this-agent>, status: pending
+        └── picks up and implements Category C fixes
+```
+
+Not every build triggers an audit — only those with real network or auth surface. Pure documentation changes and memory-only builds skip it. A resource monitor job sends a push notification if any handoff stays `pending` for more than 7 days.
+
 ### Search Flow (qmd Dual Transport)
 
 qmd serves two clients through different transports:

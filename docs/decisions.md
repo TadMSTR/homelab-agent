@@ -93,6 +93,21 @@ systemd would work for the always-on services but is more awkward for scheduled 
 
 A weekly dependency update checker (PM2 cron, Wednesdays at noon) scans for new versions and sends push notifications. It doesn't auto-update — you review changelogs before upgrading.
 
+## Post-Build Security Audits: Selective, Agent-Driven
+
+**Choice:** Building agents trigger security audits by writing a completion report to a queue directory after deploying services. A dedicated security agent picks up the request, runs the audit, and triages findings interactively.
+**Alternatives considered:** Automated CI pipeline audits, manual ad-hoc audits only, audit-on-demand with no workflow.
+
+The question wasn't whether to audit — it was when, who triggers it, and what happens to the findings. A CI pipeline would catch code-level issues but knows nothing about the homelab-specific threat model (which services are proxied, what auth is in front of them, which ports are exposed). Manual ad-hoc audits happened inconsistently and produced findings with no tracking path to resolution.
+
+The completion report approach puts the trigger decision with the agent that knows the most about what just changed. The security agent doesn't need to guess at scope — the report spells out what was deployed, what ports are exposed, and what auth layer is in front of each service. Audit scope hints let the building agent flag specific areas for extra scrutiny.
+
+Not every build needs an audit. Pure documentation changes, memory-only updates, and internal tooling with no network surface skip it entirely. The building agent sets `audit-status: not-requested` on the build plan handoff when skipping, making the decision explicit rather than silent.
+
+**Three-category triage** keeps the interaction model efficient: Category A (trivial one-liners — port bindings, .gitignore entries, env var fixes) get applied automatically without interrupting the user. Category B (judgment calls — design tradeoffs, accepted risks, behavioral changes) are reviewed one at a time. Category C (too large for the session, spans multiple repos or agents) become action plans routed to the appropriate agent. This prevents security review from becoming a bottleneck while still getting human eyes on non-trivial decisions.
+
+The findings workflow is purely file-based — queue directories with structured metadata files, status fields that agents update as they work. No new services, no databases, no message passing. The same pattern used for build plan handoffs, applied bidirectionally. See [Inter-Agent Communication](components/inter-agent-communication.md) for the full pattern.
+
 ## Git Workflow: Direct-to-Main for Documentation Repos
 
 **Choice:** Commit directly to `main` for documentation-only repos (context repo, prime directive). Feature branches and PRs for code repos.

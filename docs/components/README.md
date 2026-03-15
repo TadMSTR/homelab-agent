@@ -30,6 +30,7 @@ For the architecture overview and how these components relate, see the [main REA
 | memory-sync | [memory-sync.md](memory-sync.md) | Automated knowledge distillation pipeline, distillation rules, PM2 cron |
 | doc-health | [doc-health.md](doc-health.md) | Weekly documentation audit — drift, index, coverage, staleness, sanitization |
 | AI Cost Tracking | [ai-cost-tracking.md](ai-cost-tracking.md) | Claude Code JSONL parsing, token/cost metrics, LibreChat Prometheus → InfluxDB → Grafana |
+| Inter-Agent Communication | [inter-agent-communication.md](inter-agent-communication.md) | File-based handoff pattern, queue directories, status lifecycle, security audit workflow, stale monitoring |
 
 ## Layer 1 — Core Tooling
 
