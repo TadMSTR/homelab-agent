@@ -65,6 +65,17 @@ One paragraph summary of what this handoff contains and what the target agent sh
 
 For security audit requests, the request file includes what was built, which repos changed, what ports are exposed, and what auth layer is in front of each service. For action plans, it includes findings with severity, current vs. required state, specific implementation steps, and a verification checklist.
 
+### Audit Request Schema
+
+Required fields:
+- `status: pending`
+- `target-agent: security`
+- `source-agent: <name>`
+
+Optional fields:
+- `priority: high | normal | low` (default: `normal`)
+  Use `high` for audits blocking a deploy or containing known critical surface area.
+
 The content varies but the envelope is consistent: `status` at the top, target agent identified, enough context to start without reading the full plan.
 
 ### Status Lifecycle
@@ -155,9 +166,9 @@ triage: <repo> YYYY-MM-DD — N fixed, N deferred, N accepted, N action plans
 
 ## Stale Monitoring
 
-A resource monitor script (PM2 cron, runs every 6 hours) scans both queue directories for metadata files with `status: pending` that haven't been touched in more than 7 days. When it finds one, it sends a push notification naming the specific file and how long it's been waiting.
+A resource monitor script (PM2 cron, runs every 6 hours) scans both queue directories for metadata files with `status: pending` that haven't been touched in more than 14 days. When it finds one, it sends a push notification naming the specific file and how long it's been waiting.
 
-This catches the failure modes that the status lifecycle doesn't: a building agent wrote a request but the security agent never loaded that chat, or an action plan was routed to an agent that isn't being used. The 7-day threshold is long enough to avoid noise during normal gaps in usage but short enough to catch genuine forgotten handoffs.
+This catches the failure modes that the status lifecycle doesn't: a building agent wrote a request but the security agent never loaded that chat, or an action plan was routed to an agent that isn't being used. The 14-day threshold matches memory note expiry — lower values fire during legitimate multi-day build sequences and create false alerts before the note backing the handoff has even expired.
 
 ## Standalone Value
 
