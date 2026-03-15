@@ -58,6 +58,22 @@ fi
 #     ALERTS="${ALERTS}NFS mount /mnt/your-nfs-mount is DOWN\n"
 # fi
 
+# Stale handoff check (>14 days pending)
+# Scans security audit-queue and action-plans directories for pending handoffs.
+# Threshold is 14 days (matches memory note expiry) — lower values create false alerts
+# during legitimate multi-day build sequences.
+for queue_dir in "$HOME/.claude/projects/security/audit-queue" "$HOME/.claude/projects/security/action-plans"; do
+    if [ -d "$queue_dir" ]; then
+        while IFS= read -r f; do
+            if grep -q "^status: pending" "$f" 2>/dev/null; then
+                age=$(( ($(date +%s) - $(stat -c %Y "$f")) / 86400 ))
+                rel="${f#$HOME/}"
+                ALERTS="${ALERTS}Stale handoff: ${rel} pending for ${age} days\\n"
+            fi
+        done < <(find "$queue_dir" \( -name "request.md" -o -name "handoff.md" \) -mtime +14 2>/dev/null)
+    fi
+done
+
 # Report
 if [ -n "$ALERTS" ]; then
     echo -e "ALERTS:\n$ALERTS" >> "$LOG"

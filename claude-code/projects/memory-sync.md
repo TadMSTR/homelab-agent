@@ -58,6 +58,14 @@ If an existing note partially covers the topic, update it and refresh the expire
 
 ### Step 3: Chat Import
 
+Before importing, verify the export file exists and was modified within the last 48 hours.
+If the file is missing or stale:
+- Log: `Step 3 skipped: chat export unavailable or stale (path: <path>, age: <age>)`
+- Include in health report output
+- Continue to Step 4 without importing
+
+Do not write any working notes based on stale import data.
+
 Read the latest chat interface memory export. Apply the same criteria as Step 1 —
 promote durable entries to working notes.
 
@@ -93,14 +101,28 @@ git commit -m "memory-sync: distill knowledge from $(date +%Y-%m-%d)"
 git push origin main
 ```
 
-### Step 6: Expire Stale
-
-Delete working notes past their 90-day expiry that weren't promoted. Log each deletion.
-
-### Step 7: Dedup Check
+### Step 6: Dedup Check
 
 Scan working memory for topical duplicates. Merge into the more complete note and
 delete the other.
+
+### Step 7: Expire Stale
+
+Before checking expires dates, validate each working note's frontmatter:
+- Required fields: `tier`, `created`, `source`, `expires`, `tags`
+- If any required field is missing or unparseable, move the file to
+  `~/.claude/memory/quarantine/` (create if needed) and log the filename.
+- Do not delete quarantined files — they require manual review.
+- Include quarantine count in health report.
+
+When expiring a note:
+1. Append one line to `~/.claude/memory/expiry-log.md`:
+   `YYYY-MM-DD | <filename> | expires: <date> | tags: <tags>`
+2. Then delete the file.
+
+This log is append-only and never cleaned up automatically.
+
+Delete working notes past their 90-day expiry that weren't promoted.
 
 ### Step 8: Log Metrics and Health Report
 
@@ -112,8 +134,7 @@ Also report: note counts by tier, upcoming expirations, notes with missing front
 - Only promote genuinely durable knowledge. Skip ephemeral session details.
 - Never overwrite or modify existing distilled files — only add new ones.
 - If nothing meaningful was found, exit without changes. Log that too.
-- Maximum 10 distilled notes per run. Prioritize by durability and impact.
-- Maximum 15 working notes promoted per run.
+- Process all eligible notes per run. No cap on distillation or promotion.
 - The "would this matter in 3 months?" test applies at every promotion boundary.
 
 ## Idempotency
