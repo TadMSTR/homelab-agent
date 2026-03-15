@@ -18,7 +18,7 @@ The LibreChat frontend is where the platform shows its depth. It's not just a ch
 
 What makes it work over time is the memory system. Claude doesn't start from zero every session. It loads infrastructure context, recalls relevant decisions from past work, and accumulates knowledge automatically through nightly memory sync. Add the version-controlled infrastructure (everything the AI can touch is in git), and you have a system that can operate alongside you without being a liability.
 
-Modular by design. Take the whole thing or just the parts that fit your setup.
+Modular by design. Take the whole thing or just the parts that fit your setup. The system rewards customization — the more you shape it to how you actually work, the more useful it gets.
 
 ## How This Started
 
@@ -170,6 +170,8 @@ The agent/platform model means adding a new agent is a matter of writing a FastM
 
 See [`docs/components/jobsearch-mcp.md`](docs/components/jobsearch-mcp.md) for the job search agent's architecture and the pattern for building additional agents.
 
+The job search agent is what my situation needed. Someone else might build a home energy monitoring agent, a media request agent, something for tracking a health condition, or an agent scoped entirely to their homelab infrastructure. The platform doesn't prescribe what agents you build — it provides the infrastructure (auth, reverse proxy, memory, search) and gets out of the way. The useful thing isn't the job search agent specifically; it's that the slot exists and you can fill it with whatever fits your life.
+
 ## The Memory / Context System
 
 This is the connective tissue that makes the whole thing more than the sum of its parts. Most people's experience with AI assistants is stateless — every conversation starts from zero. This system has four layers of persistent context:
@@ -201,6 +203,10 @@ Most AI homelab setups are "I use ChatGPT to write scripts." This is a persisten
 **Version-controlled infrastructure.** When AI agents have filesystem access, they will edit your config files directly — compose files, `.env` files, proxy confs. This is powerful, but it means you need version control on everything the AI can touch. All Docker compose files in this setup live in a git repo. Every change is tracked, diffable, and reversible. This isn't optional — it's the safety net that makes AI-assisted infrastructure management viable.
 
 **Model-agnostic in practice.** The core engine runs on Claude, but LibreChat supports any provider (OpenAI, Ollama, etc.). SearXNG provides self-hosted search without API keys. The architecture doesn't lock you into a single vendor.
+
+**This isn't a one-click stack.** There are polished prepackaged AI homelab solutions. This is not one of them. Every component here was chosen because it fit a specific need, and those choices are visible throughout the docs. Your version will look different — because your infrastructure is different, your workflow is different, and your brain works differently.
+
+That's the point. When you build your own version of this, the AI knows about *your* storage server, *your* monitoring setup, *your* backup schedule and why it runs when it does. You wrote that context down, and it accumulated over time. A prepackaged solution can't ship with that. You build it, and building it is what makes it work.
 
 ## Planned Additions
 
