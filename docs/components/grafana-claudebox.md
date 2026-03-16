@@ -106,6 +106,7 @@ The Grafana + InfluxDB stack on its own is just a monitoring platform — it nee
 
 ## Related Docs
 
+- [grafana-observability](grafana-observability.md) — Loki, image renderer, and Alloy log shipping added to this stack
 - [ai-cost-tracking](ai-cost-tracking.md) — the pipeline that feeds this stack
 - [SWAG](swag.md) — reverse proxy handling external access
 - [Authelia](authelia.md) — SSO in front of Grafana and other services

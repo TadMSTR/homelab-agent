@@ -47,7 +47,7 @@ tags: [docker, decision]
 
 ## How It Works
 
-The memory-sync agent is defined in [`claude-code/projects/memory-sync.md`](../../claude-code/projects/memory-sync.md) and runs as a PM2 cron job. The workflow is an 8-step consolidation pipeline:
+The memory-sync agent is defined in [`claude-code/projects/memory-sync.md`](../../claude-code/projects/memory-sync.md) and runs as a PM2 cron job (`memory-pipeline`). The workflow is an 8-step consolidation pipeline:
 
 1. **Session scan.** Read memsearch session files from the last 7 days across all project stores. Identify entries containing infrastructure decisions, tool configurations, bug fixes, architectural decisions, or lessons learned. Skip empty session headers.
 
@@ -102,7 +102,7 @@ The memory-sync agent follows specific rules to keep the output useful:
 
 ## Integration Points
 
-**PM2 cron:** Runs at 4:00 AM daily, before the qmd reindex at 5:00 AM. This sequencing is deliberate — distilled notes land in the context repo, then qmd indexes them in the next cycle.
+**PM2 cron (`memory-pipeline`):** Runs at 4:00 AM daily, before the qmd reindex at 5:00 AM. This sequencing is deliberate — distilled notes land in the context repo, then qmd indexes them in the next cycle.
 
 **qmd:** Indexes the distilled output directory as part of the context repo collection. Once qmd reindexes, the distilled knowledge is searchable by all agents.
 

@@ -104,7 +104,7 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 | **SearXNG** | Private meta-search | Self-hosted search backend. Aggregates results from multiple engines with no API keys or per-query costs. Powers LibreChat's web search pipeline. |
 | **SWAG** | Nginx reverse proxy with Let's Encrypt wildcard SSL | Single entry point for all `*.yourdomain` services. DNS validation via Cloudflare — internal-only domain, no ports exposed to the internet. |
 | **Authelia** | SSO authentication gateway | One login for all services. SWAG has first-class Authelia support — two lines uncommented per proxy conf. |
-| **Grafana + InfluxDB** | Local agent observability stack | Dashboards for Claude Code session metrics, token usage, estimated costs, and LibreChat activity. Separate from atlas infrastructure monitoring — see [grafana-claudebox](docs/components/grafana-claudebox.md). |
+| **Grafana + InfluxDB + Loki** | Local agent observability stack | Dashboards for Claude Code session metrics, token usage, estimated costs, and LibreChat activity. Loki for self-healing system logs. Separate from atlas infrastructure monitoring — see [grafana-claudebox](docs/components/grafana-claudebox.md) and [grafana-observability](docs/components/grafana-observability.md). |
 | **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
 | **CloudCLI** | Claude Code browser UI _(PM2 host service, not Docker)_ | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Runs as a PM2-managed Node.js process on the host, proxied through SWAG. Primary day-to-day interface for infrastructure work. |
 | **Open Notebook** | AI research/notebook tool | Document analysis and research with SurrealDB backend. |
@@ -276,6 +276,7 @@ homelab-agent/
 │       ├── agent-panel.md           ← Homelab operations panel — PM2, Docker, diagnostics, files
 │       ├── diag-check.md            ← Scheduled diagnostics via agent panel API, failure alerts
 │       ├── grafana-claudebox.md     ← Local Grafana + InfluxDB for agent observability
+│       ├── grafana-observability.md ← Loki, image renderer, Alloy dual-destination log shipping
 │       ├── qmd.md                   ← Semantic search, dual transport, GPU acceleration
 │       ├── memsearch.md             ← Memory recall for Claude Code, plugin integration
 │       ├── memory-sync.md           ← Knowledge distillation pipeline, PM2 cron

@@ -96,9 +96,11 @@ This patch needs to be reapplied after every `npm update -g @tobilu/qmd`. It's t
 
 **qmd-repo-check cron:** PM2 cron job that watches for new repos not yet in the QMD index. Auto-adds repos matching configured keywords; notifies for anything else. See [Collection Discovery](#collection-discovery) above.
 
+**qmd-issue-check cron:** PM2 cron job that checks for resolution of known upstream bugs (currently qmd#140). Runs weekly; sends a push notification when a tracked issue is closed so you know when to retest and drop the workaround.
+
 ## Gotchas and Lessons Learned
 
-**Known MCP transport bug (qmd#140).** The `query` and `vsearch` sub-query types crash the stdio MCP transport. Use `lex` (keyword) and `vec` (vector) sub-queries when searching via MCP. Full hybrid search with `query` works fine from the CLI — it's only the MCP transport that breaks. This is tracked upstream and checked weekly by a PM2 cron job.
+**Known MCP transport bug (qmd#140).** The `query` and `vsearch` sub-query types crash the stdio MCP transport. Use `lex` (keyword) and `vec` (vector) sub-queries when searching via MCP. Full hybrid search with `query` works fine from the CLI — it's only the MCP transport that breaks. This is tracked upstream and checked weekly by the `qmd-issue-check` PM2 cron job.
 
 **GPU detection can be finicky.** qmd uses Vulkan for AMD GPUs, which requires the Vulkan SDK and appropriate drivers. If embedding generation is slower than expected, check `vulkaninfo` to confirm the GPU is detected. On a headless Debian box, you may need `mesa-vulkan-drivers` and `vulkan-tools` packages.
 
