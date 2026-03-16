@@ -31,6 +31,10 @@ homelab-agent/
 │       ├── homelab-ops-mcp.md         # FastMCP HTTP tool server — shell, files, processes
 │       ├── config-version-control.md  # Git tracking for docker/ and appdata configs
 │       ├── jobsearch-mcp.md           # Multi-board job search, resume scoring, application tracking
+│       ├── agent-orchestration.md     # Task queue, agent manifests, dispatcher
+│       ├── claudebox-deploy.md        # Deploy script, rebuild workflow
+│       ├── inter-agent-communication.md # Agent-to-agent messaging patterns
+│       ├── security-agent.md          # Security audit agent, triage workflow
 │       └── backups.md                 # Backup strategy: Backrest/restic, Claude backup, Docker appdata
 ├── claude-code/
 │   ├── CLAUDE.md.example              # Root CLAUDE.md template
