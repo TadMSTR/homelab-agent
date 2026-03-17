@@ -16,7 +16,7 @@ qmd indexes collections of documents into a local SQLite database with both full
 
 The embedding model runs locally — qmd ships with GGUF model support and uses your CPU or GPU for inference. On an AMD iGPU (Radeon 780M) via Vulkan, embedding generation is about 3.5x faster than CPU-only. Nvidia GPUs work via CUDA. No GPU means it falls back to CPU, which is fine for small-to-medium collections.
 
-**Index stats (this setup):** 157 documents, 823 chunks, 8 collections — covering the prime-directive repo, agent memory, deploy scripts, compose files, Grafana dashboards, and MCP server repos.
+**Index stats (this setup):** 322 files, 1554 embedded chunks, 17 collections — covering the prime-directive repo, agent memory, deploy scripts, compose files, Grafana dashboards, and MCP server repos.
 
 ## Dual Transport
 
@@ -33,7 +33,7 @@ For Claude Desktop config, see [`mcp-servers/README.md`](../../mcp-servers/READM
 
 ## Prerequisites
 
-- Node.js 20+ and npm
+- Node.js 22+ and npm
 - `npm install -g @tobilu/qmd`
 - Content to index (a context repo, agent memory directory, or any collection of markdown/text files)
 - Optional: AMD GPU (Vulkan) or Nvidia GPU (CUDA) for faster embedding generation
@@ -75,14 +75,14 @@ The script lives at [`scripts/check-qmd-repos.sh`](../../scripts/check-qmd-repos
 
 By default, qmd's HTTP mode binds to `localhost`, which means Docker containers can't reach it. To bind to all interfaces, set the `QMD_HOST` environment variable to `0.0.0.0` in your PM2 ecosystem config.
 
-**Note:** The upstream `mcp.js` doesn't read `QMD_HOST` out of the box — there's a one-line sed patch required after installing or updating qmd:
+**Note:** The upstream `mcp/server.js` doesn't read `QMD_HOST` out of the box — there's a one-line sed patch required after installing or updating qmd:
 
 ```bash
 sudo sed -i 's/httpServer.listen(port, "localhost"/httpServer.listen(port, process.env.QMD_HOST || "localhost"/' \
-  /usr/lib/node_modules/@tobilu/qmd/dist/mcp.js
+  /usr/lib/node_modules/@tobilu/qmd/dist/mcp/server.js
 ```
 
-This patch needs to be reapplied after every `npm update -g @tobilu/qmd`. It's tracked as something to check in the dep-update PM2 job.
+This patch needs to be reapplied after every `npm install -g @tobilu/qmd`. It's tracked as something to check in the dep-update PM2 job. After a major version upgrade, also run `qmd embed -f` to rebuild the vector index — the embedding format may have changed.
 
 ## Integration Points
 
@@ -96,11 +96,8 @@ This patch needs to be reapplied after every `npm update -g @tobilu/qmd`. It's t
 
 **qmd-repo-check cron:** PM2 cron job that watches for new repos not yet in the QMD index. Auto-adds repos matching configured keywords; notifies for anything else. See [Collection Discovery](#collection-discovery) above.
 
-**qmd-issue-check cron:** PM2 cron job that checks for resolution of known upstream bugs (currently qmd#140). Runs weekly; sends a push notification when a tracked issue is closed so you know when to retest and drop the workaround.
 
 ## Gotchas and Lessons Learned
-
-**Known MCP transport bug (qmd#140).** The `query` and `vsearch` sub-query types crash the stdio MCP transport. Use `lex` (keyword) and `vec` (vector) sub-queries when searching via MCP. Full hybrid search with `query` works fine from the CLI — it's only the MCP transport that breaks. This is tracked upstream and checked weekly by the `qmd-issue-check` PM2 cron job.
 
 **GPU detection can be finicky.** qmd uses Vulkan for AMD GPUs, which requires the Vulkan SDK and appropriate drivers. If embedding generation is slower than expected, check `vulkaninfo` to confirm the GPU is detected. On a headless Debian box, you may need `mesa-vulkan-drivers` and `vulkan-tools` packages.
 
