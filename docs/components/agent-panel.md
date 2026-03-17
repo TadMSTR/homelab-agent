@@ -137,7 +137,7 @@ The dep-updates feature has two parts: a check script that runs on a schedule an
 
 ### Check Script
 
-A shell script runs via PM2 cron (or whatever scheduler you prefer) and writes a JSON sidecar to a known path. The panel reads the sidecar on demand — no polling, no persistent connection.
+A shell script (`check-dep-updates.sh`) runs via PM2 cron job `dep-update-check` (Wednesdays at noon by default) and writes a JSON sidecar to a known path. The panel reads the sidecar on demand — no polling, no persistent connection.
 
 The script checks each dependency using whatever mechanism makes sense for that package manager:
 
