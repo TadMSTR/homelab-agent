@@ -32,11 +32,11 @@ It grew organically from "AI writes me a script" to "AI operates alongside me as
 
 ## Recent Updates
 
+See [CHANGELOG.md](CHANGELOG.md) for the full build history.
+
+- **2026-03-16** — Agent Workspace Protocol: `AGENT_WORKSPACE.md` markers at seven filesystem roots enforce a two-party permission model — the agent's manifest declares what it claims to need, each directory's marker declares what's allowed, the stricter wins. Hourly PM2 scan heals drift, cross-checks all agent manifests for permission conflicts, and emits CIA-tagged events to InfluxDB. Pre-edit resolver skill blocks any agent from touching an uncovered path.
+- **2026-03-16** — Local observability: Loki added to the grafana stack with Alloy routing infrastructure logs to atlas and self-healing agent logs staying local. Every background PM2 agent writing to `/var/log/claudebox/` is now queryable at `{job="self-healing"}` in Grafana, independent of the homelab Loki instance.
 - **2026-03-15** — Agent orchestration: a task queue with a PM2 dispatcher routes submitted tasks to agents via capability-matched manifests and holds anything above an agent's `max_auto_risk` threshold for manual `task-approve` review. First structured agent-to-human approval workflow in the stack.
-- **2026-03-15** — Memory pipeline orchestrator: a single PM2 job now runs memory-sync, memsearch-compact, and qmd-reindex in sequence each night, replacing three independent crons that were racing each other. Fixed a lock guard bug that was silently skipping compaction when called from the pipeline.
-- **2026-03-15** — Security agent: dedicated Claude Code project for post-build security audits. Building agents write to a shared queue after deploying services; the security agent triages findings into auto-fix / discuss / action plan categories, and routes fixes back. First bidirectional inter-agent workflow in the stack.
-- **2026-03-15** — Panel dep-updates: the operations panel now tracks 7 stack dependencies, applies safe updates as background tasks, delegates complex updates to Claude Code with a pre-filled prompt, and keeps an audit log of everything applied.
-- **2026-03-14** — Doc-health agent: headless Opus session runs weekly as a PM2 cron job, scanning for undocumented services, index drift, and credential leaks in the public repo. Auto-fixes what it can; everything else goes in a report.
 
 ## Architecture
 
