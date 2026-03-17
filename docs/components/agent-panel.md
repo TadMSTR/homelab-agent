@@ -60,6 +60,7 @@ Edit `config/config.js` to set:
 
 - `port` — which port to listen on (default: 3003)
 - `allowedOrigins` — CORS allowed origins (set to your panel subdomain)
+- `agentsDir` — root directory for the Agents panel (defaults to `~/.claude/projects/`)
 - `filePaths` — directories and files exposed in the file browser
 - `editableExtensions` — which file types can be edited (`.env` is intentionally excluded)
 - `services` — health check endpoints shown in the Services panel
@@ -126,6 +127,8 @@ The token in `proxy_set_header` must match `PANEL_TOKEN` in `.env`.
 **Backrest** — recent backup operation history from a local Backrest instance. Shows plan, repo, status, start time, and duration.
 
 **Diagnostics** — structured health check runner with lightweight and thorough modes. Checks: Docker container state, PM2 process health, NFS mount availability, port listening, TLS cert expiry, DNS resolution, cross-host ping, disk usage, git repo state. Failures alert via ntfy.
+
+**Agents** — dual-pane interface for browsing Claude Code agent sessions and project files. Left pane: project list sorted by last activity with session counts; selecting a project shows its sessions with timestamp, message count, and first-user-message preview; selecting a session shows the conversation — user and assistant turns with tool call names listed. Right pane: read-only file browser scoped to the agent projects directory (`agentsDir` in config), useful for inspecting CLAUDE.md files, memory, and build plan artifacts without opening a terminal. Symlinked files (e.g., CLAUDE.md → prime-directive source) are handled correctly.
 
 **File Browser** — read/write access to a configured whitelist of directories and files. Supports view, edit, save-with-backup, revert, and backup discard. Diff shown before save. `.panelbak` files created on first write; stale backups (>7 days) cleaned up on startup.
 
