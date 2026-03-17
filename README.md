@@ -280,6 +280,8 @@ homelab-agent/
 │       ├── qmd.md                   ← Semantic search, dual transport, GPU acceleration
 │       ├── memsearch.md             ← Memory recall for Claude Code, plugin integration
 │       ├── memory-sync.md           ← Knowledge distillation pipeline, PM2 cron
+│       ├── agent-workspace-scan.md  ← Hourly workspace marker validation, drift heal, CIA event emission
+│       ├── agent-workspace-check.md ← Pre-edit resolver skill — two-party permission enforcement
 │       ├── doc-health.md            ← Weekly doc audit — drift, coverage, staleness, sanitization
 │       ├── ai-cost-tracking.md      ← Claude Code JSONL parser, cost metrics, Telegraf pipeline
 │       ├── homelab-ops-mcp.md       ← FastMCP HTTP tool server — shell, files, processes
