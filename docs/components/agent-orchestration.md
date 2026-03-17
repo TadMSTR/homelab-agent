@@ -42,9 +42,39 @@ scope:
 max_auto_risk: low                      # Tasks at this risk level and below are auto-approved
 accepts_inbound: true                   # Whether this agent accepts tasks from the queue
 description: "Day-to-day claudebox operations — Docker stacks, PM2 services, Claude Code engine"
+
+workspace_access:
+  - path: ~/scripts/
+    access: readwrite
+    branch_required: false
+  - path: ~/docker/
+    access: readwrite
+    branch_required: false
+  - path: /opt/appdata/
+    access: readwrite
+    branch_required: false
+  - path: ~/repos/
+    access: readwrite
+    branch_required: true
+  - path: ~/.claude/
+    access: readwrite
+    branch_required: false
+  - path: /mnt/atlas/
+    access: readonly
+
+interaction_permissions:
+  auto_approved:
+    - research                          # Tasks from research agent dispatch without operator approval
+    - doc-health                        # Tasks from doc-health dispatch without operator approval
+  needs_approval:
+    - security-agent                    # Tasks from security agent require operator approval
 ```
 
 The `capabilities` list is free-form, but you need consistent names across manifests and task files — the dispatcher matches `task_type` in the task file against `capabilities` in the manifest for auto-routing. The `max_auto_risk` field is the key safety control: a `low` risk task goes through automatically, a `medium` or `high` task sits at `pending-approval` until you run `task-approve <id>`.
+
+`workspace_access` declares the filesystem paths this agent needs and at what access level. This feeds the two-party permission model in the Agent Workspace Protocol — the agent's manifest declares intent, and the `AGENT_WORKSPACE.md` marker at each path declares what's allowed. The stricter of the two wins. The hourly workspace scan (`agent-workspace-scan`) cross-references these entries against the actual markers and flags any access level disagreements. See [agent-workspace-scan](agent-workspace-scan.md) and [agent-workspace-check](agent-workspace-check.md).
+
+`interaction_permissions` controls dispatch trust by source agent rather than just by risk level. Agents in `auto_approved` have their submitted tasks fast-tracked through the approval gate — useful for agents you trust to submit well-scoped work (research, doc-health). Agents in `needs_approval` require operator review regardless of the task's declared risk level — useful for agents with broad execution authority (security-agent). This is separate from the `max_auto_risk` check: both gates apply, and either can hold a task at `pending-approval`.
 
 A `type: pm2-cron` agent (like doc-health) can appear in manifests but doesn't accept inbound tasks — it runs on schedule, doesn't pick up queue items on session start. Set `accepts_inbound: false`.
 
