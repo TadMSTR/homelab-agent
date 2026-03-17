@@ -12,6 +12,7 @@ homelab-agent/
 │   ├── architecture.md                # Detailed system architecture, data flows, network topology
 │   ├── getting-started.md             # Setup order, prerequisites, stopping points
 │   └── components/
+│       ├── README.md                      # Component docs overview — layer table, component inventory
 │       ├── swag.md                    # SWAG reverse proxy, Cloudflare DNS, proxy conf pattern
 │       ├── authelia.md                # Authelia SSO, file-based user backend, SWAG integration
 │       ├── librechat.md               # LibreChat setup, web search pipeline, reranker
@@ -141,6 +142,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `claude-code/CLAUDE.md.example` | ✅ Complete | 2026-03 |
 | `claude-code/projects/*.md` | ✅ Complete | 2026-03 |
 | `pm2/ecosystem.config.js.example` | ✅ Complete | 2026-03 |
+| `docs/components/README.md` | ✅ Complete | 2026-03 |
 | `docs/components/librechat.md` | ✅ Complete | 2026-03 |
 | `docs/components/swag.md` | ✅ Complete | 2026-03 |
 | `docs/components/authelia.md` | ✅ Complete | 2026-03 |
