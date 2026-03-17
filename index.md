@@ -29,6 +29,7 @@ homelab-agent/
 │       ├── qmd.md                     # qmd semantic search, dual transport, GPU acceleration
 │       ├── memsearch.md               # memsearch memory recall for Claude Code sessions
 │       ├── memory-sync.md             # Automated knowledge distillation pipeline
+│       ├── graphiti.md                # Temporal knowledge graph — Neo4j, entity ontology, data flow
 │       ├── doc-health.md              # Weekly doc audit — drift, coverage, staleness, sanitization
 │       ├── ai-cost-tracking.md        # Claude Code JSONL → Telegraf → InfluxDB → Grafana cost metrics
 │       ├── homelab-ops-mcp.md         # FastMCP HTTP tool server — shell, files, processes
@@ -94,7 +95,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Config version control | `docs/components/config-version-control.md` | MCP, Claude Code |
 | Claude Code / CLAUDE.md | `claude-code/CLAUDE.md.example`, `claude-code/projects/` | Docker, MCP |
 | PM2 services / cron | `pm2/ecosystem.config.js.example` | Docker compose, MCP config |
-| Memory system | `README.md` (§The Memory / Context System), `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
+| Memory system | `README.md` (§The Memory / Context System), `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `docs/components/graphiti.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
 | Documentation health | `docs/components/doc-health.md` | Docker, MCP |
 | Backups | `docs/components/backups.md`, `scripts/docker-stack-backup.sh`, `pm2/ecosystem.config.js.example` | Docker compose, MCP, Claude Code |
 | Docker stacks (general) | `docker/` subdirectories | Claude Code, MCP |
@@ -108,7 +109,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 |-------|-------------|-------------|
 | Layer 1 — Host & Core Tooling | `README.md` (§Layer 1), `mcp-servers/README.md`, `docs/components/homelab-ops-mcp.md` | `claude_desktop_config.json` patterns in `mcp-servers/README.md` |
 | Layer 2 — Self-Hosted Services | `README.md` (§Layer 2), `docs/components/*.md` | `docker/*/docker-compose.yml` |
-| Layer 3 — Multi-Agent Engine | `README.md` (§Layer 3), `claude-code/`, `docs/components/memsearch.md`, `docs/components/memory-sync.md` | `pm2/ecosystem.config.js.example`, `claude-code/projects/*.md` |
+| Layer 3 — Multi-Agent Engine | `README.md` (§Layer 3), `claude-code/`, `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `docs/components/graphiti.md` | `pm2/ecosystem.config.js.example`, `claude-code/projects/*.md` |
 
 ### By Task
 
@@ -125,7 +126,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | "I want version control on my Docker configs" | `docs/components/config-version-control.md` |
 | "I want to set up Claude Code agents" | `claude-code/CLAUDE.md.example` — then `claude-code/projects/` for per-agent examples |
 | "I want to add PM2 background jobs" | `pm2/ecosystem.config.js.example` — self-contained |
-| "I want to replicate the memory system" | `README.md` (§Memory / Context System) → `docs/components/memsearch.md` → `docs/components/memory-sync.md` |
+| "I want to replicate the memory system" | `README.md` (§Memory / Context System) → `docs/components/memsearch.md` → `docs/components/memory-sync.md` → `docs/components/graphiti.md` |
 | "I want to build a custom reranker" | `docker/reranker/` — standalone Dockerfile + source |
 | "I want to set up the whole thing step by step" | `docs/getting-started.md` — dependency-ordered with stopping points |
 | "I want to understand data flows and topology" | `docs/architecture.md` — detailed system architecture |
@@ -157,6 +158,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/qmd.md` | ✅ Complete | 2026-03 |
 | `docs/components/memsearch.md` | ✅ Complete | 2026-03 |
 | `docs/components/memory-sync.md` | ✅ Complete | 2026-03 |
+| `docs/components/graphiti.md` | ✅ Complete | 2026-03 |
 | `docs/components/doc-health.md` | ✅ Complete | 2026-03 |
 | `docs/components/ai-cost-tracking.md` | ✅ Complete | 2026-03 |
 | `docs/components/homelab-ops-mcp.md` | ✅ Complete | 2026-03 |
@@ -198,6 +200,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | qmd | [`docs/components/qmd.md`](docs/components/qmd.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§qmd) | — | (host-level service) |
 | memsearch | [`docs/components/memsearch.md`](docs/components/memsearch.md) | `~/.memsearch/config.toml` | (host-level service) |
 | memory-sync | [`docs/components/memory-sync.md`](docs/components/memory-sync.md), [`claude-code/projects/memory-sync.md`](claude-code/projects/memory-sync.md) | — | (PM2 cron job) |
+| Graphiti | [`docs/components/graphiti.md`](docs/components/graphiti.md) | `config.yaml`, `.env` | (Docker stack: neo4j + graphiti-mcp) |
 | doc-health | [`docs/components/doc-health.md`](docs/components/doc-health.md) | — | (PM2 cron job) |
 | AI Cost Tracking | [`docs/components/ai-cost-tracking.md`](docs/components/ai-cost-tracking.md) | — | (host script + PM2) |
 | homelab-ops MCP | [`docs/components/homelab-ops-mcp.md`](docs/components/homelab-ops-mcp.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§homelab-ops) | — | (PM2 host service) |

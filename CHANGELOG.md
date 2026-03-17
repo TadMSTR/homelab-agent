@@ -4,6 +4,14 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-03-17
+
+**Graphiti knowledge graph** — Neo4j 5.26.0 + Graphiti MCP temporal knowledge graph deployed as a Docker stack. Custom Dockerfile extending `zepai/knowledge-graph-mcp:1.0.2-standalone` with Anthropic and Voyage AI packages. Claude Sonnet handles entity extraction against a prescribed ontology (Service, Host, Network, Configuration, Agent, User, Port); Voyage AI voyage-3-lite generates embeddings. Neo4j browser proxied through SWAG behind Authelia. Graph is fed automatically by memory-flush (real-time during sessions) and memory-sync Step 5b (nightly batch with content hash manifest for dedup). Agents query the graph with `search_memory_facts` and `search_nodes` for infrastructure topology and relationship queries that flat-file memory can't answer.
+
+**Memory-sync graph ingestion (Step 5b)** — The nightly memory-sync pipeline gained a new step after distillation: batch ingestion of touched notes into the knowledge graph via Graphiti MCP. Uses a content hash manifest (`graph-ingested.json`) for idempotency. Pipeline timeout increased from 600s to 1800s to accommodate per-note LLM and embedding calls. Non-blocking on Graphiti failures — the rest of the pipeline continues if the graph is unavailable.
+
+---
+
 ## 2026-03-16
 
 **Agent Workspace Protocol** — `AGENT_WORKSPACE.md` markers at seven filesystem roots enforce a two-party permission model: agent manifests declare what they claim to need, directory markers declare what's allowed, the stricter of the two wins. Hourly PM2 cron (`agent-workspace-scan`) validates markers, auto-commits drift in git-backed paths, cross-references all agent manifests for CIA-triad conflicts, and emits structured events to InfluxDB and Loki. Pre-edit resolver skill (`agent-workspace-check`) gates `git-config-tracking` and blocks edits on uncovered paths with an ntfy alert. Rogue agent detection wired; threshold currently at 0 pending baseline calibration.

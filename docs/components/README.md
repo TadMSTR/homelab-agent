@@ -28,6 +28,7 @@ For the architecture overview and how these components relate, see the [main REA
 | qmd | [qmd.md](qmd.md) | Semantic search, dual transport (stdio + HTTP), GPU acceleration, config |
 | memsearch | [memsearch.md](memsearch.md) | Memory recall for Claude Code, plugin integration, config |
 | memory-sync | [memory-sync.md](memory-sync.md) | Automated knowledge distillation pipeline, distillation rules, PM2 cron |
+| Graphiti | [graphiti.md](graphiti.md) | Temporal knowledge graph — Neo4j, entity ontology, data flow, Graphiti MCP |
 | doc-health | [doc-health.md](doc-health.md) | Weekly documentation audit — drift, index, coverage, staleness, sanitization |
 | AI Cost Tracking | [ai-cost-tracking.md](ai-cost-tracking.md) | Claude Code JSONL parsing, token/cost metrics, LibreChat Prometheus → InfluxDB → Grafana |
 | Inter-Agent Communication | [inter-agent-communication.md](inter-agent-communication.md) | File-based handoff pattern, queue directories, status lifecycle, security audit workflow, stale monitoring |

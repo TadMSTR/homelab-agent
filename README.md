@@ -34,9 +34,9 @@ It grew organically from "AI writes me a script" to "AI operates alongside me as
 
 See [CHANGELOG.md](CHANGELOG.md) for the full build history.
 
+- **2026-03-17** — Knowledge graph: Neo4j + Graphiti MCP temporal knowledge graph deployed. Agents can now query infrastructure topology and relationships — "what connects to SWAG?", "what runs on atlas?" — rather than searching flat text. Fed automatically by memory-flush (real-time) and memory-sync Step 5b (nightly batch). Prescribed entity ontology: Service, Host, Network, Configuration, Agent, User, Port.
 - **2026-03-16** — Agent Workspace Protocol: `AGENT_WORKSPACE.md` markers at seven filesystem roots enforce a two-party permission model — the agent's manifest declares what it claims to need, each directory's marker declares what's allowed, the stricter wins. Hourly PM2 scan heals drift, cross-checks all agent manifests for permission conflicts, and emits CIA-tagged events to InfluxDB. Pre-edit resolver skill blocks any agent from touching an uncovered path.
 - **2026-03-16** — Local observability: Loki added to the grafana stack with Alloy routing infrastructure logs to atlas and self-healing agent logs staying local. Every background PM2 agent writing to `/var/log/claudebox/` is now queryable at `{job="self-healing"}` in Grafana, independent of the homelab Loki instance.
-- **2026-03-15** — Agent orchestration: a task queue with a PM2 dispatcher routes submitted tasks to agents via capability-matched manifests and holds anything above an agent's `max_auto_risk` threshold for manual `task-approve` review. First structured agent-to-human approval workflow in the stack.
 
 ## Architecture
 
@@ -46,7 +46,7 @@ The system has three layers. Each is independently useful — you don't need all
 ┌─────────────────────────────────────────────────────────┐
 │  Layer 3: Multi-Agent Claude Code Engine                │
 │  CLAUDE.md hierarchy · scoped memory · memsearch        │
-│  PM2 background agents · automated memory sync          │
+│  knowledge graph · PM2 background agents · memory sync  │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 2: Self-Hosted Service Stack (Docker)            │
 │  SWAG/Authelia · LibreChat · purpose-built agents       │
@@ -108,6 +108,7 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 | **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
 | **CloudCLI** | Claude Code browser UI _(PM2 host service, not Docker)_ | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Runs as a PM2-managed Node.js process on the host, proxied through SWAG. Primary day-to-day interface for infrastructure work. |
 | **Open Notebook** | AI research/notebook tool | Document analysis and research with SurrealDB backend. |
+| **Graphiti + Neo4j** | Temporal knowledge graph | Neo4j 5.26.0 graph database with Graphiti MCP for entity extraction and relationship mapping. Captures infrastructure topology — services, hosts, networks, agents — with temporal validity. Fed by memory-flush (real-time) and memory-sync (nightly). See [graphiti](docs/components/graphiti.md). |
 | **qmd** | Semantic search MCP server | Hybrid search (BM25 + vector + LLM reranking) over all repos, docs, and agent memory. Local embeddings via GGUF models, GPU-accelerated on AMD iGPU via Vulkan. |
 
 All containers share a single Docker network. SWAG handles SSL termination and routes `chat.yourdomain`, `auth.yourdomain`, `cloudcli.yourdomain`, etc. to the appropriate container.
@@ -145,12 +146,14 @@ Agents read from shared + their own directory, write to their own directory. Cro
 
 **memsearch** provides semantic search over the memory directories using local sentence-transformer embeddings and a vector database. The Claude Code plugin auto-injects relevant memories at session start and on each prompt. No API keys, no cloud services — runs entirely on the local CPU. See [`docs/components/memsearch.md`](docs/components/memsearch.md) for configuration details.
 
+**Graphiti knowledge graph** adds structured relationship queries on top of the flat-file memory system. A Neo4j-backed temporal graph captures infrastructure topology — which services run on which hosts, what depends on what, how the architecture evolved. Fed automatically by real-time memory-flush and nightly memory-sync batch ingestion. Agents query it with `search_memory_facts` and `search_nodes` when they need relational answers rather than text search. See [`docs/components/graphiti.md`](docs/components/graphiti.md).
+
 **PM2 Background Agents:**
 
 | Service | Schedule | What It Does |
 |---------|----------|-------------|
 | docker-stack-backup | 1:00 AM daily | Stops containers, rsyncs appdata to NFS, restarts |
-| memory-sync | 4:00 AM daily | Exports LibreChat memory, reads Claude Code memory files, distills durable knowledge into the context repo |
+| memory-sync | 4:00 AM daily | Exports LibreChat memory, reads Claude Code memory files, distills durable knowledge into the context repo, ingests to knowledge graph |
 | qmd-reindex | 5:00 AM daily | Pulls latest from all git repos, re-embeds for semantic search |
 | resource-monitor | Every 6 hours | Checks RAM, disk, Docker health, PM2 status, NFS mounts; alerts via ntfy |
 | dep-update-check | Wednesdays noon | Checks for updates to pinned dependencies (qmd, Authelia, Claude Code) |
@@ -174,17 +177,19 @@ The job search agent is what my situation needed. Someone else might build a hom
 
 ## The Memory / Context System
 
-This is the connective tissue that makes the whole thing more than the sum of its parts. Most people's experience with AI assistants is stateless — every conversation starts from zero. This system has four layers of persistent context:
+This is the connective tissue that makes the whole thing more than the sum of its parts. Most people's experience with AI assistants is stateless — every conversation starts from zero. This system has five layers of persistent context:
 
 1. **Prime directive repo** — Stable configuration: infrastructure docs, project instructions, profile/preferences, deployment scripts. Loaded at session start via CLAUDE.md references and qmd search. This is the source of truth.
 
-2. **basic-memory** — Working notes between commits. Obsidian-compatible markdown files managed via MCP. Good for capturing things mid-session that aren't ready for the prime directive yet.
+2. **Core context** — An always-visible 40-line context block injected at every session start. Contains the user profile, active projects, key constraints, and recent decisions. Sits above the context window's compression threshold so critical facts never scroll out mid-session.
 
-3. **Per-agent CLAUDE.md memory files** — Session summaries and learnings written by agents during their work. Indexed by memsearch for auto-recall in future sessions.
+3. **Per-agent scoped memory** — Session summaries and learnings written by agents during their work. Organized by agent (shared/, homelab-ops/, dev/, research/) to prevent context bleed. Indexed by memsearch for automatic recall in future sessions. A three-tier pipeline (session → working → distilled) ensures raw notes are reviewed, curated, and promoted to permanent storage.
 
-4. **Automated nightly memory sync** — A headless Claude Code agent runs at 4 AM, reads recent memory from both Claude Code sessions (memsearch) and LibreChat conversations (MongoDB export), and distills durable knowledge back into the prime directive repo. Knowledge accumulates without manual curation.
+4. **Knowledge graph** — A Neo4j-backed temporal knowledge graph (via [Graphiti](docs/components/graphiti.md)) that captures relationships between infrastructure entities — services, hosts, networks, agents, configurations. File-based memory handles narrative knowledge well; the graph handles "what connects to what" queries. Fed automatically by memory-flush (real-time) and memory-sync (nightly batch).
 
-The result: when I start a session on Monday, the agent already knows about the Docker stack change I made on Friday, the monitoring alert from Saturday, and the research I did on Sunday. It knows because the memory sync agent captured those events and the semantic search surfaced them as relevant context.
+5. **Automated nightly memory sync** — A headless Claude Code agent runs at 4 AM, reads recent memory from both Claude Code sessions and LibreChat conversations, distills durable knowledge into the prime directive repo, and ingests touched notes into the knowledge graph. Knowledge accumulates and connects without manual curation.
+
+The result: when I start a session on Monday, the agent already knows about the Docker stack change I made on Friday, the monitoring alert from Saturday, and the research I did on Sunday. It knows because the memory sync agent captured those events, the semantic search surfaced them as relevant context, and the knowledge graph connected them to the services they affected.
 
 ## What Makes This Different
 
@@ -196,7 +201,7 @@ Most AI homelab setups are "I use ChatGPT to write scripts." This is a persisten
 
 **Multi-agent with scoped memory.** Different Claude Code agents handle different domains without context bleed. The homelab-ops agent knows about Docker and monitoring. The dev agent knows about git workflows and code standards. They share infrastructure knowledge but keep domain-specific learnings separate.
 
-**Automated knowledge accumulation.** The memory sync agent means you don't have to manually maintain documentation. Durable decisions and learnings flow from work sessions into the persistent knowledge base automatically.
+**Automated knowledge accumulation.** The memory sync agent means you don't have to manually maintain documentation. Durable decisions and learnings flow from work sessions into the persistent knowledge base automatically. A temporal knowledge graph captures the relationships between infrastructure entities, so agents can query topology and dependencies — not just search text.
 
 **Tool access, not just chat.** Via MCP, the AI can directly query Netdata metrics, check Grafana dashboards, search GitHub repos, read and write files, and automate browser tasks. It's not just answering questions — it's operating.
 
@@ -277,6 +282,7 @@ homelab-agent/
 │       ├── diag-check.md            ← Scheduled diagnostics via agent panel API, failure alerts
 │       ├── grafana-claudebox.md     ← Local Grafana + InfluxDB for agent observability
 │       ├── grafana-observability.md ← Loki, image renderer, Alloy dual-destination log shipping
+│       ├── graphiti.md              ← Temporal knowledge graph — Neo4j, entity ontology, data flow
 │       ├── qmd.md                   ← Semantic search, dual transport, GPU acceleration
 │       ├── memsearch.md             ← Memory recall for Claude Code, plugin integration
 │       ├── memory-sync.md           ← Knowledge distillation pipeline, PM2 cron

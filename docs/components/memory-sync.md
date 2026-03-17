@@ -47,7 +47,7 @@ tags: [docker, decision]
 
 ## How It Works
 
-The memory-sync agent is defined in [`claude-code/projects/memory-sync.md`](../../claude-code/projects/memory-sync.md) and runs as a PM2 cron job (`memory-pipeline`). The workflow is an 8-step consolidation pipeline:
+The memory-sync agent is defined in [`claude-code/projects/memory-sync.md`](../../claude-code/projects/memory-sync.md) and runs as a PM2 cron job (`memory-pipeline`). The workflow is a 9-step consolidation pipeline:
 
 1. **Session scan.** Read memsearch session files from the last 7 days across all project stores. Identify entries containing infrastructure decisions, tool configurations, bug fixes, architectural decisions, or lessons learned. Skip empty session headers.
 
@@ -59,11 +59,13 @@ The memory-sync agent is defined in [`claude-code/projects/memory-sync.md`](../.
 
 5. **Promote to distilled.** Distill qualifying working notes into permanent records in the context repo. Check existing distilled notes first to avoid duplicates. Git pull, commit, and push.
 
-6. **Expire stale.** Delete working notes past their 90-day expiry date that weren't promoted to distilled. Log each deletion.
+5b. **Graph ingestion.** Ingest notes touched in this run to the [knowledge graph](graphiti.md) via Graphiti MCP. Uses a content hash manifest (`~/.claude/memory/graph-ingested.json`) for deduplication — notes are ingested if they were created/updated in this run, have no manifest entry, or their content hash differs from the manifest. On failure (Graphiti unavailable), the step logs the filename and continues without blocking the pipeline. Graphiti's temporal entity resolution handles cases where the same fact appears in both a working note and its later distilled version.
 
-7. **Dedup check.** Scan working memory for topical duplicates — notes covering the same decision, fact, or event. Merge into the more complete note and delete the other.
+6. **Dedup check.** Scan working memory for topical duplicates — notes covering the same decision, fact, or event. Merge into the more complete note and delete the other.
 
-8. **Log metrics and health report.** Output counts (sessions scanned, notes promoted/updated/distilled/expired/deduped, errors) plus health stats (note counts by tier, upcoming expirations, notes with missing frontmatter).
+7. **Expire stale.** Delete working notes past their 90-day expiry date that weren't promoted to distilled. Log each deletion.
+
+8. **Log metrics and health report.** Output counts (sessions scanned, notes promoted/updated/distilled/expired/deduped, errors) plus health stats (note counts by tier, upcoming expirations, notes with missing frontmatter). Includes graph ingestion counts: notes ingested, skipped (hash match), and failures.
 
 ## Configuration
 
@@ -108,6 +110,8 @@ The memory-sync agent follows specific rules to keep the output useful:
 
 **memsearch:** Indexes session-tier memory files. The pipeline is: memsearch auto-captures session summaries → makes them available for immediate recall → memory-sync scans sessions and promotes durable items to working tier → reviews working notes and promotes mature ones to distilled tier → qmd indexes distilled output for long-term search.
 
+**Graphiti knowledge graph:** Step 5b feeds the [temporal knowledge graph](graphiti.md) after distillation. Notes are ingested as episodes; Graphiti extracts entities (services, hosts, networks, agents) and relationships, making the knowledge queryable by structure rather than just text. The content hash manifest ensures idempotency across runs.
+
 **git:** The memory-sync agent commits and pushes distilled notes using plain git shell commands — not GitHub MCP. If you're running this on a machine with GitHub SSH keys configured, it works without additional setup. GitHub MCP is for remote operations (PRs, issues, reading unchecked-out repos) and isn't involved here.
 
 ## Gotchas and Lessons Learned
@@ -147,7 +151,7 @@ These details matter if you're building any PM2-scheduled Claude Code job, not j
 
 **Concurrency and lock file.** The wrapper script uses a lock file (`~/.claude/memory-sync.lock`) to prevent overlapping runs. Stale locks older than 10 minutes are automatically removed. If the agent crashes, the lock is cleaned up via a bash `trap`.
 
-**Timeout.** The wrapper script uses `timeout 600` (10 minutes) to prevent runaway sessions. The expanded 8-step pipeline needs more time than the original single-step distillation.
+**Timeout.** The wrapper script uses `timeout 1800` (30 minutes) to prevent runaway sessions. The timeout was increased from 600s when Step 5b (graph ingestion) was added — each episode ingestion involves LLM calls for entity extraction and embedding generation, which adds significant per-note latency.
 
 **Idempotent by design.** Runs are safe to repeat. The agent checks for existing working notes before creating new ones, checks existing distilled notes before promoting, and only expires notes with a valid `expires` date strictly in the past. Notes without valid frontmatter are flagged in the health report rather than deleted.
 
@@ -168,7 +172,8 @@ You can start without memory sync and add it later once you have a few weeks of 
 
 ## Related Docs
 
-- [Architecture overview](../../README.md#the-memory--context-system) — the four-layer memory system
+- [Architecture overview](../../README.md#the-memory--context-system) — the memory system overview
+- [Graphiti knowledge graph](graphiti.md) — temporal knowledge graph fed by Step 5b
 - [qmd](qmd.md) — indexes the distilled output for semantic search
 - [memsearch](memsearch.md) — indexes the raw memory files for session recall
 - [CLAUDE.md examples](../../claude-code/) — agent project configs including memory-sync
