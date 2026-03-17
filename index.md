@@ -21,8 +21,11 @@ homelab-agent/
 │       ├── cloudcli.md                # CloudCLI web UI — file explorer, git, shell, MCP management
 │       ├── cui.md                     # CUI web UI — headless agent monitoring, push notifications
 │       ├── agent-panel.md             # Homelab operations panel — PM2, Docker, diagnostics, files
+│       ├── agent-workspace-check.md   # Pre-edit workspace access resolver
+│       ├── agent-workspace-scan.md    # Hourly workspace manifest validation + self-healing
 │       ├── diag-check.md              # Scheduled diagnostics via agent panel API, failure alerts
 │       ├── grafana-claudebox.md       # Local Grafana + InfluxDB for agent observability
+│       ├── grafana-observability.md    # Loki, Alloy log shipping, image renderer
 │       ├── qmd.md                     # qmd semantic search, dual transport, GPU acceleration
 │       ├── memsearch.md               # memsearch memory recall for Claude Code sessions
 │       ├── memory-sync.md             # Automated knowledge distillation pipeline
@@ -146,8 +149,11 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/cloudcli.md` | ✅ Complete | 2026-03 |
 | `docs/components/cui.md` | ✅ Complete | 2026-03 |
 | `docs/components/agent-panel.md` | ✅ Complete | 2026-03 |
+| `docs/components/agent-workspace-check.md` | ✅ Complete | 2026-03 |
+| `docs/components/agent-workspace-scan.md` | ✅ Complete | 2026-03 |
 | `docs/components/diag-check.md` | ✅ Complete | 2026-03 |
 | `docs/components/grafana-claudebox.md` | ✅ Complete | 2026-03 |
+| `docs/components/grafana-observability.md` | ✅ Complete | 2026-03 |
 | `docs/components/qmd.md` | ✅ Complete | 2026-03 |
 | `docs/components/memsearch.md` | ✅ Complete | 2026-03 |
 | `docs/components/memory-sync.md` | ✅ Complete | 2026-03 |
@@ -184,8 +190,11 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | CloudCLI | [`docs/components/cloudcli.md`](docs/components/cloudcli.md) | — | (PM2 host service) |
 | CUI | [`docs/components/cui.md`](docs/components/cui.md) | — | (PM2 host service) |
 | Agent Panel | [`docs/components/agent-panel.md`](docs/components/agent-panel.md) | — | (PM2 host service) |
+| Agent Workspace Check | [`docs/components/agent-workspace-check.md`](docs/components/agent-workspace-check.md) | — | (Skill / pre-edit hook) |
+| Agent Workspace Scan | [`docs/components/agent-workspace-scan.md`](docs/components/agent-workspace-scan.md) | — | (PM2 cron job) |
 | Diag-Check | [`docs/components/diag-check.md`](docs/components/diag-check.md) | — | (PM2 cron job) |
 | Grafana claudebox | [`docs/components/grafana-claudebox.md`](docs/components/grafana-claudebox.md) | — | (compose not in repo) |
+| Grafana Observability | [`docs/components/grafana-observability.md`](docs/components/grafana-observability.md) | — | (compose not in repo) |
 | qmd | [`docs/components/qmd.md`](docs/components/qmd.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§qmd) | — | (host-level service) |
 | memsearch | [`docs/components/memsearch.md`](docs/components/memsearch.md) | `~/.memsearch/config.toml` | (host-level service) |
 | memory-sync | [`docs/components/memory-sync.md`](docs/components/memory-sync.md), [`claude-code/projects/memory-sync.md`](claude-code/projects/memory-sync.md) | — | (PM2 cron job) |
