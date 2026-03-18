@@ -14,11 +14,11 @@ The graph is populated automatically. The memory-flush skill feeds it in real-ti
 
 ## How It Works
 
-Two containers on the `claudebox-net` Docker network:
+Two containers, network-isolated from the main stack:
 
-**Neo4j 5.26.0** — the graph database. Stores nodes (entities) and edges (relationships) with properties and temporal metadata. Exposes the browser UI on port 7474 (proxied at `neo4j.yourdomain` behind Authelia) and Bolt protocol on 7687 for programmatic access.
+**Neo4j 5.26.0** — the graph database. Stores nodes (entities) and edges (relationships) with properties and temporal metadata. Exposes the browser UI on port 7474 (proxied at `neo4j.yourdomain` behind Authelia) and Bolt protocol on 7687 for programmatic access. Sits on both `claudebox-net` (for SWAG proxy access) and a dedicated `graphiti-internal` network.
 
-**Graphiti MCP** — an MCP server that wraps the Graphiti library. Accepts episodes (text content), uses an LLM to extract entities and relationships, generates embeddings for semantic search, and writes everything to Neo4j. Exposes MCP tools over HTTP on port 8000.
+**Graphiti MCP** — an MCP server that wraps the Graphiti library. Accepts episodes (text content), uses an LLM to extract entities and relationships, generates embeddings for semantic search, and writes everything to Neo4j. Exposes MCP tools over HTTP on port 8000. Sits on `graphiti-internal` only — deliberately isolated from `claudebox-net`. Agents access it directly via `localhost:8000` on the host, not through the Docker network.
 
 The extraction pipeline for each ingested episode:
 1. LLM (Claude Sonnet) reads the text and identifies entities matching the prescribed ontology

@@ -14,13 +14,14 @@ I looked at Authentik as an alternative. It's more feature-rich (full IdP, SCIM,
 
 ## What's in the Stack
 
-Authelia runs as a single container with a SQLite database for session and authentication state. No external dependencies.
+Authelia runs with a Valkey (Redis-compatible) sidecar for session storage, and uses SQLite for persistent authentication state (registration, TOTP, etc.). Two containers.
 
 | Container | Image | Purpose | RAM |
 |-----------|-------|---------|-----|
 | authelia | authelia/authelia:4.38 | Auth gateway + session management | ~50MB |
+| authelia-valkey | valkey/valkey:alpine | Session cache backend (Redis-compatible) | ~10MB |
 
-It joins the shared Docker network and exposes port 9091 internally (not to the host). SWAG proxies `auth.yourdomain` to it. See [`docker/authelia/docker-compose.yml`](../../docker/authelia/docker-compose.yml) for the compose file.
+Authelia exposes port 9091 internally (not to the host). SWAG proxies `auth.yourdomain` to it. Sessions expire after 12h of inactivity (1h inactivity timeout). See [`docker/authelia/docker-compose.yml`](../../docker/authelia/docker-compose.yml) for the compose file.
 
 ## Configuration
 
@@ -121,7 +122,9 @@ SWAG ships these snippet files pre-configured. No manual nginx auth configuratio
 
 **The `/authelia` path prefix matters.** The `server.address` config includes `/authelia` as a path prefix. The `authelia_url` in the session config must include this: `https://auth.yourdomain/authelia`. If these don't match, the auth redirect loop fails silently.
 
-**SQLite locking on slow storage.** Authelia uses SQLite for session storage. If your appdata volume is on slow storage (NFS, spinning disk), you might see intermittent "database is locked" errors under concurrent logins. Local SSD storage avoids this entirely. For higher concurrency, Authelia also supports PostgreSQL and MySQL backends.
+**SQLite locking on slow storage.** Authelia uses SQLite for *persistent* storage (TOTP registrations, etc.). If your appdata volume is on slow storage (NFS, spinning disk), you might see intermittent "database is locked" errors under concurrent logins. Local SSD storage avoids this entirely. For higher concurrency, Authelia also supports PostgreSQL and MySQL backends.
+
+**Valkey handles session state.** Active session data lives in Valkey (Redis-compatible), not SQLite. This keeps SQLite I/O low and means sessions survive Authelia container restarts as long as Valkey is running. Valkey data is persisted to `/opt/appdata/authelia/valkey/`.
 
 **Generate all secrets before first start.** Authelia refuses to start with empty or default secrets. Generate `jwt_secret`, `session.secret`, and `storage.encryption_key` before the first `docker compose up`. The `openssl rand -hex 64` command works for all three.
 
