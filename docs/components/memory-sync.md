@@ -104,7 +104,7 @@ The memory-sync agent follows specific rules to keep the output useful:
 
 ## Integration Points
 
-**PM2 cron (`memory-pipeline`):** Runs at 4:00 AM daily, before the qmd reindex at 5:00 AM. This sequencing is deliberate — distilled notes land in the context repo, then qmd indexes them in the next cycle.
+**PM2 cron (`memory-pipeline`):** Runs at 4:00 AM daily. The pipeline orchestrates memory-sync → memsearch-compact → qmd-reindex sequentially in a single job — memory-sync failure is non-fatal, so compact and reindex still run on existing data. This replaced three separate crons that were racing each other.
 
 **qmd:** Indexes the distilled output directory as part of the context repo collection. Once qmd reindexes, the distilled knowledge is searchable by all agents.
 
