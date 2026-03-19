@@ -4,6 +4,10 @@ This document expands on the architecture overview in the [main README](../READM
 
 ## System Overview
 
+![Architecture Layers](assets/architecture-layers.drawio.svg)
+
+<details><summary>ASCII version</summary>
+
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │  Layer 3: Multi-Agent Claude Code Engine                             │
@@ -48,9 +52,15 @@ This document expands on the architecture overview in the [main README](../READM
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
+</details>
+
 ## Network Topology
 
 Everything runs on a single host. Docker containers share one bridge network (`claudebox-net` in this setup — name yours whatever you want). Host-level services (qmd, CUI, PM2 jobs) communicate with Docker containers via the bridge network or `host.docker.internal`.
+
+![Network Topology](assets/network-topology.drawio.svg)
+
+<details><summary>ASCII version</summary>
 
 ```
 Internet ──✕── (no inbound ports exposed)
@@ -80,6 +90,8 @@ Docker bridge network (claudebox-net):
   └── open-notebook + surrealdb
 ```
 
+</details>
+
 No ports are exposed to the internet. SWAG handles SSL via DNS validation (Cloudflare API), not HTTP challenge. The domain resolves to a LAN IP — it's internal-only access with real SSL certificates.
 
 ## Data Flows
@@ -99,6 +111,10 @@ This flow is identical for every service behind SWAG. Adding a new service means
 ### Memory Flow (Knowledge Accumulation)
 
 This is the core data flow that makes the system self-improving. Memory is organized into three tiers:
+
+![Memory Flow](assets/memory-flow.drawio.svg)
+
+<details><summary>ASCII version</summary>
 
 ```
 Claude Code session
@@ -129,6 +145,8 @@ Claude Code session
                     │
                     └── Distilled knowledge searchable by all agents
 ```
+
+</details>
 
 The three pipeline tiers serve different purposes: **session** is raw auto-captured context for immediate recall, **working** is agent-curated knowledge with a 90-day TTL, and **distilled** is permanent knowledge that passed the "would this matter in 3 months?" test. Notes flow upward through tiers — never skipping one — and each promotion is checked for duplicates.
 
