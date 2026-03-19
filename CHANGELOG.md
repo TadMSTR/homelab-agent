@@ -4,6 +4,12 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-03-19
+
+**NATS JetStream event bus** — NATS 2.10 deployed as an additive event transport for agent orchestration. Task state transitions from the dispatcher (`tasks.submitted`, `tasks.approval-requested`, `tasks.approved`, `tasks.failed`) and session-start hook (`tasks.working`) are published as JetStream subjects. Two streams: TASKS (30-day retention, `tasks.>`) and AGENT_EVENTS (7-day retention, `agents.>`, reserved for future use). Monitoring dashboard proxied at `nats.yourdomain` behind Authelia. File queue remains authoritative — NATS is fire-and-forget and the queue operates normally if NATS is unavailable.
+
+---
+
 ## 2026-03-17
 
 **Graphiti knowledge graph** — Neo4j 5.26.0 + Graphiti MCP temporal knowledge graph deployed as a Docker stack. Custom Dockerfile extending `zepai/knowledge-graph-mcp:1.0.2-standalone` with Anthropic and Voyage AI packages. Claude Sonnet handles entity extraction against a prescribed ontology (Service, Host, Network, Configuration, Agent, User, Port); Voyage AI voyage-3-lite generates embeddings. Neo4j browser proxied through SWAG behind Authelia. Graph is fed automatically by memory-flush (real-time during sessions) and memory-sync Step 5b (nightly batch with content hash manifest for dedup). Agents query the graph with `search_memory_facts` and `search_nodes` for infrastructure topology and relationship queries that flat-file memory can't answer.

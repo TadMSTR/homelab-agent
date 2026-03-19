@@ -34,9 +34,9 @@ It grew organically from "AI writes me a script" to "AI operates alongside me as
 
 See [CHANGELOG.md](CHANGELOG.md) for the full build history.
 
+- **2026-03-19** — NATS JetStream event bus: task lifecycle events from the orchestration dispatcher now flow to JetStream subjects (`tasks.submitted`, `tasks.approved`, etc.). Additive to the file queue — no existing behavior changes. Two streams: TASKS (30d) and AGENT_EVENTS (7d, reserved). Monitoring dashboard behind Authelia.
 - **2026-03-17** — Knowledge graph: Neo4j + Graphiti MCP temporal knowledge graph deployed. Agents can now query infrastructure topology and relationships — "what connects to SWAG?", "what runs on atlas?" — rather than searching flat text. Fed automatically by memory-flush (real-time) and memory-sync Step 5b (nightly batch). Prescribed entity ontology: Service, Host, Network, Configuration, Agent, User, Port.
 - **2026-03-16** — Agent Workspace Protocol: `AGENT_WORKSPACE.md` markers at seven filesystem roots enforce a two-party permission model — the agent's manifest declares what it claims to need, each directory's marker declares what's allowed, the stricter wins. Hourly PM2 scan heals drift, cross-checks all agent manifests for permission conflicts, and emits CIA-tagged events to InfluxDB. Pre-edit resolver skill blocks any agent from touching an uncovered path.
-- **2026-03-16** — Local observability: Loki added to the grafana stack with Alloy routing infrastructure logs to atlas and self-healing agent logs staying local. Every background PM2 agent writing to `/var/log/claudebox/` is now queryable at `{job="self-healing"}` in Grafana, independent of the homelab Loki instance.
 
 ## Architecture
 
@@ -108,6 +108,7 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 | **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
 | **CloudCLI** | Claude Code browser UI _(PM2 host service, not Docker)_ | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Runs as a PM2-managed Node.js process on the host, proxied through SWAG. Primary day-to-day interface for infrastructure work. |
 | **Open Notebook** | AI research/notebook tool | Document analysis and research with SurrealDB backend. |
+| **NATS + JetStream** | Agent event bus | NATS 2.10 message broker with JetStream persistence. Task lifecycle events (`tasks.submitted`, `tasks.approved`, `tasks.approval-requested`, `tasks.failed`, `tasks.working`) are published here by the dispatcher and session-start hook. Additive to the file queue — source of truth stays in the filesystem. Monitoring dashboard proxied via SWAG. See [nats-jetstream](docs/components/nats-jetstream.md). |
 | **Graphiti + Neo4j** | Temporal knowledge graph | Neo4j 5.26.0 graph database with Graphiti MCP for entity extraction and relationship mapping. Captures infrastructure topology — services, hosts, networks, agents — with temporal validity. Fed by memory-flush (real-time) and memory-sync (nightly). See [graphiti](docs/components/graphiti.md). |
 | **qmd** | Semantic search MCP server | Hybrid search (BM25 + vector + LLM reranking) over all repos, docs, and agent memory. Local embeddings via GGUF models, GPU-accelerated on AMD iGPU via Vulkan. |
 

@@ -6,7 +6,7 @@ Once you have several agents that can all hand work to each other, you need some
 
 ## How It Fits In
 
-This is a Layer 3 concern. It sits entirely in the filesystem — no services, no message bus, no ports. The components are:
+This is a Layer 3 concern. The core components are filesystem-based — no message bus required to run the queue. NATS JetStream is an optional additive layer for event observability (see [nats-jetstream.md](nats-jetstream.md)). The components are:
 
 - `~/.claude/task-queue/` — YAML task files, one per task, plus an `archive/` subdirectory
 - `~/.claude/agent-manifests/` — one manifest per agent, describing its capabilities and risk thresholds
@@ -207,6 +207,8 @@ ntfy notifications for `pending-approval` tasks include the approval command inl
 
 **Submitting a task from another agent.** A research agent completing a build plan can write a task file directly to `~/.claude/task-queue/` with `status: submitted`. The dispatcher picks it up on its next run (within 2 minutes) and handles routing and approval. Alternatively, a building agent can submit a security audit request this way instead of writing directly to the security queue — both patterns coexist.
 
+**NATS JetStream.** The dispatcher and inject hook publish task events to NATS as fire-and-forget — `tasks.submitted`, `tasks.approval-requested`, `tasks.approved`, `tasks.failed`, and `tasks.working`. The file queue remains the source of truth; NATS is additive for observability and future subscribers. If NATS is down, the queue operates normally. See [nats-jetstream.md](nats-jetstream.md) for stream definitions and subject payloads.
+
 **ntfy.** Two notification types: `pending-approval` (fire immediately when a task is gated) and stale approved (fire every 6-hour run while a task remains unclaimed). The dispatcher uses ntfy directly via curl; the same ntfy topic used by the resource monitor and other alerts.
 
 **Atomicity.** All dispatchers and agents use atomic write (tmp + rename). This matters when the dispatcher and an agent session are both active — without it, a partially-written task file can corrupt the queue state or lose history entries.
@@ -239,6 +241,7 @@ The SessionStart hook and the inter-agent handoff pattern ([inter-agent-communic
 ## Related Docs
 
 - [Inter-Agent Communication](inter-agent-communication.md) — the file-based handoff pattern this system builds on
+- [NATS JetStream](nats-jetstream.md) — event bus that publishes task lifecycle events from the dispatcher
 - [security-agent](security-agent.md) — the first agent to use bidirectional task routing
 - [memory-sync](memory-sync.md) — background agent that will eventually submit tasks rather than run standalone
 - [Architecture](../architecture.md) — full data flow diagrams for the Layer 3 engine

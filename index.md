@@ -37,6 +37,7 @@ homelab-agent/
 │       ├── config-version-control.md  # Git tracking for docker/ and appdata configs
 │       ├── jobsearch-mcp.md           # Multi-board job search, resume scoring, application tracking
 │       ├── agent-orchestration.md     # Task queue, agent manifests, dispatcher
+│       ├── nats-jetstream.md          # Agent event bus — JetStream streams, task lifecycle subjects
 │       ├── claudebox-deploy.md        # Deploy script, rebuild workflow
 │       ├── inter-agent-communication.md # Agent-to-agent messaging patterns
 │       ├── security-agent.md          # Security audit agent, triage workflow
@@ -161,6 +162,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/memsearch.md` | ✅ Complete | 2026-03 |
 | `docs/components/memory-sync.md` | ✅ Complete | 2026-03 |
 | `docs/components/graphiti.md` | ✅ Complete | 2026-03 |
+| `docs/components/nats-jetstream.md` | ✅ Complete | 2026-03 |
 | `docs/components/doc-health.md` | ✅ Complete | 2026-03 |
 | `docs/components/ai-cost-tracking.md` | ✅ Complete | 2026-03 |
 | `docs/components/homelab-ops-mcp.md` | ✅ Complete | 2026-03 |

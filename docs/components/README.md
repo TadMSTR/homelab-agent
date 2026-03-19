@@ -33,6 +33,7 @@ For the architecture overview and how these components relate, see the [main REA
 | AI Cost Tracking | [ai-cost-tracking.md](ai-cost-tracking.md) | Claude Code JSONL parsing, token/cost metrics, LibreChat Prometheus → InfluxDB → Grafana |
 | Inter-Agent Communication | [inter-agent-communication.md](inter-agent-communication.md) | File-based handoff pattern, queue directories, status lifecycle, security audit workflow, stale monitoring |
 | Agent Orchestration | [agent-orchestration.md](agent-orchestration.md) | Task queue, dispatcher, agent manifests, risk-based approval gates, task-approve CLI |
+| NATS JetStream | [nats-jetstream.md](nats-jetstream.md) | Agent event bus — task lifecycle subjects, JetStream streams, NATS CLI, fire-and-forget design |
 | Security Agent | [security-agent.md](security-agent.md) | Post-build security audits, three-category triage, action plan routing, stale queue monitoring |
 
 ## Layer 1 — Core Tooling
