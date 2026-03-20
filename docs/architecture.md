@@ -2,6 +2,8 @@
 
 This document expands on the architecture overview in the [main README](../README.md#architecture) with detail on data flows, network topology, and how the three layers interconnect. Read the README first — this doc assumes you're familiar with the layer model and component list.
 
+Diagrams use the `.drawio.svg` format — SVG files with embedded draw.io XML. They render in any browser or GitHub preview and are fully editable in [draw.io](https://app.diagrams.net) (File → Open from → This device, or drag-and-drop the `.svg` file). ASCII fallbacks are in collapsible blocks below each diagram.
+
 ## System Overview
 
 ![Architecture Layers](assets/architecture-layers.drawio.svg)
