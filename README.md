@@ -342,6 +342,12 @@ homelab-agent/
 | [zilliztech/memsearch](https://github.com/zilliztech/memsearch) | Semantic memory search for markdown knowledge bases — Claude Code plugin for session recall |
 | [letta-ai/letta](https://github.com/letta-ai/letta) | Stateful AI agent framework with multi-tier memory system — discovering it prompted refinements to this stack's memory pipeline |
 
+## Contact
+
+- **Discussions:** [GitHub Discussions](https://github.com/TadMSTR/homelab-agent/discussions) — questions, ideas, and show-and-tell
+- **Email:** TadMSTR@pm.me
+- **Issues:** [GitHub Issues](https://github.com/TadMSTR/homelab-agent/issues) — bugs and doc errors
+
 ## License
 
 MIT
