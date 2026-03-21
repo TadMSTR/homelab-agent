@@ -38,6 +38,7 @@ homelab-agent/
 │       ├── jobsearch-mcp.md           # Multi-board job search, resume scoring, application tracking
 │       ├── agent-orchestration.md     # Task queue, agent manifests, dispatcher
 │       ├── nats-jetstream.md          # Agent event bus — JetStream streams, task lifecycle subjects
+│       ├── n8n.md                     # Webhook workflow engine — visual task routing, ntfy alerting, Postgres-backed
 │       ├── claudebox-deploy.md        # Deploy script, rebuild workflow
 │       ├── inter-agent-communication.md # Agent-to-agent messaging patterns
 │       ├── security-agent.md          # Security audit agent, triage workflow
@@ -163,6 +164,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/memory-sync.md` | ✅ Complete | 2026-03 |
 | `docs/components/graphiti.md` | ✅ Complete | 2026-03 |
 | `docs/components/nats-jetstream.md` | ✅ Complete | 2026-03 |
+| `docs/components/n8n.md` | ✅ Complete | 2026-03 |
 | `docs/components/doc-health.md` | ✅ Complete | 2026-03 |
 | `docs/components/ai-cost-tracking.md` | ✅ Complete | 2026-03 |
 | `docs/components/homelab-ops-mcp.md` | ✅ Complete | 2026-03 |
@@ -210,6 +212,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | homelab-ops MCP | [`docs/components/homelab-ops-mcp.md`](docs/components/homelab-ops-mcp.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§homelab-ops) | — | (PM2 host service) |
 | Config Version Control | [`docs/components/config-version-control.md`](docs/components/config-version-control.md) | — | — |
 | jobsearch-mcp | [`docs/components/jobsearch-mcp.md`](docs/components/jobsearch-mcp.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§jobsearch-mcp) | `.env` | `docker/jobsearch/docker-compose.yml` |
+| n8n | [`docs/components/n8n.md`](docs/components/n8n.md) | `~/docker/n8n/.env` | `~/docker/n8n/docker-compose.yml` |
 | MCP servers (all) | [`mcp-servers/README.md`](mcp-servers/README.md) | Config patterns inline | — |
 | PM2 services | [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) | Inline | — |
 | CLAUDE.md hierarchy | [`claude-code/CLAUDE.md.example`](claude-code/CLAUDE.md.example), [`claude-code/projects/`](claude-code/projects/) | — | — |
