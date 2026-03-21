@@ -10,7 +10,7 @@ NTFY_URL=""  # e.g., "https://ntfy.example.com/your-topic"
 UPDATES=""
 
 # Check npm packages — add your pinned global packages here
-for pkg in "@tobilu/qmd" "cui-server"; do
+for pkg in "@tobilu/qmd" "@siteboon/claude-code-ui"; do
     CURRENT=$(npm list -g "$pkg" --depth=0 2>/dev/null | grep "$pkg" | awk -F@ '{print $NF}')
     LATEST=$(npm view "$pkg" version 2>/dev/null)
     if [ -n "$CURRENT" ] && [ -n "$LATEST" ] && [ "$CURRENT" != "$LATEST" ]; then
