@@ -4,6 +4,12 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-03-21
+
+**n8n workflow engine** — n8n 2.13.2 + Postgres 16 deployed as a webhook-triggered workflow engine for agent task routing. The PM2 dispatcher posts task submissions to n8n's `/webhook/task-submitted` endpoint, where a visual workflow handles risk-based gating: high-risk or approval-required tasks trigger ntfy push notifications, low-risk tasks pass through. n8n has direct read-write access to the task queue and read-only access to agent manifests via volume mounts. SWAG proxy at `n8n.yourdomain` uses n8n's built-in auth (not Authelia) so webhook endpoints remain reachable without SSO cookies. Workflow exports are version-controlled in `~/docker/n8n/workflows/`. Fire-and-forget integration — the file queue operates normally if n8n is unavailable.
+
+---
+
 ## 2026-03-19
 
 **NATS JetStream event bus** — NATS 2.10 deployed as an additive event transport for agent orchestration. Task state transitions from the dispatcher (`tasks.submitted`, `tasks.approval-requested`, `tasks.approved`, `tasks.failed`) and session-start hook (`tasks.working`) are published as JetStream subjects. Two streams: TASKS (30-day retention, `tasks.>`) and AGENT_EVENTS (7-day retention, `agents.>`, reserved for future use). Monitoring dashboard proxied at `nats.yourdomain` behind Authelia. File queue remains authoritative — NATS is fire-and-forget and the queue operates normally if NATS is unavailable.
