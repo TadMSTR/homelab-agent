@@ -209,6 +209,8 @@ ntfy notifications for `pending-approval` tasks include the approval command inl
 
 **NATS JetStream.** The dispatcher and inject hook publish task events to NATS as fire-and-forget — `tasks.submitted`, `tasks.approval-requested`, `tasks.approved`, `tasks.failed`, and `tasks.working`. The file queue remains the source of truth; NATS is additive for observability and future subscribers. If NATS is down, the queue operates normally. See [nats-jetstream.md](nats-jetstream.md) for stream definitions and subject payloads.
 
+**n8n.** The dispatcher posts task submissions to n8n's webhook endpoint (`POST /webhook/task-submitted`) when `N8N_WEBHOOK_URL` is set. n8n handles risk-based routing logic visually — high-risk tasks trigger ntfy alerts, low-risk tasks pass through. The webhook is fire-and-forget; if n8n is down, the dispatcher continues normally. See [n8n.md](n8n.md) for workflow details and configuration.
+
 **ntfy.** Two notification types: `pending-approval` (fire immediately when a task is gated) and stale approved (fire every 6-hour run while a task remains unclaimed). The dispatcher uses ntfy directly via curl; the same ntfy topic used by the resource monitor and other alerts.
 
 **Atomicity.** All dispatchers and agents use atomic write (tmp + rename). This matters when the dispatcher and an agent session are both active — without it, a partially-written task file can corrupt the queue state or lose history entries.
@@ -242,6 +244,7 @@ The SessionStart hook and the inter-agent handoff pattern ([inter-agent-communic
 
 - [Inter-Agent Communication](inter-agent-communication.md) — the file-based handoff pattern this system builds on
 - [NATS JetStream](nats-jetstream.md) — event bus that publishes task lifecycle events from the dispatcher
+- [n8n](n8n.md) — webhook workflow engine for visual task routing and notification logic
 - [security-agent](security-agent.md) — the first agent to use bidirectional task routing
 - [memory-sync](memory-sync.md) — background agent that will eventually submit tasks rather than run standalone
 - [Architecture](../architecture.md) — full data flow diagrams for the Layer 3 engine
