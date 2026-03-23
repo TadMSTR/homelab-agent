@@ -171,6 +171,10 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/config-version-control.md` | ✅ Complete | 2026-03 |
 | `docs/components/jobsearch-mcp.md` | ✅ Complete | 2026-03 |
 | `docs/components/backups.md` | ✅ Complete | 2026-03 |
+| `docs/components/agent-orchestration.md` | ✅ Complete | 2026-03 |
+| `docs/components/claudebox-deploy.md` | ✅ Complete | 2026-03 |
+| `docs/components/inter-agent-communication.md` | ✅ Complete | 2026-03 |
+| `docs/components/security-agent.md` | ✅ Complete | 2026-03 |
 | `docker/swag/` | ✅ Complete | 2026-03 |
 | `docker/authelia/` | ✅ Complete | 2026-03 |
 | `docker/dockhand/` | ✅ Complete | 2026-03 |
@@ -216,4 +220,9 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | MCP servers (all) | [`mcp-servers/README.md`](mcp-servers/README.md) | Config patterns inline | — |
 | PM2 services | [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) | Inline | — |
 | CLAUDE.md hierarchy | [`claude-code/CLAUDE.md.example`](claude-code/CLAUDE.md.example), [`claude-code/projects/`](claude-code/projects/) | — | — |
+| NATS JetStream | [`docs/components/nats-jetstream.md`](docs/components/nats-jetstream.md) | — | (Docker container) |
+| Agent Orchestration | [`docs/components/agent-orchestration.md`](docs/components/agent-orchestration.md) | — | (PM2 service) |
+| Claudebox Deploy | [`docs/components/claudebox-deploy.md`](docs/components/claudebox-deploy.md) | — | — |
+| Inter-Agent Communication | [`docs/components/inter-agent-communication.md`](docs/components/inter-agent-communication.md) | — | — |
+| Security Agent | [`docs/components/security-agent.md`](docs/components/security-agent.md) | — | — |
 | Backups | [`docs/components/backups.md`](docs/components/backups.md) | [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) | (Backrest systemd + PM2 cron + user crontab) |
