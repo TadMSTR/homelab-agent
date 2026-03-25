@@ -87,6 +87,7 @@ After a successful deploy, the environment is ready for:
 - Claude Desktop with all MCP servers configured
 - Docker stacks to be started (`docker compose up -d`)
 - PM2 to start its managed processes (`pm2 resurrect`)
+- System cron jobs active (`/etc/cron.d/` entries restored from NFS backup)
 - Claude Code sessions scoped to any project
 
 The script doesn't start Docker containers or PM2 processes — it restores the configs and saved state, then leaves you to bring services up. That's intentional: after a restore you want to verify things look right before starting everything.
@@ -100,6 +101,8 @@ The script doesn't start Docker containers or PM2 processes — it restores the 
 **Dual NIC is a real requirement.** If you only have one interface, the storage network check will fail. I went this route to keep backup traffic off the main LAN, but it does mean a single-NIC VM won't work as a drop-in replacement without modifying the script.
 
 **PM2 process restoration depends on a saved dump.** `pm2 resurrect` requires an existing saved state on NFS. If you're running fresh (no prior backup), you'll need to start PM2-managed processes manually and run `pm2 save` before the backup job has a chance to snapshot them.
+
+**System cron jobs need a prior backup to restore.** `/etc/cron.d/` entries (including `docker-stack-backup`) are restored from the NFS backup written by `backup-claude.sh`. On a first-time deploy with no prior backup, these entries won't exist and you'll need to create them manually. The deploy script logs a warning with the expected cron line if the backup is missing.
 
 **The repos manifest drifts.** If you add a repo and forget to run `update-repos-manifest.sh`, a future deploy won't clone it. Make updating the manifest part of your workflow when adding new repos.
 

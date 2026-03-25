@@ -135,12 +135,14 @@ The desktop config and extension settings contain live tokens. A sanitized templ
 
 ## Docker Stack Backup
 
-The third backup layer handles Docker container appdata. The script (`scripts/docker-stack-backup.sh`) is a PM2 cron job that runs nightly, discovers all Compose stacks with appdata bind mounts, stops each stack, archives the appdata + compose file, and restarts the containers.
+The third backup layer handles Docker container appdata. The script (`scripts/docker-stack-backup.sh`) runs nightly as root, discovers all Compose stacks with appdata bind mounts, stops each stack, archives the appdata + compose file, and restarts the containers.
+
+It runs as root — not as the `ted` user via PM2 — because container processes often write files owned by their own UIDs (e.g., `nobody`, `1000`, `999`) into the appdata directory. A user-level process can't read or archive those files reliably. The script is scheduled via `/etc/cron.d/docker-stack-backup`, which lets the cron daemon run it as root directly.
 
 | Setting | Value |
 |---------|-------|
 | Script | [`scripts/docker-stack-backup.sh`](../../scripts/docker-stack-backup.sh) |
-| Schedule | Daily at 1:00 AM (PM2 cron) |
+| Schedule | Daily at 1:00 AM (system cron, `/etc/cron.d/docker-stack-backup`, runs as root) |
 | Destination | `/mnt/storage/claudebox/docker-backups/` (NFS) |
 | Notifications | ntfy, Pushover, or email (configurable) |
 
@@ -229,6 +231,8 @@ Worth being explicit about what falls outside the backup scope:
 **Backrest needs the NFS mount as a systemd dependency.** Without `Requires=mnt-storage-claudebox.mount` in the service file, Backrest will start before the NFS share is available and restic will fail trying to open a repo that doesn't exist yet. The error message isn't obvious — it looks like repo corruption, not a missing mount.
 
 **Claude's `.gvfs` and `thinclient_drives` will break restic.** These are FUSE virtual mounts from GNOME/RDP sessions. Root can't read them, and restic will error out if it tries. Add them to excludes early.
+
+**docker-stack-backup must run as root.** Container processes write appdata files owned by various UIDs that the `ted` user can't read. If the script runs as a user-level PM2 job, it will silently produce incomplete archives — no errors, just missing files. The fix is `/etc/cron.d/docker-stack-backup` with `root` as the cron user. The cron file is backed up by `backup-claude.sh` and restored by the deploy script; see [claudebox-deploy.md](claudebox-deploy.md) for the restore step.
 
 **The docker-stack-backup restart logic matters.** The script only restarts containers that were running *before* the backup, not everything in the compose file. This prevents accidentally starting services that were intentionally stopped. The retry logic (3 attempts with delay) handles the occasional Docker daemon hiccup after rapid stop/start cycles.
 
