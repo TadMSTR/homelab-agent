@@ -18,7 +18,7 @@ Plane's module and cycle system maps directly to the Helm architecture: each arc
 
 ## How It Works
 
-The stack runs 11 containers across two Docker networks: an internal `plane` network for inter-service communication and the shared `claudebox-net` for SWAG proxy access.
+The stack runs 11 containers across two Docker networks: an internal `plane` network for inter-service communication and a dedicated `plane-swag` network shared only with the SWAG container. Plane is intentionally isolated from `claudebox-net` — it doesn't need to talk to other application stacks, and network isolation limits blast radius if a container is compromised.
 
 ### Containers
 
@@ -34,7 +34,7 @@ The stack runs 11 containers across two Docker networks: an internal `plane` net
 | plane-db | postgres:15.7-alpine | PostgreSQL database |
 | plane-redis | valkey/valkey:7.2.11-alpine | Cache and sessions |
 | plane-mq | rabbitmq:3.13.6-management-alpine | Celery task broker |
-| plane-minio | minio/minio:latest | S3-compatible object storage (uploads) |
+| plane-minio | minio/minio:RELEASE.2025-09-07T16-13-09Z | S3-compatible object storage (uploads) |
 
 ### Ports
 
@@ -73,16 +73,18 @@ Client body size is set to 5MB, matching Plane's `FILE_SIZE_LIMIT`.
 
 ## MCP Integration
 
-The `plane-mcp-server` package (installed via `uvx`) provides 55+ tools covering the full Plane API surface: projects, work items, cycles, modules, epics, initiatives, labels, members, custom properties, and search.
+The `plane-mcp-server` provides 55+ tools covering the full Plane API surface: projects, work items, cycles, modules, epics, initiatives, labels, members, custom properties, and search. The official PyPI package has compatibility issues with self-hosted Plane (see Gotchas below), so a patched installation runs from a dedicated venv.
 
 | Setting | Value |
 |---------|-------|
-| Package | `plane-mcp-server` (PyPI) |
-| Transport | stdio (`uvx plane-mcp-server stdio`) |
+| Binary | `/opt/appdata/plane-mcp-venv/bin/plane-mcp-server` |
+| Transport | stdio |
 | API endpoint | `http://localhost:8180` (internal, bypasses Authelia) |
 | Workspace slug | `helm` |
 
 The MCP server connects to the localhost API port, not the SWAG proxy. This avoids SSO session management and keeps MCP traffic internal. The API key is generated in Plane's workspace settings UI.
+
+**Patched venv:** The installation at `/opt/appdata/plane-mcp-venv/` includes fixes to `plane-sdk` Pydantic models and query parameter handling that are required for self-hosted Plane. Do not replace this with `uvx plane-mcp-server` — the upstream package will break read operations. See the MCP gotchas below for specifics.
 
 ## Configuration
 
@@ -117,11 +119,11 @@ Images are pulled from Docker Hub (`makeplane/`), not Plane's own registry at `a
 
 Plane is deployed in three phases:
 
-**Phase 1 (complete):** Docker stack deployment, SWAG proxy, MCP registration, backup/deploy integration. Everything documented here.
+**Phase 1 (complete):** Docker stack deployment, SWAG proxy, MCP registration, backup/deploy integration.
 
-**Phase 2 (pending — weekday brainstorming):** Populate the Helm project board. Create workspace, define 13 modules mapping to architecture layers, break the architecture doc into actionable issues, map dependencies, define the first build cycle.
+**Phase 2 (complete):** Helm project board populated. 51 work items across 13 modules (Core Infrastructure, System Agents, Owner's Manual, Setup Wizard, Agent Framework, User Agent Catalog, Desktop Mode, Federation, Emergency Infrastructure, Dual Catalog, Hermit Mode, Community Mesh, Platform Polish). 7 labels applied (launch-blocker, post-launch, community, infrastructure, agent, ui, docs). Cycle 1 (Core Infrastructure Foundation, 2026-04-01 to 2026-06-30) created with 7 core items. Dependency mapping deferred — the relations API is not available through API key auth (see Gotchas).
 
-**Phase 3 (deferred — post-Helm):** Custom webhook agent. FastAPI receiver on PM2, Claude Code SDK integration for agent logic, Plane Agent Run API client for activity posting, OAuth app for @mention capability. Designed for portability to the Helm catalog.
+**Phase 3 (deferred — post-Helm):** Custom webhook agent. FastAPI receiver on PM2, Claude Code SDK integration for agent logic, Plane Agent Run API client for activity posting, OAuth app for @mention capability. Designed for portability to the Helm catalog. A fork of `plane-mcp-server` replacing `plane-sdk` with direct `httpx` calls is planned to resolve the self-hosted API compatibility issues.
 
 ## Gotchas and Lessons Learned
 
@@ -134,6 +136,14 @@ Plane is deployed in three phases:
 **RabbitMQ replaced Redis for task queuing.** Plane moved Celery's broker from Redis to RabbitMQ. Valkey/Redis still handles caching and sessions, but the task queue runs through RabbitMQ. Both are required — don't skip either thinking they're redundant.
 
 **Rate limiting is per-API-key.** The `API_KEY_RATE_LIMIT` (60/min) applies to each API key independently. If the MCP server hits rate limits during bulk operations (Phase 2 board population), either raise the limit or add delays between calls.
+
+**Create project states before creating work items.** Items created without a state are invisible to all query endpoints — `list_work_items` returns empty, `retrieve_work_item_by_identifier` returns 404, even though creates succeed and module counts are correct. This is not documented anywhere in Plane's docs. Always create states (Backlog, Todo, In Progress, Done, Cancelled) and set a `default_state` on the project before adding items.
+
+**Relations API requires session auth, not API keys.** The v1 API has no relation endpoints accessible via `X-Api-Key` auth. Relations (blocks, is-blocked-by, relates-to) are only available through the internal app API with browser session cookies. This means dependency mapping can't be done via MCP — use the web UI or wait for a future API version.
+
+**The MCP server SDK needs patches for self-hosted Plane.** The official `plane-sdk` (v0.2.8) is built for Plane Cloud and breaks on self-hosted in several ways: Pydantic model mismatches (`assignees` returns strings not objects, `sequence_id` returns int not string), and the search endpoint uses `?q=` instead of self-hosted's `?search=`. The patched venv at `/opt/appdata/plane-mcp-venv/` has these fixes applied. Running `uv cache clean` or upgrading the SDK will wipe the patches — always use the venv binary, not `uvx`.
+
+**`.env` must be mode 600.** The `.env` file contains `SECRET_KEY`, database passwords, and MinIO credentials. It defaults to 644 (world-readable) after creation. Restrict with `chmod 600 ~/docker/plane/.env`.
 
 ## Standalone Value
 

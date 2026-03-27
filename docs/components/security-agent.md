@@ -43,14 +43,17 @@ The security CLAUDE.md instructs the agent to scan both queue directories on eve
 
 1. Check `audit-queue/` for requests with `status: pending` or `status: failed`
 2. Check `action-plans/` for self-targeted plans (security agent fixing its own findings)
+3. Cross-reference recent build memory notes and build plan handoffs against audit queue entries — flag any builds that completed without a corresponding audit request
 
-If anything is pending, the agent reports it before other work. If the queue is empty, the session proceeds normally.
+If anything is pending, the agent reports it before other work. Step 3 catches builds where the `build-close-out` skill wasn't invoked — the security agent surfaces the gap so it can be resolved.
 
 ## Audit Process
 
 ### Writing an Audit Request
 
-Building agents write a request file after completing a deployment. The file includes what was built, which repos changed, what ports are exposed, and what auth layer is in front of each service.
+Building agents write a request file after completing a deployment. The `build-close-out` skill automates this — it writes the audit queue request, doc-update queue entries, touched-files tracker, and memory checkpoint in one step. Agents should invoke this skill as the final step of any build plan rather than writing the request manually.
+
+The request file includes what was built, which repos changed, what ports are exposed, and what auth layer is in front of each service.
 
 ```markdown
 # <build-name>
@@ -126,7 +129,7 @@ If you're running multiple Claude Code agent projects and want a lightweight way
 
 **Don't skip the failed state.** If a triage session crashes mid-audit, set `status: failed` in the request file with a note on how far it got. A stuck `in-progress` status looks like active work but isn't — the stale monitor won't catch it until 7 days have passed.
 
-**Audit-free builds need a record too.** If a build has no security surface, document that decision in the completion record (`audit-status: not-requested`). An empty queue should mean "nothing to audit," not "someone forgot to check."
+**Audit-free builds need a record too.** If a build has no security surface, document that decision in the completion record (`audit-status: not-requested`). An empty queue should mean "nothing to audit," not "someone forgot to check." The `build-close-out` skill handles this distinction — it asks whether the build has a security surface and writes the appropriate record either way.
 
 ## Related Docs
 
