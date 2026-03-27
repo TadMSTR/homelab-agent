@@ -20,6 +20,7 @@ For the architecture overview and how these components relate, see the [main REA
 | jobsearch-mcp | [jobsearch-mcp.md](jobsearch-mcp.md) | Multi-board job search, resume scoring, application tracking — FastMCP server for LibreChat agents |
 | Diag-Check | [diag-check.md](diag-check.md) | Scheduled lightweight diagnostics via agent panel API, failure alerting |
 | Grafana (claudebox) | [grafana-claudebox.md](grafana-claudebox.md) | Local Grafana + InfluxDB for AI agent observability — separate from atlas infrastructure monitoring |
+| Plane | [plane.md](plane.md) | Self-hosted project management — Helm platform tracking, 11-container stack, MCP integration, multi-path SWAG proxy |
 
 ## Layer 3 — Multi-Agent Engine
 

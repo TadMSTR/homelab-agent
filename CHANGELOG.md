@@ -4,6 +4,12 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-03-27
+
+**Plane project management (Phase 1)** — Plane deployed as an 11-container Docker stack for tracking the Helm platform build. Frontend (Next.js), admin panel, shared spaces, and live collaboration servers sit behind a multi-path SWAG proxy conf with Authelia on all routes. Backend runs Django API + Celery workers with RabbitMQ as the task broker, PostgreSQL for storage, Valkey for cache/sessions, and MinIO for S3-compatible file uploads. Localhost API port (8180) exposed for MCP and internal tooling without SSO overhead. `plane-mcp-server` (55+ tools via PyPI/uvx) provides full workspace read/write from Claude Code sessions. Backup/deploy integration covers compose, secrets (`SECRET_KEY` is critical for restore), and SWAG proxy conf. Phase 2 (board population) and Phase 3 (custom webhook agent) are pending.
+
+---
+
 ## 2026-03-21
 
 **n8n workflow engine** — n8n 2.13.2 + Postgres 16 deployed as a webhook-triggered workflow engine for agent task routing. The PM2 dispatcher posts task submissions to n8n's `/webhook/task-submitted` endpoint, where a visual workflow handles risk-based gating: high-risk or approval-required tasks trigger ntfy push notifications, low-risk tasks pass through. n8n has direct read-write access to the task queue and read-only access to agent manifests via volume mounts. SWAG proxy at `n8n.yourdomain` uses n8n's built-in auth (not Authelia) so webhook endpoints remain reachable without SSO cookies. Workflow exports are version-controlled in `~/docker/n8n/workflows/`. Fire-and-forget integration — the file queue operates normally if n8n is unavailable.
