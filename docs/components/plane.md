@@ -43,17 +43,15 @@ The stack runs 11 containers across two Docker networks: an internal `plane` net
 
 ### Storage
 
-All persistent data uses Docker named volumes:
+Persistent data uses bind mounts under `/opt/appdata/plane/`, consistent with every other stack on claudebox:
 
-| Volume | Purpose |
-|--------|---------|
-| `pgdata` | PostgreSQL database |
-| `redisdata` | Valkey cache |
-| `uploads` | MinIO object storage (file attachments) |
-| `rabbitmq_data` | RabbitMQ persistence |
-| `logs_api`, `logs_worker`, `logs_beat-worker`, `logs_migrator` | Application logs |
-
-No `/opt/appdata/plane/` directory — everything lives in named volumes for simpler management.
+| Host Path | Purpose |
+|-----------|---------|
+| `/opt/appdata/plane/pgdata` | PostgreSQL database |
+| `/opt/appdata/plane/redisdata` | Valkey cache |
+| `/opt/appdata/plane/uploads` | MinIO object storage (file attachments) |
+| `/opt/appdata/plane/rabbitmq_data` | RabbitMQ persistence |
+| `/opt/appdata/plane/logs` | Application logs (API, worker, beat-worker, migrator) |
 
 ## SWAG Proxy Configuration
 
@@ -113,9 +111,7 @@ Images are pulled from Docker Hub (`makeplane/`), not Plane's own registry at `a
 
 **MCP server.** Claude Code agents can read project state (issues, modules, cycles, dependencies) and write updates (create issues, move items between cycles, update status) directly from conversation. This is the primary integration point for Phase 2 (board population) and Phase 3 (automated agent).
 
-**Backup and restore.** The compose file, `.env` (with secrets), and SWAG proxy conf are all backed up by `backup-claude.sh` to NFS. The deploy script restores all three on rebuild. `SECRET_KEY` is the critical secret — without it, sessions and encrypted data become unreadable after restore.
-
-**Docker named volumes.** Unlike most stacks that use `/opt/appdata/` bind mounts, Plane uses Docker named volumes. The docker-stack-backup script handles these via `docker compose down` + volume tarball, but the restore path is different from bind-mount stacks — you need to recreate the volumes before restoring data.
+**Backup and restore.** The compose file, `.env` (with secrets), and SWAG proxy conf are all backed up by `backup-claude.sh` to NFS. The deploy script restores all three on rebuild. Appdata at `/opt/appdata/plane/` is covered by the docker-stack-backup script like every other stack. `SECRET_KEY` is the critical secret — without it, sessions and encrypted data become unreadable after restore.
 
 ## Build Plan
 
@@ -134,8 +130,6 @@ Plane is deployed in three phases:
 **`/auth/*` must route to the API, not the frontend.** Plane's authentication endpoints are Django views served by the API container. If SWAG routes `/auth/*` to the web frontend (the default catch-all), login fails with CSRF errors. The proxy conf has an explicit `/auth/*` block routing to plane-api:8000.
 
 **Docker Hub images, not artifacts.plane.so.** Plane's official compose pulls from `artifacts.plane.so`, but Pi-hole blocks that domain (resolves to 0.0.0.0). The same images are available on Docker Hub as `makeplane/*`. Set `DOCKERHUB_USER=makeplane` and use Docker Hub tags.
-
-**Named volumes change the backup/restore model.** Most stacks on claudebox use bind mounts to `/opt/appdata/`, which the backup script tarballs directly. Plane uses Docker named volumes, so the backup relies on `docker compose down` to cleanly stop containers before archiving. Restore requires recreating the named volumes — `docker compose up` handles this automatically on a fresh deploy.
 
 **RabbitMQ replaced Redis for task queuing.** Plane moved Celery's broker from Redis to RabbitMQ. Valkey/Redis still handles caching and sessions, but the task queue runs through RabbitMQ. Both are required — don't skip either thinking they're redundant.
 
