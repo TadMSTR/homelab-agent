@@ -39,6 +39,7 @@ homelab-agent/
 │       ├── agent-orchestration.md     # Task queue, agent manifests, dispatcher
 │       ├── nats-jetstream.md          # Agent event bus — JetStream streams, task lifecycle subjects
 │       ├── n8n.md                     # Webhook workflow engine — visual task routing, ntfy alerting, Postgres-backed
+│       ├── plane.md                   # Self-hosted project management — Helm tracking, 11-container stack, MCP integration
 │       ├── claudebox-deploy.md        # Deploy script, rebuild workflow
 │       ├── inter-agent-communication.md # Agent-to-agent messaging patterns
 │       ├── security-agent.md          # Security audit agent, triage workflow
@@ -127,6 +128,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | "I want to deploy SearXNG" | `docs/components/searxng.md` |
 | "I want a browser-based Claude Code UI" | `docs/components/cloudcli.md` (interactive sessions, file explorer) or `docs/components/cui.md` (headless monitoring, push notifications) |
 | "I want to monitor headless agent runs" | `docs/components/cui.md` — then `docs/components/agent-panel.md` for the operations panel |
+| "I want project/task tracking for homelab builds" | `docs/components/plane.md` — Plane setup, MCP integration, SWAG multi-path proxy |
 | "I want a live dashboard for unattended agent builds" | `docs/components/helm-dashboard.md` — CloudCLI plugin; then `docs/components/auto-mode.md` for walk-away permission config |
 | "I want Claude Code to auto-approve routine operations" | `docs/components/auto-mode.md` — settings.json permission rules and CloudCLI SDK patch |
 | "I want to track Claude API costs" | `docs/components/ai-cost-tracking.md` — then `docs/components/grafana-claudebox.md` |
@@ -187,6 +189,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docker/firecrawl-simple/` | ✅ Complete | 2026-03 |
 | `docker/reranker/` | ✅ Complete | 2026-03 |
 | `docker/jobsearch/` | ✅ Complete | 2026-03 |
+| `docs/components/plane.md` | ✅ Complete | 2026-03 |
 | `docs/components/helm-dashboard.md` | ✅ Complete | 2026-03 |
 | `docs/components/auto-mode.md` | ✅ Complete | 2026-03 |
 | `docs/architecture.md` | ✅ Complete | 2026-03 |
@@ -231,6 +234,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Claudebox Deploy | [`docs/components/claudebox-deploy.md`](docs/components/claudebox-deploy.md) | — | — |
 | Inter-Agent Communication | [`docs/components/inter-agent-communication.md`](docs/components/inter-agent-communication.md) | — | — |
 | Security Agent | [`docs/components/security-agent.md`](docs/components/security-agent.md) | — | — |
+| Plane | [`docs/components/plane.md`](docs/components/plane.md) | `~/docker/plane/.env` | `~/docker/plane/docker-compose.yml` |
 | Helm Dashboard | [`docs/components/helm-dashboard.md`](docs/components/helm-dashboard.md) | `~/.claude-code-ui/plugins/cloudcli-plugin-helm-dashboard/config.json` | (CloudCLI plugin) |
 | Auto Mode | [`docs/components/auto-mode.md`](docs/components/auto-mode.md) | `~/.claude/settings.json`, `~/.claude/projects/<project>/settings.json` | — |
 | Backups | [`docs/components/backups.md`](docs/components/backups.md) | [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) | (Backrest systemd + PM2 cron + user crontab) |

@@ -91,15 +91,18 @@ The helm-ops MCP executes shell commands on a separate host over SSH — wider b
 
 CloudCLI's session-start UI doesn't expose `permissionMode`. The SDK mapper (`server/claude-sdk.js`) supports the field, but the frontend never sends it — sessions always start in default mode.
 
-A patch script adds a one-line default to the SDK mapper so sessions launched from CloudCLI start in auto mode:
+A patch script adds a scoped default to the SDK mapper so sessions launched from CloudCLI start in auto mode:
 
 ```bash
 # ~/scripts/patch-cloudcli-auto-mode.sh
-# Adds an else clause to the permission mode mapper:
-#   else { permissionMode = 'auto'; }
+# Adds auto mode as the default when no permissionMode is specified —
+# but only for sessions where a CLAUDE.md is present (managed agents).
+# Unmanaged sessions (no CLAUDE.md) are left in default mode.
 # Requires sudo (file lives in /usr/lib/node_modules/)
-# Idempotent — checks whether the else clause is already present
+# Idempotent — checks whether the patch is already applied before writing
 ```
+
+The CLAUDE.md check scopes auto mode to intentional agent sessions. If a project has a CLAUDE.md defining its rules and context, auto mode is appropriate; without one, the agent is operating without its safety context and default mode is safer. This scope was added post-security-audit.
 
 Apply after installation or any CloudCLI update:
 

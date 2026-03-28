@@ -4,6 +4,14 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-03-28
+
+**Helm Dashboard CloudCLI plugin** — Browser-based monitoring tab added to CloudCLI for walk-away agent builds. Eight panels covering active agent sessions, memory browser, handoff queue, knowledge graph queries (Graphiti Streamable HTTP), PM2/Docker infrastructure status, build plan progress, Plane work items, and WebSocket live updates via file watchers. Vanilla TypeScript with esbuild-bundled frontend; ws library for the WebSocket server. Deployed to `~/.claude-code-ui/plugins/` — symlinks don't work, must copy. Re-deploy after CloudCLI npm updates. SWAG conf gains a `/plugin-ws/` location block (Authelia-exempt, same model as existing `/ws` path).
+
+**Auto mode configuration** — Claude Code auto permission mode enabled for walk-away builds. Global `~/.claude/settings.json` holds environment rules for trusted operations (reads, safe git/observability commands, scoped MCP tools, ntfy). Per-project `~/.claude/projects/helm-build/settings.json` adds helm-ops MCP SSH permissions scoped to that workflow only. CloudCLI SDK patch defaults new sessions to auto mode — the frontend doesn't expose `permissionMode`, so `server/claude-sdk.js` is patched to default to `'auto'` when no mode is set. Patch must be re-applied after each CloudCLI npm update; script at `~/scripts/patch-cloudcli-auto-mode.sh` is idempotent and requires sudo. Patch was updated post-security-audit to scope auto mode to sessions with a CLAUDE.md present (managed agents only).
+
+---
+
 ## 2026-03-27
 
 **Plane project management (Phase 1)** — Plane deployed as an 11-container Docker stack for tracking the Helm platform build. Frontend (Next.js), admin panel, shared spaces, and live collaboration servers sit behind a multi-path SWAG proxy conf with Authelia on all routes. Backend runs Django API + Celery workers with RabbitMQ as the task broker, PostgreSQL for storage, Valkey for cache/sessions, and MinIO for S3-compatible file uploads. Localhost API port (8180) exposed for MCP and internal tooling without SSO overhead. `plane-mcp-server` (55+ tools via PyPI/uvx) provides full workspace read/write from Claude Code sessions. Backup/deploy integration covers compose, secrets (`SECRET_KEY` is critical for restore), and SWAG proxy conf. Phase 2 (board population) and Phase 3 (custom webhook agent) are pending.
