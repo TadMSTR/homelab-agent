@@ -11,6 +11,7 @@ Diagram files use the `.drawio.svg` format: SVG with embedded draw.io XML. They 
 | `architecture-layers.drawio.svg` | [architecture.md](../architecture.md#system-overview) | Three-layer system overview: host tooling, Docker services, agent engine |
 | `memory-flow.drawio.svg` | [architecture.md](../architecture.md#memory-flow-knowledge-accumulation) | Memory tier pipeline: session → working → distilled → knowledge graph |
 | `network-topology.drawio.svg` | [architecture.md](../architecture.md#network-topology) | Docker network routing: SWAG → Authelia → containers |
+| `agent-orchestration-handoff.drawio.svg` | [agent-orchestration.md](../components/agent-orchestration.md) | Agent orchestration system: task queue, dispatcher, manifests, inter-agent handoff flows |
 
 ## Other assets
 

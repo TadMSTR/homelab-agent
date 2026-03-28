@@ -4,6 +4,8 @@ The inter-agent handoff system described in [inter-agent-communication.md](inter
 
 Once you have several agents that can all hand work to each other, you need something in the middle. Agent orchestration adds a structured task queue, a dispatcher that routes and gates tasks automatically, and a CLI for approving anything that needs a human look before it proceeds. The handoff pattern doesn't go away — it's still how build plans and security audit requests flow. The task queue is the layer on top that adds lifecycle tracking, approval gates, and routing for cases where the source agent doesn't know or care who handles the work.
 
+![Agent Orchestration & Inter-Agent Handoff System](../assets/agent-orchestration-handoff.drawio.svg)
+
 ## How It Fits In
 
 This is a Layer 3 concern. The core components are filesystem-based — no message bus required to run the queue. NATS JetStream is an optional additive layer for event observability (see [nats-jetstream.md](nats-jetstream.md)). The components are:
