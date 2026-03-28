@@ -21,6 +21,7 @@ For the architecture overview and how these components relate, see the [main REA
 | Diag-Check | [diag-check.md](diag-check.md) | Scheduled lightweight diagnostics via agent panel API, failure alerting |
 | Grafana (claudebox) | [grafana-claudebox.md](grafana-claudebox.md) | Local Grafana + InfluxDB for AI agent observability — separate from atlas infrastructure monitoring |
 | Plane | [plane.md](plane.md) | Self-hosted project management — Helm platform tracking, 11-container stack, MCP integration, multi-path SWAG proxy |
+| Helm Dashboard | [helm-dashboard.md](helm-dashboard.md) | CloudCLI plugin — monitoring tab for walk-away agent builds, eight panels, WebSocket live updates |
 
 ## Layer 3 — Multi-Agent Engine
 
@@ -37,6 +38,7 @@ For the architecture overview and how these components relate, see the [main REA
 | NATS JetStream | [nats-jetstream.md](nats-jetstream.md) | Agent event bus — task lifecycle subjects, JetStream streams, NATS CLI, fire-and-forget design |
 | n8n | [n8n.md](n8n.md) | Webhook workflow engine — visual task routing, risk-based approval gating, ntfy alerting, Postgres-backed |
 | Security Agent | [security-agent.md](security-agent.md) | Post-build security audits, three-category triage, action plan routing, stale queue monitoring |
+| Auto Mode | [auto-mode.md](auto-mode.md) | Claude Code permission classifier — settings.json environment rules, per-project SSH permissions, CloudCLI SDK patch |
 
 ## Layer 1 — Core Tooling
 
