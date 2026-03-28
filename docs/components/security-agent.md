@@ -120,8 +120,21 @@ resolution: <how it was resolved, if resolved>
 
 **Extended audit status lifecycle:**
 
-```
-pending → in-progress → report-written → pending-fixes → fixes-complete
+```mermaid
+stateDiagram-v2
+    direction LR
+    state "pending" as s1
+    state "in-progress" as s2
+    state "report-written" as s3
+    state "pending-fixes" as s4
+    state "fixes-complete" as s5
+
+    [*] --> s1
+    s1 --> s2 : security agent picks up
+    s2 --> s3 : triage complete, report.md written
+    s3 --> s4 : building agent picks up
+    s4 --> s5 : all unresolved findings processed
+    s5 --> [*]
 ```
 
 The security agent advances through `in-progress` → `report-written`. After the builder processes all findings, the building agent advances to `fixes-complete`.
@@ -135,6 +148,21 @@ Building agents (claudebox, helm-build) process `status: unresolved` findings fr
 | critical | Block immediately, send ntfy, do not proceed with any other work |
 | high | Prompt Ted before fixing; wait for approval |
 | low / medium | Auto-fix (Category A) without prompting |
+
+```mermaid
+flowchart TD
+    A([For each unresolved finding]) --> B{Category C?}
+    B -->|Yes| C[Route to action plan\nnot in scope for auto-fix]
+    B -->|No| D{Severity?}
+    D -->|critical| E[Block all work\nSend ntfy immediately\nDo not proceed]
+    D -->|high| F[Prompt Ted\nWait for approval]
+    F --> G[Apply fix]
+    D -->|low / medium| H[Auto-fix\nno prompt needed]
+    C --> Z([Next finding])
+    E --> Z
+    G --> Z
+    H --> Z
+```
 
 Category C findings at any severity route to action plans as before — they're out of scope for the builder fix workflow.
 
