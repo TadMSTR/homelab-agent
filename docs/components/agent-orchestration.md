@@ -205,6 +205,56 @@ The `list` output includes the full approval and rejection commands so you can c
 
 ntfy notifications for `pending-approval` tasks include the approval command inline in the message body, so you can act from your phone without opening a terminal.
 
+## Pending Actions & Human Escalation
+
+When an agent hits a blocking decision mid-session and has other work to continue, it doesn't sit idle. The pattern is: present the question in chat, write the pending action to disk, send an ntfy alert, and move on. On next session start, the pending action is surfaced before any other work.
+
+**Directory:** `~/.claude/pending-actions/` — one `.md` file per agent (e.g., `claudebox.md`, `writer.md`, `security.md`).
+
+**Session start hook:** `inject-pending-actions.sh` reads the agent's pending-actions file and injects it as `additionalContext`. Any item in the file is surfaced immediately — before queue items or tasks.
+
+**Stale monitoring:** The resource-monitor cron (PM2, every 6 hours) scans `pending-actions/` for files that haven't been cleared. Items older than 24 hours trigger an ntfy notification with the filename and age.
+
+**Escalation flow:**
+
+```
+1. Present the question in chat with options
+2. Write to ~/.claude/pending-actions/<agent>.md:
+   - Short title, context, options or proposed resolution
+3. Send ntfy:
+   curl -H "Title: [ACTION] <agent>: <short question>" \
+        -H "Tags: action-required" \
+        -H "Priority: default" \
+        -d "<1-2 line context>" "http://<ntfy-host>/claudebox-alerts"
+4. Move on to other work or close the session
+```
+
+Escalation is **decision-based, not timer-based** — agents escalate because they have a blocking question and other work to do, not because a timer expired. Each notification represents an actual blocked decision. When Ted answers, the agent clears or updates the pending-actions file.
+
+## Agent Status Tracking
+
+Each agent maintains a status file in `~/.claude/agent-status/` that describes what it's currently doing. These files give the operator and other agents a shared view of the pipeline without opening each agent's chat.
+
+**Directory:** `~/.claude/agent-status/` — one `.md` file per agent.
+
+**Helper script:** `update-agent-status.sh <agent-name> "<current-task>" ["<blocked-on>"]`
+
+Call it at these lifecycle points:
+
+| Call site | Action |
+|-----------|--------|
+| Session start | Set current task |
+| Task pickup | Update current task |
+| Task completion | Note completion |
+| Blocked on Ted | Set blocked-on field |
+| Session end / memory flush | Set to idle |
+
+**Session start hook:** `inject-agent-status.sh` reads `~/.claude/agent-status/` and injects a summary of all agents' current statuses as `additionalContext`. This lets agents see at a glance what else is active — a building agent can check whether the security agent has a backlog before submitting a new audit request; a writer can see whether a build is still in progress before expecting doc queue entries.
+
+Recent activity in each status file is capped at 5 entries with automatic rotation — the files stay compact without losing short-term history.
+
+**SessionStart hook count:** As of 2026-03-28, five hooks are registered in `~/.claude/settings.json`: `inject-core-context.sh`, `inject-working-memory.sh`, `inject-task-queue.sh`, `inject-pending-actions.sh`, and `inject-agent-status.sh`. Monitor for cumulative startup latency if adding more.
+
 ## Integration Points
 
 **Submitting a task from another agent.** A research agent completing a build plan can write a task file directly to `~/.claude/task-queue/` with `status: submitted`. The dispatcher picks it up on its next run (within 2 minutes) and handles routing and approval. Alternatively, a building agent can submit a security audit request this way instead of writing directly to the security queue — both patterns coexist.

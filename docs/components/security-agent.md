@@ -90,6 +90,58 @@ The security agent classifies every finding into one of three categories using t
 
 Category A findings get fixed before triage starts. You see the fix summary during review. Category B findings get a recommendation — you decide whether to fix, defer, or accept the risk. Category C findings become action plans routed back through the handoff system.
 
+### Structured Report Format
+
+After triage, the security agent writes a machine-parseable `report.md` alongside the triage summary. This format is what enables the builder fix workflow — builders read `status: unresolved` findings and act on them with severity-appropriate automation.
+
+```markdown
+# Security Report: <build-name>
+status: report-written
+source-agent: security
+target-agent: claudebox
+completed: YYYY-MM-DD
+
+## Findings
+
+### <Finding Title>
+severity: low | medium | high | critical
+category: A | B | C
+action: <what to do>
+status: resolved | unresolved | context-dismissed
+resolution: <how it was resolved, if resolved>
+
+---
+```
+
+**`status` values:**
+- `unresolved` — finding is open; builder should act on it
+- `resolved` — fixed during triage (Category A findings fixed by security agent)
+- `context-dismissed` — builder marked as false positive based on build context; security agent spot-checks later
+
+**Extended audit status lifecycle:**
+
+```
+pending → in-progress → report-written → pending-fixes → fixes-complete
+```
+
+The security agent advances through `in-progress` → `report-written`. After the builder processes all findings, the building agent advances to `fixes-complete`.
+
+### Severity-Gated Builder Fix Workflow
+
+Building agents (claudebox, helm-build) process `status: unresolved` findings from security reports using severity gates — automation level is determined by finding severity, not just category:
+
+| Severity | Gate |
+|----------|------|
+| critical | Block immediately, send ntfy, do not proceed with any other work |
+| high | Prompt Ted before fixing; wait for approval |
+| low / medium | Auto-fix (Category A) without prompting |
+
+Category C findings at any severity route to action plans as before — they're out of scope for the builder fix workflow.
+
+Builders process multiple concurrent reports sequentially, oldest first. After processing all `unresolved` findings in a report, the builder updates the audit request `status` to `fixes-complete` and writes a brief summary of what was fixed.
+
+The `context-dismissed` status lets builders avoid false positives: if build context makes clear that a finding doesn't apply (e.g., a port flagged as exposed that only binds to localhost), the builder marks it `context-dismissed` with a note. The security agent spot-checks `context-dismissed` findings on its next session.
+
 ### Audit Record
 
 Before triage starts, the agent commits an audit report to a separate `security-audits` git repo. If the session crashes mid-triage, findings are already persisted. Triage summary is appended as a second commit when triage completes.
