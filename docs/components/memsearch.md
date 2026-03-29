@@ -52,7 +52,22 @@ The `[paths] extra` config is where you tell memsearch which directories to inde
 
 After configuring paths, run `memsearch index` to build the initial database. Re-run it after new memory files are added — or let the memory-sync cron handle it (see [memory-sync](memory-sync.md)).
 
+A companion PM2 process (`memsearch-watch`, always-on) watches all session and working memory directories for changes and re-indexes on write with a 5-second debounce — so memories written during a session are searchable within seconds, not just after the nightly sync. See [Real-Time Indexing](#real-time-indexing) below.
+
 A companion PM2 job (`memsearch-compact`, cron at 4:30 AM daily) runs compaction on the Milvus Lite database after each nightly sync. Milvus accumulates fragmented segments over time; compaction merges them and reclaims disk space. It's not strictly required — memsearch works fine without it — but without periodic compaction the database grows faster than necessary. See [`pm2/ecosystem.config.js.example`](../../pm2/ecosystem.config.js.example) for the job definition.
+
+## Real-Time Indexing
+
+The `memsearch-watch` PM2 process keeps the index current without waiting for a nightly batch run. It watches all session and working memory directories with a 5-second debounce — any write to a watched path triggers incremental re-indexing within seconds.
+
+**Watched directories** (discovered dynamically at startup):
+- All per-project session dirs: `~/.claude/projects/*/.memsearch/memory/` (one per Claude Code project)
+- Global session dir: `~/.memsearch/memory/`
+- Working memory: `~/.claude/memory/` (shared + per-agent subdirs)
+
+The script (`~/.claude/scripts/memsearch-watch.sh`) uses `find` at startup to collect all matching `.memsearch/memory/` directories, then passes the full list to `memsearch watch --debounce-ms 5000`. New project directories added after startup aren't picked up until the process restarts — a PM2 restart is sufficient.
+
+**Practical effect:** when an agent writes a memory file mid-session (via memory-flush or a Stop hook), it becomes searchable immediately. The archival-search skill benefits from this — its memsearch queries reflect the current session's writes, not just yesterday's batch.
 
 ## Integration Points
 
@@ -61,6 +76,8 @@ A companion PM2 job (`memsearch-compact`, cron at 4:30 AM daily) runs compaction
 **Scoped memory directories:** memsearch respects the agent memory structure described in the [main README](../../README.md#layer-3--multi-agent-claude-code-engine). Each agent reads from shared + its own directory, writes to its own directory. memsearch indexes all configured paths but the plugin filters results based on the active project context.
 
 **qmd:** Complementary, not competing. qmd indexes a broader document set (infrastructure docs, compose files, repos) and serves on-demand search queries via MCP. memsearch indexes a narrower set (agent memory files) and auto-injects context. In practice, both run simultaneously — qmd for "search my docs" and memsearch for "remember what happened last session."
+
+**archival-search skill:** The recommended interface for manual memory retrieval. It queries memsearch (session + working tiers) and qmd (working + distilled tiers) in a single call, merges the results, and labels each result by tier. Use `archival-search` rather than running `memsearch search` directly when you want a complete picture across all memory tiers.
 
 **memory-sync agent:** memsearch captures the **session tier** — raw session summaries auto-written by the Stop hook. The nightly memory-sync job (see [memory-sync](memory-sync.md)) scans these session notes and promotes durable items to the **working tier** (`~/.claude/memory/`). Working notes that pass the "would this matter in 3 months?" test are further promoted to the **distilled tier** (context repo). The flow across tiers: session (memsearch auto-capture) → working (memory-sync promotion) → distilled (memory-sync distillation) → qmd indexes distilled output for long-term search.
 
