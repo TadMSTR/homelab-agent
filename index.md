@@ -45,6 +45,7 @@ homelab-agent/
 │       ├── security-agent.md          # Security audit agent, triage workflow
 │       ├── helm-dashboard.md          # CloudCLI plugin — monitoring tab for walk-away builds
 │       ├── auto-mode.md               # Claude Code auto permission mode — settings.json rules, CloudCLI SDK patch
+│       ├── temporal.md                # Temporal durable workflow engine — multi-phase build automation, 5-container stack
 │       └── backups.md                 # Backup strategy: Backrest/restic, Claude backup, Docker appdata
 ├── claude-code/
 │   ├── CLAUDE.md.example              # Root CLAUDE.md template
@@ -130,6 +131,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | "I want to monitor headless agent runs" | `docs/components/cui.md` — then `docs/components/agent-panel.md` for the operations panel |
 | "I want project/task tracking for homelab builds" | `docs/components/plane.md` — Plane setup, MCP integration, SWAG multi-path proxy |
 | "I want a live dashboard for unattended agent builds" | `docs/components/helm-dashboard.md` — CloudCLI plugin; then `docs/components/auto-mode.md` for walk-away permission config |
+| "I want durable workflow execution for multi-phase builds" | `docs/components/temporal.md` — then `docs/components/agent-orchestration.md` for the task queue and dispatcher |
 | "I want Claude Code to auto-approve routine operations" | `docs/components/auto-mode.md` — settings.json permission rules and CloudCLI SDK patch |
 | "I want to track Claude API costs" | `docs/components/ai-cost-tracking.md` — then `docs/components/grafana-claudebox.md` |
 | "I want version control on my Docker configs" | `docs/components/config-version-control.md` |
@@ -192,6 +194,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/plane.md` | ✅ Complete | 2026-03 |
 | `docs/components/helm-dashboard.md` | ✅ Complete | 2026-03 |
 | `docs/components/auto-mode.md` | ✅ Complete | 2026-03 |
+| `docs/components/temporal.md` | ✅ Complete | 2026-03 |
 | `docs/architecture.md` | ✅ Complete | 2026-03 |
 | `docs/getting-started.md` | ✅ Complete | 2026-03 |
 | `scripts/` | ✅ Complete | 2026-03 |
@@ -237,4 +240,5 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Plane | [`docs/components/plane.md`](docs/components/plane.md) | `~/docker/plane/.env` | `~/docker/plane/docker-compose.yml` |
 | Helm Dashboard | [`docs/components/helm-dashboard.md`](docs/components/helm-dashboard.md) | `~/.claude-code-ui/plugins/cloudcli-plugin-helm-dashboard/config.json` | (CloudCLI plugin) |
 | Auto Mode | [`docs/components/auto-mode.md`](docs/components/auto-mode.md) | `~/.claude/settings.json`, `~/.claude/projects/<project>/settings.json` | — |
+| Temporal | [`docs/components/temporal.md`](docs/components/temporal.md) | `~/docker/temporal/.env` | `~/docker/temporal/docker-compose.yml` |
 | Backups | [`docs/components/backups.md`](docs/components/backups.md) | [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) | (Backrest systemd + PM2 cron + user crontab) |

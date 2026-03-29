@@ -39,6 +39,7 @@ For the architecture overview and how these components relate, see the [main REA
 | n8n | [n8n.md](n8n.md) | Webhook workflow engine — visual task routing, risk-based approval gating, ntfy alerting, Postgres-backed |
 | Security Agent | [security-agent.md](security-agent.md) | Post-build security audits, three-category triage, action plan routing, stale queue monitoring |
 | Auto Mode | [auto-mode.md](auto-mode.md) | Claude Code permission classifier — settings.json environment rules, per-project SSH permissions, CloudCLI SDK patch |
+| Temporal | [temporal.md](temporal.md) | Durable workflow engine — multi-phase build automation, 5-container stack, Postgres-backed state, gRPC API |
 
 ## Layer 1 — Core Tooling
 
