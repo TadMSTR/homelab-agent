@@ -48,11 +48,11 @@ The system has three layers. Each is independently useful — you don't need all
 ┌─────────────────────────────────────────────────────────┐
 │  Layer 3: Multi-Agent Claude Code Engine                │
 │  CLAUDE.md hierarchy · scoped memory · memsearch        │
-│  knowledge graph · PM2 background agents · memory sync  │
+│  knowledge graph · agent-bus · Temporal · mem pipeline  │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 2: Self-Hosted Service Stack (Docker)            │
 │  SWAG/Authelia · LibreChat · purpose-built agents       │
-│  qmd · CloudCLI · SearXNG · Grafana + InfluxDB          │
+│  qmd · CloudCLI · SearXNG · Grafana · NATS · Temporal   │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 1: Host & Core Tooling                           │
 │  Debian mini PC · Claude Desktop · MCP servers          │
@@ -110,8 +110,10 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 | **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
 | **CloudCLI** | Claude Code browser UI _(PM2 host service, not Docker)_ | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Runs as a PM2-managed Node.js process on the host, proxied through SWAG. Primary day-to-day interface for infrastructure work. |
 | **Open Notebook** | AI research/notebook tool | Document analysis and research with SurrealDB backend. |
-| **NATS + JetStream** | Agent event bus | NATS 2.10 message broker with JetStream persistence. Task lifecycle events (`tasks.submitted`, `tasks.approved`, `tasks.approval-requested`, `tasks.failed`, `tasks.working`) are published here by the dispatcher and session-start hook. Additive to the file queue — source of truth stays in the filesystem. Monitoring dashboard proxied via SWAG. See [nats-jetstream](docs/components/nats-jetstream.md). |
+| **NATS + JetStream** | Agent event bus | NATS 2.10 with JetStream persistence. Task lifecycle events flow here from the dispatcher; inter-agent events (handoffs, audit requests, task failures) federate here from agent-bus. Three streams: TASKS (30d), AGENT_EVENTS (7d), AGENT_BUS (30d, 2-min dedup). Additive to the file queue — source of truth stays in the filesystem. Monitoring dashboard proxied via SWAG. See [nats-jetstream](docs/components/nats-jetstream.md). |
 | **Graphiti + Neo4j** | Temporal knowledge graph | Neo4j 5.26.0 graph database with Graphiti MCP for entity extraction and relationship mapping. Captures infrastructure topology — services, hosts, networks, agents — with temporal validity. Fed by memory-flush (real-time) and memory-sync (nightly). See [graphiti](docs/components/graphiti.md). |
+| **Temporal** | Durable workflow engine | Five-container stack (server, UI, PostgreSQL, two init containers for schema migration). Provides fault-tolerant multi-phase workflow execution — if a phase fails or the system restarts mid-build, it resumes from the last checkpoint rather than starting over. See [temporal](docs/components/temporal.md). |
+| **n8n** | Workflow automation | n8n with Postgres backend. Handles webhook-triggered workflows and event routing between the AI platform and external systems. Task queue and agent manifests mounted read-only for agent-triggered workflows. See [n8n](docs/components/n8n.md). |
 | **Helm Dashboard** | CloudCLI monitoring plugin | Browser tab for observing unattended agent builds — agent sessions, memory state, handoff queue, knowledge graph, PM2/Docker infrastructure, Plane work items, and WebSocket live updates. Pairs with auto mode configuration for walk-away workflows. See [helm-dashboard](docs/components/helm-dashboard.md) and [auto-mode](docs/components/auto-mode.md). |
 | **qmd** | Semantic search MCP server | Hybrid search (BM25 + vector + LLM reranking) over all repos, docs, and agent memory. Local embeddings via GGUF models, GPU-accelerated on AMD iGPU via Vulkan. |
 
@@ -148,20 +150,30 @@ The root CLAUDE.md contains infrastructure topology, key paths, and global rules
 
 Agents read from shared + their own directory, write to their own directory. Cross-agent knowledge goes to shared. This prevents context bleed — the dev agent doesn't need to know about last week's disk replacement on unraid.
 
-**memsearch** provides semantic search over the memory directories using local sentence-transformer embeddings and a vector database. The Claude Code plugin auto-injects relevant memories at session start and on each prompt. No API keys, no cloud services — runs entirely on the local CPU. See [`docs/components/memsearch.md`](docs/components/memsearch.md) for configuration details.
+**memsearch** provides semantic search over the memory directories using local sentence-transformer embeddings and a vector database. The Claude Code plugin auto-injects relevant memories at session start and on each prompt. No API keys, no cloud services — runs entirely on the local CPU. **memsearch-watch** (PM2, always-on) keeps the index current by re-indexing all memory directories within 5 seconds of any write — so context captured mid-session is immediately searchable without waiting for a nightly batch. The **archival-search** skill provides a unified query across all three memory tiers (session, working, distilled) in a single pass, with results labeled by source tier. See [`docs/components/memsearch.md`](docs/components/memsearch.md) for configuration details.
 
 **Graphiti knowledge graph** adds structured relationship queries on top of the flat-file memory system. A Neo4j-backed temporal graph captures infrastructure topology — which services run on which hosts, what depends on what, how the architecture evolved. Fed automatically by real-time memory-flush and nightly memory-sync batch ingestion. Agents query it with `search_memory_facts` and `search_nodes` when they need relational answers rather than text search. See [`docs/components/graphiti.md`](docs/components/graphiti.md).
+
+**agent-bus** is the inter-agent event ledger — a FastMCP server that logs all cross-agent events (handoffs, audit requests, task completions, failures) to a JSONL audit trail and federates them to NATS JetStream. Every coordination action between agents leaves a durable, queryable record. This is what makes multi-agent workflows debuggable: when something goes wrong, the full event sequence is preserved. See [`docs/components/agent-bus.md`](docs/components/agent-bus.md).
+
+**Temporal** provides durable workflow execution for long-running, multi-phase build processes. If a workflow is interrupted mid-phase (system restart, transient error), Temporal resumes from the last checkpoint rather than starting over. The Helm build automation runs through Temporal — each build phase is an activity with heartbeating and timeout guarantees. See [`docs/components/temporal.md`](docs/components/temporal.md).
 
 **PM2 Background Agents:**
 
 | Service | Schedule | What It Does |
 |---------|----------|-------------|
+| memsearch-watch | always-on | Re-indexes all memory directories within 5 seconds of any write — keeps semantic search current without waiting for the nightly batch |
+| agent-bus | always-on | FastMCP server logging all cross-agent events (handoffs, audit requests, task failures) to a JSONL ledger, federated to NATS JetStream. The inter-agent audit trail. |
+| task-dispatcher | Every 2 min | Routes submitted tasks between agents — auto-approves low-risk, gates medium/high via ntfy. Exponential backoff retry on routing failures. Publishes lifecycle events to NATS. |
 | docker-stack-backup | 1:00 AM daily | Stops containers, rsyncs appdata to NFS, restarts |
-| memory-sync | 4:00 AM daily | Exports LibreChat memory, reads Claude Code memory files, distills durable knowledge into the context repo, ingests to knowledge graph |
-| qmd-reindex | 5:00 AM daily | Pulls latest from all git repos, re-embeds for semantic search |
+| memory-promote-daily | 11:00 PM daily | Promotes session transcripts from the last 48h to working-tier notes using a smaller, faster model. Context from the day’s work is searchable the next morning. |
+| memory-pipeline | 4:00 AM daily | Orchestrator: runs memsearch-compact → qmd-reindex in sequence after nightly promotions. Keeps the semantic search indexes fresh. |
+| memory-sync-weekly | Mondays 7:00 AM | Promotes 14-day-old working notes to the distilled tier, expires 90-day notes, runs graph entity dedup. The expensive weekly pass using a more capable model. |
 | resource-monitor | Every 6 hours | Checks RAM, disk, Docker health, PM2 status, NFS mounts; alerts via ntfy |
-| dep-update-check | Wednesdays noon | Checks for updates to pinned dependencies (qmd, Authelia, Claude Code) |
-| doc-health | Sundays 11:00 PM | Automated documentation audit — drift, index, coverage, staleness, sanitization |
+| dep-update-check | Wednesdays noon | Checks for updates to pinned dependencies (qmd, memsearch, Authelia, Claude Code) |
+| doc-health-daily | 10:00 PM daily | Targeted doc scan on files touched that day — drift, index entries, sanitization. Zero-cost if nothing was edited. |
+| doc-health | Sundays 11:00 PM | Full weekly doc audit — drift, coverage, staleness, sanitization, structural integrity |
+| librarian-weekly | Mondays 6:00 AM | Diffs memory and semantic search against the prime-directive repo, commits missing or updated skill files, keeps the navigation index current |
 
 See [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) for full configuration including an optional upstream issue watcher.
 
@@ -187,11 +199,11 @@ This is the connective tissue that makes the whole thing more than the sum of it
 
 2. **Core context** — An always-visible 40-line context block injected at every session start. Contains the user profile, active projects, key constraints, and recent decisions. Sits above the context window's compression threshold so critical facts never scroll out mid-session.
 
-3. **Per-agent scoped memory** — Session summaries and learnings written by agents during their work. Organized by agent (shared/, homelab-ops/, dev/, research/) to prevent context bleed. Indexed by memsearch for automatic recall in future sessions. A three-tier pipeline (session → working → distilled) ensures raw notes are reviewed, curated, and promoted to permanent storage.
+3. **Per-agent scoped memory** — Session summaries and learnings written by agents during their work. Organized by agent (shared/, homelab-ops/, dev/, research/) to prevent context bleed. Indexed by memsearch for automatic recall in future sessions. **memsearch-watch** keeps the index current in real time (5-second debounce) so notes written mid-session are searchable in the same session. A three-tier pipeline (session → working → distilled) ensures raw notes are reviewed, curated, and promoted to permanent storage.
 
 4. **Knowledge graph** — A Neo4j-backed temporal knowledge graph (via [Graphiti](docs/components/graphiti.md)) that captures relationships between infrastructure entities — services, hosts, networks, agents, configurations. File-based memory handles narrative knowledge well; the graph handles "what connects to what" queries. Fed automatically by memory-flush (real-time) and memory-sync (nightly batch).
 
-5. **Automated nightly memory sync** — A headless Claude Code agent runs at 4 AM, reads recent memory from both Claude Code sessions and LibreChat conversations, distills durable knowledge into the prime directive repo, and ingests touched notes into the knowledge graph. Knowledge accumulates and connects without manual curation.
+5. **Automated memory pipeline** — Three scheduled jobs handle different parts of the promotion cycle. **memory-promote-daily** (11 PM) promotes same-day session transcripts to working-tier notes using a faster model — context from the day's work is searchable the next morning. **memory-pipeline** (4 AM) runs memsearch compaction and qmd reindex after promotions settle. **memory-sync-weekly** (Mondays 7 AM) promotes 14-day-old working notes to the distilled tier, expires 90-day notes, and runs graph entity dedup. Knowledge accumulates and connects without manual curation. See [`docs/components/memory-pipeline.md`](docs/components/memory-pipeline.md).
 
 The result: when I start a session on Monday, the agent already knows about the Docker stack change I made on Friday, the monitoring alert from Saturday, and the research I did on Sunday. It knows because the memory sync agent captured those events, the semantic search surfaced them as relevant context, and the knowledge graph connected them to the services they affected.
 
@@ -225,7 +237,6 @@ The platform model makes it straightforward to add new integrations as new use c
 
 **MQTT** — event-driven triggers for agents. When something happens on the network or in the house, an agent can respond rather than waiting to be asked.
 
-**n8n** — workflow automation to connect the AI platform to the broader service ecosystem. Handling webhooks, routing events, and automating multi-step processes that span systems.
 
 ## Using This Repo
 
@@ -281,21 +292,35 @@ homelab-agent/
 │       ├── dockhand.md              ← Docker socket access, multi-host stack visibility
 │       ├── open-notebook.md         ← SurrealDB, dual-port proxy config
 │       ├── cloudcli.md              ← Claude Code web UI — file explorer, git, shell, MCP management
+│       ├── auto-mode.md             ← Walk-away Claude Code config — approval skip, session limits, cost guardrails
+│       ├── helm-dashboard.md        ← CloudCLI monitoring plugin — agent sessions, handoff queue, live updates
 │       ├── cui.md                   ← Claude Code web UI — headless monitoring, push notifications
 │       ├── agent-panel.md           ← Homelab operations panel — PM2, Docker, diagnostics, files
 │       ├── diag-check.md            ← Scheduled diagnostics via agent panel API, failure alerts
 │       ├── grafana-claudebox.md     ← Local Grafana + InfluxDB for agent observability
 │       ├── grafana-observability.md ← Loki, image renderer, Alloy dual-destination log shipping
 │       ├── graphiti.md              ← Temporal knowledge graph — Neo4j, entity ontology, data flow
+│       ├── nats-jetstream.md        ← Agent event bus — JetStream streams, task lifecycle events, federation
+│       ├── temporal.md              ← Durable workflow engine — 5-container stack, fault-tolerant build phases
+│       ├── helm-temporal-worker.md  ← Helm build worker — async activity completion, phase orchestration
+│       ├── n8n.md                   ← Workflow automation — webhook triggers, agent manifest routing
+│       ├── plane.md                 ← Project management integration — work items, cycles, agent dispatch
 │       ├── qmd.md                   ← Semantic search, dual transport, GPU acceleration
 │       ├── memsearch.md             ← Memory recall for Claude Code, plugin integration
 │       ├── memory-sync.md           ← Knowledge distillation pipeline, PM2 cron
+│       ├── memory-pipeline.md       ← 3-job memory schedule — real-time indexing, distillation, graph sync
 │       ├── agent-workspace-scan.md  ← Hourly workspace marker validation, drift heal, CIA event emission
 │       ├── agent-workspace-check.md ← Pre-edit resolver skill — two-party permission enforcement
+│       ├── agent-orchestration.md   ← Multi-agent coordination — handoff protocol, session sequencing
+│       ├── task-dispatcher.md       ← Agent task queue — NATS-backed dispatch, 3-phase pipeline
+│       ├── agent-bus.md             ← Inter-agent event bus — FastMCP server, NATS federation, event types
+│       ├── inter-agent-communication.md ← Communication patterns — handoff protocol, CIA events
+│       ├── security-agent.md        ← Security audit agent — automated scanning, severity gates
 │       ├── doc-health.md            ← Weekly doc audit — drift, coverage, staleness, sanitization
 │       ├── ai-cost-tracking.md      ← Claude Code JSONL parser, cost metrics, Telegraf pipeline
 │       ├── homelab-ops-mcp.md       ← FastMCP HTTP tool server — shell, files, processes
 │       ├── claudebox-deploy.md      ← Provisioning script — full machine rebuild from NFS backup
+│       ├── multi-host.md            ← Multi-host architecture — claudebox and remote build target coordination
 │       ├── config-version-control.md ← Git tracking for docker/ and appdata configs
 │       ├── jobsearch-mcp.md         ← Job search agent — multi-board scraping, resume scoring, tracking
 │       └── backups.md               ← Backrest/restic, Claude backup, Docker appdata backup
