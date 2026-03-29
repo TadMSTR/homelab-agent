@@ -18,29 +18,26 @@ Before the agent bus, inter-agent events existed only in session notes and memor
 
 ## How It Works
 
-```
-Claude Code Agent
-    │
-    │  log_event(event_type, source, target, summary, artifact_path)
-    ▼
-server.py (FastMCP, stdio)
-    │
-    ├── append to ~/.claude/comms/logs/YYYY-MM-DD-cross-agent.jsonl
-    ├── emit_nats() — inline publish to agent-bus.{hostname}.events
-    └── emit_ntfy() — push notification for high-priority events only
-         (audit.requested, task.failed, task.routing-failed, handoff.created)
+```mermaid
+graph TD
+    Agent["Claude Code Agent"] -->|"log_event(type, source, target, summary)"| Server["server.py (FastMCP, stdio)"]
 
-Background federation loop (every 30s, runs inside server.py):
-    Read logs via file+offset cursor → publish unseen events to NATS
-    (real-time coverage via inline emit; loop is gap-fill after NATS downtime)
+    Server --> Log["~/.claude/comms/logs/<br/>YYYY-MM-DD-cross-agent.jsonl"]
+    Server --> NATS["NATS JetStream<br/>agent-bus.hostname.events"]
+    Server -->|"high-priority only<br/>(audit.requested, task.failed,<br/>handoff.created)"| Ntfy["ntfy alert"]
 
-reconcile.py (PM2 cron, every 5 min):
-    Scan ~/.claude/comms/artifacts/ for files newer than mtime cursor
-    → log artifact.untracked events for any file not yet in today's log
+    subgraph "Background (every 30s)"
+        FedLoop["federation loop<br/>file+offset cursor → gap-fill NATS"]
+    end
+    Log --> FedLoop --> NATS
 
-cleanup.sh (PM2 cron, 3:50 AM):
-    cross-agent logs: delete after 90 days
-    session logs: delete after 30 days
+    subgraph "PM2 cron (every 5 min)"
+        Reconcile["reconcile.py<br/>scan artifacts/ → log artifact.untracked"]
+    end
+
+    subgraph "PM2 cron (3:50 AM)"
+        Cleanup["cleanup.sh<br/>cross-agent logs 90d, session logs 30d"]
+    end
 ```
 
 ## Storage Layout

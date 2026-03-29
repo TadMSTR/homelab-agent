@@ -12,6 +12,27 @@ The memory pipeline coordinates nightly memory consolidation across three PM2 se
 
 **Rationale:** Steps 1–3 (session transcript promotion) are fast and cheap enough to run every night with a smaller model. Steps 4–8 (distillation, expiry, graph dedup) are expensive and only need to run weekly. The original `memory-pipeline` orchestrator handles the index refresh steps that should still run nightly regardless.
 
+```mermaid
+graph LR
+    subgraph "11:00 PM daily"
+        A["memory-promote-daily<br/>(Haiku)"]
+    end
+    subgraph "4:00 AM daily"
+        B["memory-pipeline<br/>(orchestrator)"]
+    end
+    subgraph "Monday 7:00 AM"
+        C["memory-sync-weekly<br/>(Opus)"]
+    end
+
+    ST(["Session tier<br/>~/.memsearch/memory/"]) --> A
+    A --> WT(["Working tier<br/>~/.claude/memory/"])
+    WT --> C
+    C --> DT(["Distilled tier<br/>prime-directive repo"])
+
+    WT --> B
+    B --> IDX(["memsearch index<br/>+ qmd index"])
+```
+
 ---
 
 ## memory-promote-daily

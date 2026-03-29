@@ -34,18 +34,31 @@ The stack runs 5 containers on a dedicated `temporal-network`. The temporal-ui c
 
 The init containers enforce a strict boot order:
 
-```
-temporal-postgresql (healthy)
-        │
-        ▼
-temporal-admin-tools  ← runs setup-postgres.sh, then exits
-        │ (service_completed_successfully)
-        ▼
-temporal (server healthy on :7233)
-        │
-        ├─── temporal-create-namespace  ← creates "default" namespace, then exits
-        │
-        └─── temporal-ui  ← starts, connects to temporal:7233
+```mermaid
+sequenceDiagram
+    participant PG as temporal-postgresql
+    participant AT as temporal-admin-tools (init)
+    participant TS as temporal (server)
+    participant CN as temporal-create-namespace (init)
+    participant UI as temporal-ui
+
+    PG->>PG: start, run healthcheck
+    Note over PG: healthy ✓
+    PG->>AT: depends_on: healthy
+    AT->>PG: setup-postgres.sh<br/>(create DBs + run schema migrations)
+    AT-->>AT: exits (service_completed_successfully)
+    AT->>TS: depends_on: completed_successfully
+    TS->>TS: start, bind gRPC :7233
+    Note over TS: healthy ✓
+    par
+        TS->>CN: depends_on: healthy
+        CN->>TS: temporal operator namespace create default
+        CN-->>CN: exits
+    and
+        TS->>UI: depends_on: healthy
+        UI->>TS: connect temporal:7233
+        Note over UI: serving :8080
+    end
 ```
 
 `setup-postgres.sh` creates two databases (`temporal` and `temporal_visibility`) and runs the versioned schema migrations for both. The `|| true` on `create-database` makes restart-safe — if the databases already exist, the migration continues rather than aborting.

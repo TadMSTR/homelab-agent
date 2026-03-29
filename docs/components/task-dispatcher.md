@@ -10,15 +10,36 @@ The task dispatcher is a Python script that runs every 2 minutes via PM2 cron. I
 
 Each run executes three phases sequentially:
 
+```mermaid
+graph TD
+    P1["Phase 1: Process submitted tasks<br/>Route, check approval policy, set status"]
+    P2["Phase 2: Alert on stale approved tasks<br/>Re-alert every 24h if approved but unclaimed"]
+    P3["Phase 3: Archive expired tasks<br/>Move completed/failed past TTL to archive/"]
+    P1 --> P2 --> P3
 ```
-Phase 1: Process submitted tasks
-        │  Route each task, check approval policy, set status
-        ▼
-Phase 2: Alert on stale approved tasks
-        │  Re-alert every 24h if approved but unclaimed
-        ▼
-Phase 3: Archive expired terminal tasks
-           Move completed/failed tasks past TTL to archive/
+
+**Phase 1 approval routing:**
+
+```mermaid
+graph TD
+    A([task: status=submitted]) --> B{retry window\nelapsed?}
+    B -->|no| SKIP([skip this run])
+    B -->|yes| C{target_agent\n== auto?}
+    C -->|yes| D{manifest\ncapability match?}
+    D -->|no match| RETRY[exponential backoff retry\n5m → 10m → 20m → failed]
+    D -->|matched| E
+    C -->|no| E{bypass_approval?}
+    E -->|yes| AUTO
+    E -->|no| F{requires_approval\nexplicit?}
+    F -->|false| AUTO[status: approved\nNATS tasks.approved]
+    F -->|true| GATE
+    F -->|not set| G{source in\nauto_approved?}
+    G -->|yes| AUTO
+    G -->|no| H{source in\nneeds_approval?}
+    H -->|yes| GATE[status: pending-approval\nntfy + NATS tasks.approval-requested]
+    H -->|no| I{risk_level ≤\nmax_auto_risk?}
+    I -->|yes| AUTO
+    I -->|no| GATE
 ```
 
 ### Phase 1: Process Submitted Tasks
