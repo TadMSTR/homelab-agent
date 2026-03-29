@@ -42,6 +42,34 @@ Temporal Server
     ...repeat for each phase
 ```
 
+```mermaid
+sequenceDiagram
+    participant TS as Temporal Server
+    participant W as helm-temporal-worker
+    participant TQ as Task Queue
+    participant Hook as inject-task-queue.sh
+    participant Agent as Claude Code Agent
+    participant TC as temporal-complete
+    participant CA as complete_activity.py
+
+    TS->>+W: schedule_activity(execute_build_phase)
+    W->>TQ: write task YAML (.tmp → rename, atomic)
+    W->>TS: raise_complete_async()
+    Note over W,TS: Activity marked "awaiting external signal"
+    W-->>-TS: worker exits activity (non-blocking)
+
+    Note over TQ,Agent: async gap — minutes to hours
+    Hook->>TQ: read tasks with status: submitted
+    Hook->>Agent: inject task context (SessionStart)
+    Agent->>Agent: execute build phase
+    Agent->>TC: temporal-complete task_token success
+    TC->>CA: task_token + result
+    CA->>TS: get_async_activity_handle().complete(result)
+
+    TS->>+W: schedule_activity(next phase)
+    Note over TS,W: workflow advances to next phase
+```
+
 Each phase of the build plan becomes one Temporal activity. `BuildPlanWorkflow` iterates through all phases sequentially — the next phase only starts after the previous activity is signaled complete.
 
 ## Components
