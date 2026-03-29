@@ -1,11 +1,52 @@
 # Memory Pipeline
 
-The memory pipeline is a sequential orchestrator that runs nightly at 4 AM as a PM2 cron service. It chains three steps in order: `memory-sync` → `memsearch-compact` → `qmd-reindex`. Each step depends on the previous — if compact fails, reindex is skipped; if memory-sync fails, compact and reindex still run on existing data.
+The memory pipeline coordinates nightly memory consolidation across three PM2 services. The original `memory-pipeline` orchestrator runs at 4 AM and chains `memory-sync` → `memsearch-compact` → `qmd-reindex`. Phase 4 of the letta-tiered-memory build added two additional jobs that split the memory-sync work by cost and cadence: a daily Haiku-backed session promotion job and a weekly Opus-backed distillation job.
+
+## Schedule Overview
+
+| PM2 Service | Schedule | Model | Steps |
+|-------------|----------|-------|-------|
+| `memory-promote-daily` | 11:00 PM daily | Haiku | memory-sync Steps 1–3 (session → working) |
+| `memory-pipeline` | 4:00 AM daily | — | memsearch-compact + qmd-reindex (orchestrator) |
+| `memory-sync-weekly` | Mondays 7:00 AM | Opus | memory-sync Steps 4–8 (working → distilled, dedup) |
+
+**Rationale:** Steps 1–3 (session transcript promotion) are fast and cheap enough to run every night with a smaller model. Steps 4–8 (distillation, expiry, graph dedup) are expensive and only need to run weekly. The original `memory-pipeline` orchestrator handles the index refresh steps that should still run nightly regardless.
+
+---
+
+## memory-promote-daily
+
+**Script:** `~/scripts/memory-promote-daily.sh`  
+**PM2 service:** `memory-promote-daily` (cron: `0 23 * * *`)  
+**Model:** Haiku  
+
+Runs memory-sync Steps 1–3: scans session transcripts from the last 48 hours and promotes durable items to working-tier notes in `~/.claude/memory/`. Designed to be low-cost and low-risk — Haiku handles the lightweight classification and extraction work at this tier. Fires an ntfy notification on completion.
+
+**Future plan:** Migrate this job to a local Ollama model on the MS-A2 after the Helm platform deployment, eliminating the Anthropic API cost entirely for the daily promotion pass.
+
+## memory-sync-weekly
+
+**Script:** `~/scripts/memory-sync-weekly.sh`  
+**PM2 service:** `memory-sync-weekly` (cron: `0 7 * * 1`)  
+**Model:** Opus  
+
+Runs memory-sync Steps 4–8 on the Monday morning after a week of daily promotions:
+- **Step 4:** Promotes working notes aged 14+ days to the distilled tier (prime-directive repo)
+- **Step 5:** Graph ingestion (Step 5b) + entity dedup (Step 5c, cap 10 candidates)
+- **Steps 6–8:** Expires 90-day working notes, final cleanup
+
+Opus handles the judgment-heavy work at this tier — deciding what's worth distilling and generating permanent reference entries. Fires an ntfy notification on completion.
+
+---
+
+## memory-pipeline (original orchestrator)
 
 **Script:** `~/.claude/scripts/memory-pipeline.sh`  
 **PM2 service:** `memory-pipeline` (cron: `0 4 * * *`)  
 **Lock file:** `/tmp/memory-pipeline.lock` (flock-based, prevents overlapping runs)  
 **Log:** `~/.local/share/logs/memory-pipeline.log`
+
+Chains three steps in order: `memory-sync` → `memsearch-compact` → `qmd-reindex`. Each step depends on the previous — if compact fails, reindex is skipped; if memory-sync fails, compact and reindex still run on existing data.
 
 ## How It Works
 
