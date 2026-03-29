@@ -1,0 +1,126 @@
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+
+    <!-- claudebox container -->
+    <mxCell id="10" value="claudebox" style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+      <mxGeometry x="30" y="30" width="700" height="560" as="geometry"/>
+    </mxCell>
+
+    <!-- Claude Code Agents -->
+    <mxCell id="11" value="writer" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="10">
+      <mxGeometry x="10" y="50" width="100" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="12" value="claudebox" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="10">
+      <mxGeometry x="125" y="50" width="110" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="13" value="dev" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="10">
+      <mxGeometry x="250" y="50" width="90" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="14" value="research" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="10">
+      <mxGeometry x="355" y="50" width="100" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="15" value="security" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="10">
+      <mxGeometry x="470" y="50" width="100" height="40" as="geometry"/>
+    </mxCell>
+
+    <!-- server.py -->
+    <mxCell id="20" value="server.py&lt;br&gt;(agent-bus FastMCP)" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="10">
+      <mxGeometry x="230" y="160" width="190" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- comms/logs cylinder -->
+    <mxCell id="21" value="comms/logs/" style="shape=cylinder3;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="10">
+      <mxGeometry x="50" y="280" width="140" height="70" as="geometry"/>
+    </mxCell>
+
+    <!-- NATS JetStream -->
+    <mxCell id="22" value="NATS JetStream&lt;br&gt;agent-bus.claudebox.events" style="rounded=1;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="10">
+      <mxGeometry x="400" y="280" width="230" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- comms/artifacts cylinder -->
+    <mxCell id="25" value="comms/artifacts/" style="shape=cylinder3;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="10">
+      <mxGeometry x="240" y="370" width="140" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- reconcile.py -->
+    <mxCell id="23" value="reconcile.py (every 5 min)" style="rounded=1;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="10">
+      <mxGeometry x="50" y="400" width="150" height="40" as="geometry"/>
+    </mxCell>
+
+    <!-- cleanup.sh -->
+    <mxCell id="24" value="cleanup.sh (3:50 AM)" style="rounded=1;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="10">
+      <mxGeometry x="50" y="470" width="150" height="40" as="geometry"/>
+    </mxCell>
+
+    <!-- Agents to server.py -->
+    <mxCell id="e1" value="log_event" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="11" target="20" parent="10">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="12" target="20" parent="10">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="13" target="20" parent="10">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="14" target="20" parent="10">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="15" target="20" parent="10">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- server.py to NATS inline publish -->
+    <mxCell id="e6" value="inline publish" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="20" target="22" parent="10">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- server.py to comms/logs -->
+    <mxCell id="e7" value="append" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="20" target="21" parent="10">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- comms/logs to NATS gap-fill (dashed) -->
+    <mxCell id="e8" value="30s gap-fill" style="edgeStyle=orthogonalEdgeStyle;dashed=1;fontSize=10;" edge="1" source="21" target="22" parent="10">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- reconcile.py scans comms/artifacts -->
+    <mxCell id="e9" value="scan" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="23" target="25" parent="10">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- comms/artifacts to server.py (artifact.untracked) -->
+    <mxCell id="e10" value="artifact.untracked" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="25" target="20" parent="10">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- cleanup.sh prunes comms/logs -->
+    <mxCell id="e11" value="prune 90d/30d" style="edgeStyle=orthogonalEdgeStyle;fontSize=10;" edge="1" source="24" target="21" parent="10">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- helm (MS-A2) container (dashed, future) -->
+    <mxCell id="30" value="helm (MS-A2)" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;fontStyle=2;fontSize=13;" vertex="1" parent="1">
+      <mxGeometry x="790" y="170" width="280" height="230" as="geometry"/>
+    </mxCell>
+
+    <!-- helm agent-bus instance (dashed) -->
+    <mxCell id="31" value="agent-bus instance" style="rounded=1;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;" vertex="1" parent="30">
+      <mxGeometry x="60" y="50" width="160" height="40" as="geometry"/>
+    </mxCell>
+
+    <!-- helm NATS stream (dashed) -->
+    <mxCell id="32" value="NATS JetStream&lt;br&gt;agent-bus.helm.events" style="rounded=1;whiteSpace=wrap;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;fontSize=11;" vertex="1" parent="30">
+      <mxGeometry x="40" y="140" width="200" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- federation edge: NATS claudebox to helm NATS (cross-container, dashed) -->
+    <mxCell id="e12" value="fire-and-forget federation" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#999999;fontSize=11;fontStyle=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="22" target="32" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+  </root>
+</mxGraphModel>

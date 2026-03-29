@@ -127,6 +127,8 @@ The client intentionally omits ntfy emission — `task-dispatcher.py` retains it
 
 ## Federation
 
+![Agent Bus Federation Topology](assets/agent-bus-federation.drawio.png)
+
 Events are published to `agent-bus.{hostname}.events` on `nats://localhost:4222`.
 
 **AGENT_BUS JetStream stream** subscribes to `agent-bus.>`:
