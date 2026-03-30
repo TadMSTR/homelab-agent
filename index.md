@@ -46,6 +46,10 @@ homelab-agent/
 │       ├── helm-dashboard.md          # CloudCLI plugin — monitoring tab for walk-away builds
 │       ├── auto-mode.md               # Claude Code auto permission mode — settings.json rules, CloudCLI SDK patch
 │       ├── temporal.md                # Temporal durable workflow engine — multi-phase build automation, 5-container stack
+│       ├── helm-temporal-worker.md    # Helm Temporal Worker — PM2 bridge from Temporal to Claude Code agents
+│       ├── task-dispatcher.md         # Task dispatcher — PM2 cron for agent task queue routing and approval gating
+│       ├── memory-pipeline.md         # Memory pipeline — nightly consolidation orchestrator, tiered schedule
+│       ├── agent-bus.md               # Agent Bus — FastMCP inter-agent event log, NATS JetStream federation
 │       └── backups.md                 # Backup strategy: Backrest/restic, Claude backup, Docker appdata
 ├── claude-code/
 │   ├── CLAUDE.md.example              # Root CLAUDE.md template
@@ -195,6 +199,10 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/helm-dashboard.md` | ✅ Complete | 2026-03 |
 | `docs/components/auto-mode.md` | ✅ Complete | 2026-03 |
 | `docs/components/temporal.md` | ✅ Complete | 2026-03 |
+| `docs/components/helm-temporal-worker.md` | ✅ Complete | 2026-03 |
+| `docs/components/task-dispatcher.md` | ✅ Complete | 2026-03 |
+| `docs/components/memory-pipeline.md` | ✅ Complete | 2026-03 |
+| `docs/components/agent-bus.md` | ✅ Complete | 2026-03 |
 | `docs/architecture.md` | ✅ Complete | 2026-03 |
 | `docs/getting-started.md` | ✅ Complete | 2026-03 |
 | `scripts/` | ✅ Complete | 2026-03 |
@@ -241,4 +249,8 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Helm Dashboard | [`docs/components/helm-dashboard.md`](docs/components/helm-dashboard.md) | `~/.claude-code-ui/plugins/cloudcli-plugin-helm-dashboard/config.json` | (CloudCLI plugin) |
 | Auto Mode | [`docs/components/auto-mode.md`](docs/components/auto-mode.md) | `~/.claude/settings.json`, `~/.claude/projects/<project>/settings.json` | — |
 | Temporal | [`docs/components/temporal.md`](docs/components/temporal.md) | `~/docker/temporal/.env` | `~/docker/temporal/docker-compose.yml` |
+| Helm Temporal Worker | [`docs/components/helm-temporal-worker.md`](docs/components/helm-temporal-worker.md) | — | (PM2 host service) |
+| Task Dispatcher | [`docs/components/task-dispatcher.md`](docs/components/task-dispatcher.md) | — | (PM2 cron job) |
+| Memory Pipeline | [`docs/components/memory-pipeline.md`](docs/components/memory-pipeline.md) | — | (PM2 cron jobs) |
+| Agent Bus | [`docs/components/agent-bus.md`](docs/components/agent-bus.md) | — | (PM2 host service + NATS) |
 | Backups | [`docs/components/backups.md`](docs/components/backups.md) | [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) | (Backrest systemd + PM2 cron + user crontab) |
