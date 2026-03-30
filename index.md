@@ -50,13 +50,15 @@ homelab-agent/
 │       ├── task-dispatcher.md         # Task dispatcher — PM2 cron for agent task queue routing and approval gating
 │       ├── memory-pipeline.md         # Memory pipeline — nightly consolidation orchestrator, tiered schedule
 │       ├── agent-bus.md               # Agent Bus — FastMCP inter-agent event log, NATS JetStream federation
-│       └── backups.md                 # Backup strategy: Backrest/restic, Claude backup, Docker appdata
+│       ├── backups.md                 # Backup strategy: Backrest/restic, Claude backup, Docker appdata
+│       └── multi-host.md             # Multi-host abstraction boundary design document
 ├── claude-code/
 │   ├── CLAUDE.md.example              # Root CLAUDE.md template
 │   └── projects/
 │       ├── homelab-ops.md             # Infrastructure management agent config
 │       ├── dev.md                     # Development agent config
 │       ├── research.md                # Research agent config
+│       ├── security.md               # Security audit agent config
 │       └── memory-sync.md            # Memory distillation agent config
 ├── docker/
 │   ├── swag/                          # SWAG reverse proxy compose
@@ -76,7 +78,8 @@ homelab-agent/
     ├── qmd-reindex.sh                 # Semantic search re-indexing
     ├── memory-sync.sh                 # Automated knowledge distillation
     ├── check-resources.sh             # Health monitoring with push alerts
-    └── check-dep-updates.sh           # Dependency update checker
+    ├── check-dep-updates.sh           # Dependency update checker
+    └── git-snapshot.sh                # Nightly git commit of uncommitted config changes
 ```
 
 ## Context Loading Guide
