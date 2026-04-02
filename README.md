@@ -168,6 +168,7 @@ Agents read from shared + their own directory, write to their own directory. Cro
 | docker-stack-backup | 1:00 AM daily | Stops containers, rsyncs appdata to NFS, restarts |
 | memory-promote-daily | 11:00 PM daily | Promotes session transcripts from the last 48h to working-tier notes using a smaller, faster model. Context from the day’s work is searchable the next morning. |
 | memory-pipeline | 4:00 AM daily | Orchestrator: runs memsearch-compact → qmd-reindex in sequence after nightly promotions. Keeps the semantic search indexes fresh. |
+| doc-sync-daily | 3:00 AM daily | Fetches official docs for all configured services, chunks them, and writes to the memsearch-indexed doc cache. Agents query cached docs instead of live URLs during task execution. |
 | memory-sync-weekly | Mondays 7:00 AM | Promotes 14-day-old working notes to the distilled tier, expires 90-day notes, runs graph entity dedup. The expensive weekly pass using a more capable model. |
 | resource-monitor | Every 6 hours | Checks RAM, disk, Docker health, PM2 status, NFS mounts; alerts via ntfy |
 | dep-update-check | Wednesdays noon | Checks for updates to pinned dependencies (qmd, memsearch, Authelia, Claude Code) |
@@ -203,7 +204,9 @@ This is the connective tissue that makes the whole thing more than the sum of it
 
 4. **Knowledge graph** — A Neo4j-backed temporal knowledge graph (via [Graphiti](docs/components/graphiti.md)) that captures relationships between infrastructure entities — services, hosts, networks, agents, configurations. File-based memory handles narrative knowledge well; the graph handles "what connects to what" queries. Fed automatically by memory-flush (real-time) and memory-sync (nightly batch).
 
-5. **Automated memory pipeline** — Three scheduled jobs handle different parts of the promotion cycle. **memory-promote-daily** (11 PM) promotes same-day session transcripts to working-tier notes using a faster model — context from the day's work is searchable the next morning. **memory-pipeline** (4 AM) runs memsearch compaction and qmd reindex after promotions settle. **memory-sync-weekly** (Mondays 7 AM) promotes 14-day-old working notes to the distilled tier, expires 90-day notes, and runs graph entity dedup. Knowledge accumulates and connects without manual curation. See [`docs/components/memory-pipeline.md`](docs/components/memory-pipeline.md).
+5. **Documentation cache** — A local library of official service documentation (42 services: Grafana, Loki, SWAG, Authentik, Compose, and more), fetched nightly, chunked by heading, and indexed in memsearch alongside session memory. Agents query cached docs during task execution instead of fetching live URLs — no network dependency, no stale training data. Managed by `doc-sync-daily` (PM2, 3 AM). See [`docs/components/doc-sync.md`](docs/components/doc-sync.md).
+
+6. **Automated memory pipeline** — Three scheduled jobs handle different parts of the promotion cycle. **memory-promote-daily** (11 PM) promotes same-day session transcripts to working-tier notes using a faster model — context from the day's work is searchable the next morning. **memory-pipeline** (4 AM) runs memsearch compaction and qmd reindex after promotions settle. **memory-sync-weekly** (Mondays 7 AM) promotes 14-day-old working notes to the distilled tier, expires 90-day notes, and runs graph entity dedup. Knowledge accumulates and connects without manual curation. See [`docs/components/memory-pipeline.md`](docs/components/memory-pipeline.md).
 
 The result: when I start a session on Monday, the agent already knows about the Docker stack change I made on Friday, the monitoring alert from Saturday, and the research I did on Sunday. It knows because the memory sync agent captured those events, the semantic search surfaced them as relevant context, and the knowledge graph connected them to the services they affected.
 
@@ -309,6 +312,7 @@ homelab-agent/
 │       ├── memsearch.md             ← Memory recall for Claude Code, plugin integration
 │       ├── memory-sync.md           ← Knowledge distillation pipeline, PM2 cron
 │       ├── memory-pipeline.md       ← 3-job memory schedule — real-time indexing, distillation, graph sync
+│       ├── doc-sync.md              ← Local docs cache — service reference docs fetched, chunked, memsearch-indexed
 │       ├── agent-workspace-scan.md  ← Hourly workspace marker validation, drift heal, CIA event emission
 │       ├── agent-workspace-check.md ← Pre-edit resolver skill — two-party permission enforcement
 │       ├── agent-orchestration.md   ← Multi-agent coordination — handoff protocol, session sequencing
