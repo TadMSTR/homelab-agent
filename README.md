@@ -315,6 +315,7 @@ homelab-agent/
 │       ├── doc-sync.md              ← Local docs cache — service reference docs fetched, chunked, memsearch-indexed
 │       ├── helm-ops-mcp.md          ← SSH-based MCP for remote Helm host — same tools as homelab-ops, remote transport
 │       ├── librarian-weekly.md      ← Monday cron: syncs prime-directive repo against memory and skill files
+│       ├── repo-sync-nightly.md     ← 23:30 cron: auto-commits doc repos, alerts on code repos with pending changes
 │       ├── agent-workspace-scan.md  ← Hourly workspace marker validation, drift heal, CIA event emission
 │       ├── agent-workspace-check.md ← Pre-edit resolver skill — two-party permission enforcement
 │       ├── agent-orchestration.md   ← Multi-agent coordination — handoff protocol, session sequencing
