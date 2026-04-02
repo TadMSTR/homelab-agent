@@ -313,6 +313,8 @@ homelab-agent/
 │       ├── memory-sync.md           ← Knowledge distillation pipeline, PM2 cron
 │       ├── memory-pipeline.md       ← 3-job memory schedule — real-time indexing, distillation, graph sync
 │       ├── doc-sync.md              ← Local docs cache — service reference docs fetched, chunked, memsearch-indexed
+│       ├── helm-ops-mcp.md          ← SSH-based MCP for remote Helm host — same tools as homelab-ops, remote transport
+│       ├── librarian-weekly.md      ← Monday cron: syncs prime-directive repo against memory and skill files
 │       ├── agent-workspace-scan.md  ← Hourly workspace marker validation, drift heal, CIA event emission
 │       ├── agent-workspace-check.md ← Pre-edit resolver skill — two-party permission enforcement
 │       ├── agent-orchestration.md   ← Multi-agent coordination — handoff protocol, session sequencing
