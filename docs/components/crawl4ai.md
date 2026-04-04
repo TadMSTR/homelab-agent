@@ -25,7 +25,7 @@ The container is bound to `127.0.0.1:11235` — external access is via SWAG only
 3. rawFetch()   ← last resort (plain HTTP GET, basic HTML stripping)
 ```
 
-Crawl4AI is invoked when Firecrawl returns an error or empty content. It uses the `markdown.raw_markdown` field from the Crawl4AI response — which gives clean, readable markdown without navigation cruft. Skipped silently if `CRAWL4AI_URL` is not set in the MCP environment.
+Crawl4AI is invoked when Firecrawl fails or returns empty content. Firecrawl returns `success: true` with an empty body on bot-blocked or challenge pages rather than throwing — the cascade checks for empty content after a successful Firecrawl response and falls through to Crawl4AI in those cases too. Crawl4AI uses the `markdown.raw_markdown` field from its response for clean, readable output. Skipped silently if `CRAWL4AI_URL` is not set.
 
 The rawFetch() tier-3 fallback ensures a fetch never fails silently when both upstream services are unavailable.
 
@@ -49,14 +49,16 @@ Set `CRAWL4AI_URL` in the MCP server config:
   "mcpServers": {
     "searxng": {
       "env": {
-        "CRAWL4AI_URL": "http://crawl4ai:11235"
+        "CRAWL4AI_URL": "http://crawl4ai:11235",
+        "CRAWL4AI_API_TOKEN": "your-token-here"
       }
     }
   }
 }
 ```
 
-If `CRAWL4AI_URL` is omitted, Crawl4AI is skipped in the fetch cascade and rawFetch() is used directly as the fallback.
+- `CRAWL4AI_URL` — required to enable Crawl4AI. If omitted, Crawl4AI is skipped and rawFetch() is used directly as the fallback.
+- `CRAWL4AI_API_TOKEN` — optional. If set, sent as `Authorization: Bearer <token>` on every request. Required for Crawl4AI instances with API token protection enabled.
 
 ## Related Docs
 

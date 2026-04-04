@@ -170,6 +170,7 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 | `SEARXNG_URL` | `http://localhost:8081` | SearXNG instance URL |
 | `FIRECRAWL_URL` | `http://localhost:3002` | Firecrawl URL for page fetching (tier 1 of fetch cascade) |
 | `CRAWL4AI_URL` | `` (empty) | Crawl4AI URL for second-tier fetch fallback. If empty, Crawl4AI is skipped and raw HTTP is used directly. |
+| `CRAWL4AI_API_TOKEN` | `` (empty) | Optional Bearer token for Crawl4AI API authentication. Sent as `Authorization: Bearer` header when set. |
 | `RERANKER_URL` | `http://localhost:8787` | Local ML reranker endpoint |
 | `VALKEY_URL` | `redis://localhost:6381` | Valkey connection URL |
 | `CACHE_TTL_SECONDS` | `3600` | Search result cache TTL |
@@ -182,9 +183,11 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 
 **Unreleased (after v3.0.2)**
 
-- Crawl4AI fetch adapter as second-tier fallback in the fetch cascade (`CRAWL4AI_URL` env var); uses `markdown.raw_markdown` for clean extraction on JS-heavy or Firecrawl-failing pages
+- Crawl4AI fetch adapter as second-tier fallback (`CRAWL4AI_URL` env var); uses `markdown.raw_markdown` for clean extraction on JS-heavy or Firecrawl-failing pages
+- `CRAWL4AI_API_TOKEN` env var — optional Bearer token for Crawl4AI instances with API protection
 - Raw HTTP fetch as third-tier fallback — ensures fetch never fails silently
 - `expand` parameter coercion fixed to `z.coerce.boolean()` — prevents MCP serialization errors when `true` is passed as `"true"`
+- Fetch cascade falls through to Crawl4AI on empty Firecrawl response (bot-blocked pages return `success: true` with empty content; empty-content check now triggers cascade, not only exceptions)
 
 **v3.0.2 (2026-04-04)**
 
