@@ -34,7 +34,7 @@ It grew organically from "AI writes me a script" to "AI operates alongside me as
 
 See [CHANGELOG.md](CHANGELOG.md) for the full build history.
 
-- **2026-04-04** — searxng-mcp v2.1.0: Valkey result caching (1h for search, 24h for fetched pages) and domain filtering. New `clear_cache` tool. All search tools now accept a `domain_profile` param (`homelab`, `dev`, or custom) to boost or block domains on a per-query basis. `domains.json` hot-reloads without server restart.
+- **2026-04-04** — searxng-mcp v3.0.0: Valkey result caching, domain filtering, Ollama-powered query expansion (`expand` param via qwen3:4b), and a new `search_and_summarize` tool (searches + fetches + summarizes via qwen3:14b, returns structured summary with citations). All search tools accept `domain_profile` and `expand` params. `OLLAMA_URL` is call-gated — features are silently disabled when unset.
 - **2026-03-29** — Inter-agent event bus: every cross-agent event (handoffs, audit requests, task failures, artifact writes) now flows through a shared FastMCP event log federated to NATS JetStream. First unified audit trail across the multi-agent system — any agent can query another’s activity without reading its memory files directly.
 - **2026-03-29** — Durable multi-phase automation: a Temporal worker bridges the durable execution platform to Claude Code agents via async activity completion. Each build phase is a Temporal activity — if the system restarts mid-build, it picks up at the last incomplete phase. Agents signal phase completion back to Temporal via task token handoff, not polling.
 - **2026-03-29** — Real-time semantic memory: memsearch-watch re-indexes all memory directories within 5 seconds of any write, making context written mid-session immediately searchable. New archival-search skill queries all three memory tiers in one pass and returns results labeled by source tier.
@@ -87,7 +87,7 @@ The foundation is a dedicated machine running Claude Desktop with MCP (Model Con
 | Netdata | Real-time metrics from any monitored host (CPU, RAM, disk, containers, alerts) | Netdata |
 | Playwright | Browser automation — navigate, click, fill forms, take screenshots | Anthropic |
 | qmd | Semantic search over repos, docs, and agent memory — stdio and HTTP modes | community |
-| searxng-mcp | Private web search via SearXNG with ML reranking, Valkey result caching, and domain filtering/boosting | me |
+| searxng-mcp | Private web search via SearXNG with ML reranking, Valkey result caching, domain filtering/boosting, Ollama query expansion, and LLM summarization | me |
 | TrueNAS | Datasets, pools, snapshots, users, SMB/NFS/iSCSI via REST API | community |
 | Unraid | Array status, disk health, Docker containers, shares via GraphQL API | me |
 
@@ -332,7 +332,7 @@ homelab-agent/
 │       ├── config-version-control.md ← Git tracking for docker/ and appdata configs
 │       ├── jobsearch-mcp.md         ← Job search agent — multi-board scraping, resume scoring, tracking
 │       ├── backups.md               ← Backrest/restic, Claude backup, Docker appdata backup
-│       └── searxng-mcp.md           ← searxng-mcp v2.1.0 — tools, Valkey caching, domain filtering
+│       └── searxng-mcp.md           ← searxng-mcp v3.0.0 — tools, Valkey caching, domain filtering, Ollama expand/summarize
 ├── claude-code/
 │   ├── CLAUDE.md.example            ← Root CLAUDE.md template
 │   └── projects/                    ← Per-agent CLAUDE.md examples

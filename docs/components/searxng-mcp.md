@@ -2,14 +2,15 @@
 
 MCP server providing web search via a self-hosted SearXNG instance, with ML reranking, Valkey result caching, and domain filtering. Agents use this instead of the built-in `WebSearch` tool — private, no per-query API costs, and results are shaped by configurable domain boost/block lists.
 
-**Version:** 2.1.0
+**Version:** 3.0.0
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
-| `search` | Search via SearXNG + rerank. Returns top N results. Cached 1 hour. |
-| `search_and_fetch` | Search, rerank, then fetch full content of top 1–3 results via Firecrawl or GitHub API. |
+| `search` | Search via SearXNG + rerank. Optional query expansion via Ollama. Returns top N results. Cached 1 hour. |
+| `search_and_fetch` | Search, rerank, then fetch full content of top 1–3 results via Firecrawl or GitHub API. Optional query expansion. |
+| `search_and_summarize` | Search, fetch top results, then summarize via Ollama qwen3:14b. Returns structured summary with citations. |
 | `fetch_url` | Fetch and extract readable content from a URL. Cached 24 hours. |
 | `clear_cache` | Purge search cache, fetch cache, or both. |
 
@@ -18,20 +19,43 @@ All tools accept an optional `domain_profile` parameter.
 ### search
 
 ```
-search(query, num_results=5, category="general", time_range?, domain_profile?)
+search(query, num_results=5, category="general", time_range?, domain_profile?, expand?)
 ```
 
 - `category`: `general` | `news` | `it` | `science`
 - `time_range`: `day` | `week` | `month` | `year` (omit for all time)
 - `num_results`: 1–20 (default 5)
+- `expand`: if `true`, rewrites the query via Ollama qwen3:4b before sending to SearXNG. Requires `OLLAMA_URL` to be set. Ignored silently if `OLLAMA_URL` is empty.
 
 ### search_and_fetch
 
 ```
-search_and_fetch(query, category="general", time_range?, fetch_count=1, domain_profile?)
+search_and_fetch(query, category="general", time_range?, fetch_count=1, domain_profile?, expand?)
 ```
 
 Fetches up to 3 pages. Content budget is 8000 characters split evenly across fetched pages. GitHub URLs use the GitHub API; all others use Firecrawl.
+
+### search_and_summarize
+
+```
+search_and_summarize(query, category="general", time_range?, domain_profile?, expand?)
+```
+
+Performs a search, fetches top results, then passes content to Ollama qwen3:14b for structured summarization. Returns a formatted markdown response with a summary paragraph and a citations list.
+
+**Response shape:**
+```json
+{
+  "summary": "...",
+  "citations": [
+    { "url": "...", "title": "...", "key_facts": ["...", "..."] }
+  ]
+}
+```
+
+- 15-second summarization timeout; falls back to raw fetch output if Ollama is unavailable or times out
+- Requires `OLLAMA_URL` to be set — returns an error if empty
+- Results are **not** cached (summary is generated fresh each call)
 
 ### fetch_url
 
@@ -60,17 +84,26 @@ Results are cached in Valkey (Redis-compatible, local container). Cache keys are
 
 ```mermaid
 flowchart TD
-    A(["Tool call\nquery + domain_profile?"]) --> B{"Cache check\nValkey search:*\n1h TTL"}
+    A(["Tool call\nquery + params"]) --> B{"Cache check\nValkey search:*\n1h TTL"}
     B -- "HIT" --> HIT(["Return cached results"])
-    B -- "MISS" --> C["Query SearXNG\ncategory · time_range"]
+    B -- "MISS" --> EX{"expand=true?"}
+    EX -- "yes (OLLAMA_URL set)" --> EXP["Expand query\nOllama qwen3:4b"]
+    EX -- "no / skip" --> C
+    EXP --> C["Query SearXNG\ncategory · time_range"]
     C --> D["ML Rerank\nlocal reranker endpoint"]
     D --> E["Domain filter + boost\ndomains.json / profile overlay"]
-    E --> F["Write to cache\nsearch:* · 1h TTL"]
+    E --> SUM{"search_and_summarize\ntool?"}
+    SUM -- "yes" --> SUMM["Summarize via\nOllama qwen3:14b\n15s timeout"]
+    SUM -- "no" --> F["Write to cache\nsearch:* · 1h TTL"]
+    SUMM --> SDONE(["Return summary\n+ citations"])
     F --> DONE(["Return results"])
 
     style HIT fill:#d5e8d4,stroke:#82b366
     style DONE fill:#d5e8d4,stroke:#82b366
+    style SDONE fill:#d5e8d4,stroke:#82b366
     style A fill:#dae8fc,stroke:#6c8ebf
+    style EXP fill:#fff2cc,stroke:#d6b656
+    style SUMM fill:#fff2cc,stroke:#d6b656
 ```
 
 The Valkey container (`searxng-mcp-cache`) runs separately from the SearXNG container:
@@ -140,16 +173,34 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 | `VALKEY_URL` | `redis://localhost:6381` | Valkey connection URL |
 | `CACHE_TTL_SECONDS` | `3600` | Search result cache TTL |
 | `FETCH_CACHE_TTL_SECONDS` | `86400` | Fetched page cache TTL |
+| `OLLAMA_URL` | `` (empty) | Ollama API base URL — required for `expand` and `search_and_summarize`. If empty, those features are disabled. |
+| `EXPAND_QUERIES` | `false` | Set to `true` to expand all queries by default (without passing `expand=true` per-call). |
 | `GITHUB_TOKEN` | — | Optional — increases GitHub API rate limit |
 
-## What Changed in v2.1.0
+## Changelog
 
-**Phase 1 — Valkey caching**
+**v3.0.0 (2026-04-04)**
+
+Phase 2 — Query expansion
+- `expandQuery()` via Ollama qwen3:4b — rewrites the query for broader coverage before sending to SearXNG
+- `expand` parameter on `search` and `search_and_fetch`
+- `EXPAND_QUERIES` env var to enable expansion globally
+- `OLLAMA_URL` env var (defaults to empty string — features are call-gated if unset)
+- Security: hardcoded personal `OLLAMA_URL` removed from public repo; call gating ensures safe behavior with empty default
+
+Phase 4 — Search summarization
+- `search_and_summarize` tool: searches, fetches top results, summarizes via qwen3:14b with `format:json`
+- Returns `{summary, citations[{url, title, key_facts}]}` as formatted markdown
+- 15-second summarization timeout with graceful fallback to raw fetch output
+
+**v2.1.0 (2026-04-04)**
+
+Phase 1 — Valkey caching
 - Added `iovalkey` client, connecting to a dedicated Valkey container
 - `search:*` and `fetch:*` namespaced cache keys
 - `clear_cache` tool for manual cache invalidation
 
-**Phase 5 — Domain filtering**
+Phase 5 — Domain filtering
 - `domains.json` with global boost/block lists and named profiles
 - Hot-reload via `fs.watchFile` (5s poll) — no restart needed
 - `domain_profile` parameter added to all tools
