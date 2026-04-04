@@ -87,7 +87,7 @@ The foundation is a dedicated machine running Claude Desktop with MCP (Model Con
 | Netdata | Real-time metrics from any monitored host (CPU, RAM, disk, containers, alerts) | Netdata |
 | Playwright | Browser automation — navigate, click, fill forms, take screenshots | Anthropic |
 | qmd | Semantic search over repos, docs, and agent memory — stdio and HTTP modes | community |
-| SearXNG | Private web search via self-hosted SearXNG — no API costs | me |
+| searxng-mcp | Private web search via SearXNG with ML reranking, Valkey result caching, and domain filtering/boosting | me |
 | TrueNAS | Datasets, pools, snapshots, users, SMB/NFS/iSCSI via REST API | community |
 | Unraid | Array status, disk health, Docker containers, shares via GraphQL API | me |
 
@@ -331,7 +331,8 @@ homelab-agent/
 │       ├── multi-host.md            ← Multi-host architecture — claudebox and remote build target coordination
 │       ├── config-version-control.md ← Git tracking for docker/ and appdata configs
 │       ├── jobsearch-mcp.md         ← Job search agent — multi-board scraping, resume scoring, tracking
-│       └── backups.md               ← Backrest/restic, Claude backup, Docker appdata backup
+│       ├── backups.md               ← Backrest/restic, Claude backup, Docker appdata backup
+│       └── searxng-mcp.md           ← searxng-mcp v2.1.0 — tools, Valkey caching, domain filtering
 ├── claude-code/
 │   ├── CLAUDE.md.example            ← Root CLAUDE.md template
 │   └── projects/                    ← Per-agent CLAUDE.md examples
