@@ -58,6 +58,21 @@ Results are cached in Valkey (Redis-compatible, local container). Cache keys are
 | `search:*` | 1 hour | SearXNG result sets |
 | `fetch:*` | 24 hours | Firecrawl/GitHub page content |
 
+```mermaid
+flowchart TD
+    A(["Tool call\nquery + domain_profile?"]) --> B{"Cache check\nValkey search:*\n1h TTL"}
+    B -- "HIT" --> HIT(["Return cached results"])
+    B -- "MISS" --> C["Query SearXNG\ncategory · time_range"]
+    C --> D["ML Rerank\nlocal reranker endpoint"]
+    D --> E["Domain filter + boost\ndomains.json / profile overlay"]
+    E --> F["Write to cache\nsearch:* · 1h TTL"]
+    F --> DONE(["Return results"])
+
+    style HIT fill:#d5e8d4,stroke:#82b366
+    style DONE fill:#d5e8d4,stroke:#82b366
+    style A fill:#dae8fc,stroke:#6c8ebf
+```
+
 The Valkey container (`searxng-mcp-cache`) runs separately from the SearXNG container:
 
 ```
