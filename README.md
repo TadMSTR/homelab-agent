@@ -34,6 +34,7 @@ It grew organically from "AI writes me a script" to "AI operates alongside me as
 
 See [CHANGELOG.md](CHANGELOG.md) for the full build history.
 
+- **2026-04-04** — searxng-mcp v2.1.0: Valkey result caching (1h for search, 24h for fetched pages) and domain filtering. New `clear_cache` tool. All search tools now accept a `domain_profile` param (`homelab`, `dev`, or custom) to boost or block domains on a per-query basis. `domains.json` hot-reloads without server restart.
 - **2026-03-29** — Inter-agent event bus: every cross-agent event (handoffs, audit requests, task failures, artifact writes) now flows through a shared FastMCP event log federated to NATS JetStream. First unified audit trail across the multi-agent system — any agent can query another’s activity without reading its memory files directly.
 - **2026-03-29** — Durable multi-phase automation: a Temporal worker bridges the durable execution platform to Claude Code agents via async activity completion. Each build phase is a Temporal activity — if the system restarts mid-build, it picks up at the last incomplete phase. Agents signal phase completion back to Temporal via task token handoff, not polling.
 - **2026-03-29** — Real-time semantic memory: memsearch-watch re-indexes all memory directories within 5 seconds of any write, making context written mid-session immediately searchable. New archival-search skill queries all three memory tiers in one pass and returns results labeled by source tier.
