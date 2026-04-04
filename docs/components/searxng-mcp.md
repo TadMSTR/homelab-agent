@@ -9,7 +9,7 @@ MCP server providing web search via a self-hosted SearXNG instance, with ML rera
 | Tool | Description |
 |------|-------------|
 | `search` | Search via SearXNG + rerank. Optional query expansion via Ollama. Returns top N results. Cached 1 hour. |
-| `search_and_fetch` | Search, rerank, then fetch full content of top 1–3 results via Firecrawl or GitHub API. Optional query expansion. |
+| `search_and_fetch` | Search, rerank, then fetch full content of top 1–3 results. Fetch cascade: Firecrawl → Crawl4AI → raw HTTP. Optional query expansion. |
 | `search_and_summarize` | Search, fetch top results, then summarize via Ollama qwen3:14b. Returns structured summary with citations. |
 | `fetch_url` | Fetch and extract readable content from a URL. Cached 24 hours. |
 | `clear_cache` | Purge search cache, fetch cache, or both. |
@@ -33,7 +33,7 @@ search(query, num_results=5, category="general", time_range?, domain_profile?, e
 search_and_fetch(query, category="general", time_range?, fetch_count=1, domain_profile?, expand?)
 ```
 
-Fetches up to 3 pages. Content budget is 8000 characters split evenly across fetched pages. GitHub URLs use the GitHub API; all others use Firecrawl.
+Fetches up to 3 pages. Content budget is 8000 characters split evenly across fetched pages. GitHub URLs use the GitHub API; all others use the fetch cascade: Firecrawl → Crawl4AI → raw HTTP.
 
 ### search_and_summarize
 
@@ -53,7 +53,7 @@ Performs a search, fetches top results, then passes content to Ollama qwen3:14b 
 }
 ```
 
-- 15-second summarization timeout; falls back to raw fetch output if Ollama is unavailable or times out
+- 45-second summarization timeout; falls back to raw fetch output if Ollama is unavailable or times out
 - Requires `OLLAMA_URL` to be set — returns an error if empty
 - Results are **not** cached (summary is generated fresh each call)
 
@@ -63,7 +63,7 @@ Performs a search, fetches top results, then passes content to Ollama qwen3:14b 
 fetch_url(url, domain_profile?)
 ```
 
-Blocked domains return an error. Content truncated to 8000 characters.
+Blocked domains return an error. Content truncated to 8000 characters. Uses the same fetch cascade as `search_and_fetch`: Firecrawl → Crawl4AI → raw HTTP.
 
 ### clear_cache
 
@@ -93,7 +93,7 @@ flowchart TD
     C --> D["ML Rerank\nlocal reranker endpoint"]
     D --> E["Domain filter + boost\ndomains.json / profile overlay"]
     E --> SUM{"search_and_summarize\ntool?"}
-    SUM -- "yes" --> SUMM["Summarize via\nOllama qwen3:14b\n15s timeout"]
+    SUM -- "yes" --> SUMM["Summarize via\nOllama qwen3:14b\n45s timeout"]
     SUM -- "no" --> F["Write to cache\nsearch:* · 1h TTL"]
     SUMM --> SDONE(["Return summary\n+ citations"])
     F --> DONE(["Return results"])
@@ -168,7 +168,8 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SEARXNG_URL` | `http://localhost:8081` | SearXNG instance URL |
-| `FIRECRAWL_URL` | `http://localhost:3002` | Firecrawl URL for page fetching |
+| `FIRECRAWL_URL` | `http://localhost:3002` | Firecrawl URL for page fetching (tier 1 of fetch cascade) |
+| `CRAWL4AI_URL` | `` (empty) | Crawl4AI URL for second-tier fetch fallback. If empty, Crawl4AI is skipped and raw HTTP is used directly. |
 | `RERANKER_URL` | `http://localhost:8787` | Local ML reranker endpoint |
 | `VALKEY_URL` | `redis://localhost:6381` | Valkey connection URL |
 | `CACHE_TTL_SECONDS` | `3600` | Search result cache TTL |
@@ -178,6 +179,21 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 | `GITHUB_TOKEN` | — | Optional — increases GitHub API rate limit |
 
 ## Changelog
+
+**Unreleased (after v3.0.2)**
+
+- Crawl4AI fetch adapter as second-tier fallback in the fetch cascade (`CRAWL4AI_URL` env var); uses `markdown.raw_markdown` for clean extraction on JS-heavy or Firecrawl-failing pages
+- Raw HTTP fetch as third-tier fallback — ensures fetch never fails silently
+- `expand` parameter coercion fixed to `z.coerce.boolean()` — prevents MCP serialization errors when `true` is passed as `"true"`
+
+**v3.0.2 (2026-04-04)**
+
+- `search_and_summarize`: added regex extraction of the JSON object before parsing — qwen3:14b occasionally appends trailing text after the JSON block
+
+**v3.0.1 (2026-04-04)**
+
+- `search_and_summarize`: increased summarization timeout from 15s to 45s — qwen3:14b over HTTPS requires 17–35s; 15s was reliably too short
+- `search_and_summarize`: removed `format: "json"` from the Ollama chat request — grammar-constrained generation caused requests to hang; the model follows JSON instructions from the prompt
 
 **v3.0.0 (2026-04-04)**
 
@@ -189,9 +205,9 @@ Phase 2 — Query expansion
 - Security: hardcoded personal `OLLAMA_URL` removed from public repo; call gating ensures safe behavior with empty default
 
 Phase 4 — Search summarization
-- `search_and_summarize` tool: searches, fetches top results, summarizes via qwen3:14b with `format:json`
-- Returns `{summary, citations[{url, title, key_facts}]}` as formatted markdown
-- 15-second summarization timeout with graceful fallback to raw fetch output
+- `search_and_summarize` tool: searches, fetches top results, summarizes via qwen3:14b
+- Returns structured summary with citations as formatted markdown
+- 45-second summarization timeout with graceful fallback to raw fetch output
 
 **v2.1.0 (2026-04-04)**
 

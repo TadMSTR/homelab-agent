@@ -292,6 +292,7 @@ homelab-agent/
 │       ├── swag.md                  ← Reverse proxy, Cloudflare DNS, proxy conf pattern
 │       ├── authelia.md              ← SSO config, file-based user backend, SWAG integration
 │       ├── librechat.md             ← Setup, web search pipeline, reranker wrapper, gotchas
+│       ├── crawl4ai.md              ← Crawl4AI second-tier fetch fallback for searxng-mcp
 │       ├── searxng.md               ← SearXNG + Valkey, shared search backend
 │       ├── dockhand.md              ← Docker socket access, multi-host stack visibility
 │       ├── open-notebook.md         ← SurrealDB, dual-port proxy config
