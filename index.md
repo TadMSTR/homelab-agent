@@ -17,6 +17,8 @@ homelab-agent/
 │       ├── authelia.md                # Authelia SSO, file-based user backend, SWAG integration
 │       ├── librechat.md               # LibreChat setup, web search pipeline, reranker
 │       ├── searxng.md                 # SearXNG + Valkey, search backend
+│       ├── searxng-mcp.md             # SearXNG MCP server — FastMCP, ML reranking, Valkey cache, Crawl4AI integration
+│       ├── crawl4ai.md                # Crawl4AI web scraper — JS-heavy page fetch fallback for searxng-mcp
 │       ├── dockhand.md                # Dockhand Docker stack manager, socket access
 │       ├── open-notebook.md           # Open Notebook AI research, SurrealDB, dual-port proxy
 │       ├── cloudcli.md                # CloudCLI web UI — file explorer, git, shell, MCP management
@@ -164,6 +166,8 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/swag.md` | ✅ Complete | 2026-03 |
 | `docs/components/authelia.md` | ✅ Complete | 2026-03 |
 | `docs/components/searxng.md` | ✅ Complete | 2026-03 |
+| `docs/components/searxng-mcp.md` | ✅ Complete | 2026-04 |
+| `docs/components/crawl4ai.md` | ✅ Complete | 2026-04 |
 | `docs/components/dockhand.md` | ✅ Complete | 2026-03 |
 | `docs/components/open-notebook.md` | ✅ Complete | 2026-03 |
 | `docs/components/cloudcli.md` | ✅ Complete | 2026-03 |
@@ -220,6 +224,8 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | SWAG | [`docs/components/swag.md`](docs/components/swag.md) | — | `docker/swag/docker-compose.yml` |
 | Authelia | [`docs/components/authelia.md`](docs/components/authelia.md) | — | `docker/authelia/docker-compose.yml` |
 | SearXNG | [`docs/components/searxng.md`](docs/components/searxng.md) | — | (compose not in repo) |
+| SearXNG MCP | [`docs/components/searxng-mcp.md`](docs/components/searxng-mcp.md) | — | (PM2 host service) |
+| Crawl4AI | [`docs/components/crawl4ai.md`](docs/components/crawl4ai.md) | — | (Docker container) |
 | Dockhand | [`docs/components/dockhand.md`](docs/components/dockhand.md) | — | `docker/dockhand/docker-compose.yml` |
 | Open Notebook | [`docs/components/open-notebook.md`](docs/components/open-notebook.md) | — | `docker/open-notebook/docker-compose.yml` |
 | CloudCLI | [`docs/components/cloudcli.md`](docs/components/cloudcli.md) | — | (PM2 host service) |
