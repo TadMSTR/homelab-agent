@@ -23,7 +23,7 @@ Two containers, network-isolated from the main stack:
 The extraction pipeline for each ingested episode:
 1. LLM (Claude Sonnet) reads the text and identifies entities matching the prescribed ontology
 2. LLM extracts relationships between entities with temporal context
-3. Embeddings (Voyage AI voyage-3-lite, 512 dimensions) are generated for semantic similarity search
+3. Embeddings (bge-m3 via Ollama, 1024 dimensions) are generated for semantic similarity search
 4. Entities are resolved against existing graph nodes (deduplication)
 5. New nodes and edges are written to Neo4j; superseded facts get invalidation timestamps
 
@@ -51,14 +51,14 @@ This ontology constrains entity extraction so the graph stays focused on infrast
 
 Key settings:
 - `llm.provider: anthropic` with `model: claude-sonnet-4-6` — used for entity extraction
-- `embedder.provider: voyage` with `model: voyage-3-lite` (512 dimensions) — used for semantic search
+- `embedder.provider: openai` with `model: bge-m3`, `api_url: https://ollama.<forge-domain>/v1` (1024 dimensions) — uses the Ollama OpenAI-compatible endpoint; Ollama serves bge-m3 via GPU on the forge host
 - `graphiti.entity_types` — the prescribed ontology (see above)
 - `graphiti.group_id: homelab` — all data lives under this group
 
 **Environment variables** (in `.env`):
 - `NEO4J_PASSWORD` — Neo4j auth
 - `ANTHROPIC_API_KEY` — for entity extraction LLM calls
-- `VOYAGE_API_KEY` — for embedding generation
+- `VOYAGE_API_KEY` — retained in `.env` but no longer active; embeddings now use Ollama
 - `OPENAI_API_KEY=unused` — required by the base image init code even when not using OpenAI
 
 **SWAG proxy:** Neo4j browser proxied behind Authelia for manual graph inspection. The Graphiti MCP endpoint at `localhost:8000` is not proxied — it's accessed directly by agents on the host.
@@ -67,7 +67,7 @@ Key settings:
 
 - Docker CE + Compose
 - An Anthropic API key (entity extraction uses Claude Sonnet)
-- A Voyage AI API key (embeddings)
+- An Ollama instance with `bge-m3` pulled — the embedder points to the OpenAI-compatible `/v1` endpoint; the forge Ollama instance serves this via GPU. If behind a rate-limited SWAG proxy, ensure the claudebox host IP has a `/v1` path bypass configured.
 - SWAG + Authelia (optional, for Neo4j browser access)
 
 ## Data Flow
@@ -104,13 +104,15 @@ Agent queries ──→ search_memory_facts / search_nodes ──→ Neo4j
 
 **Temperature must be explicit.** The config file must set `llm.temperature: 1.0` explicitly. Without it, the Anthropic client may use defaults that produce inconsistent entity extraction.
 
-**Custom Dockerfile for provider packages.** The `zepai/knowledge-graph-mcp:1.0.2-standalone` image bundles OpenAI support but not Anthropic or Voyage AI. The custom Dockerfile runs `pip install anthropic voyageai` into the app's virtualenv. When upgrading the base image, verify the Dockerfile still targets the correct Python path.
+**Custom Dockerfile for provider packages.** The `zepai/knowledge-graph-mcp:1.0.2-standalone` image bundles OpenAI support but not Anthropic. The custom Dockerfile runs `pip install anthropic voyageai` into the app's virtualenv (`voyageai` is kept for compatibility but the embedder no longer uses it). When upgrading the base image, verify the Dockerfile still targets the correct Python path.
+
+**Ollama `/v1` endpoint requires a SWAG bypass.** The embedder calls `https://ollama.<forge-domain>/v1/embeddings` in batch during ingestion. The forge SWAG rate-limit configuration needs a per-IP bypass for the claudebox host on the `/v1` path, otherwise batch embedding requests will be throttled mid-ingest. Verify `rate-limit-zones.conf` on forge has the bypass before running a bulk ingest.
 
 **Entity resolution is imperfect.** The LLM-based entity extraction occasionally creates duplicate nodes for the same entity (e.g., "grafana" and "Grafana" as separate nodes). Graphiti's built-in entity resolution catches most of these, but some slip through. Periodic manual review via the Neo4j browser helps. The prescribed ontology reduces but doesn't eliminate this.
 
 **The graph is being populated incrementally.** If a query returns no results, fall back to file-based memory. The graph gets richer over time as more episodes are ingested through memory-sync runs and interactive memory-flush calls.
 
-**API costs.** Each ingested episode triggers LLM calls (entity extraction) and embedding API calls. Memory-sync batches are modest (typically <20 notes per run), but be aware of the per-episode cost if you're bulk-ingesting a large backlog.
+**API costs.** Each ingested episode triggers LLM calls (entity extraction via Anthropic) and embedding calls (bge-m3 via Ollama — no per-call cost once the model is pulled). Memory-sync batches are modest (typically <20 notes per run). Bulk-ingesting a large backlog increases Anthropic API costs for entity extraction but not embedding costs.
 
 **Neo4j memory tuning.** The compose file allocates 512MB heap + 512MB page cache + 1GB max heap. This is conservative for a homelab graph that won't grow to millions of nodes. Adjust `NEO4J_server_memory_*` environment variables if you see memory pressure or if the graph grows significantly.
 
@@ -124,7 +126,7 @@ If you're adopting the memory system from this repo, add Graphiti after you have
 
 - [Graphiti GitHub](https://github.com/getzep/graphiti) — the library and MCP server
 - [Neo4j documentation](https://neo4j.com/docs/)
-- [Voyage AI](https://www.voyageai.com/) — embedding provider
+- [Ollama](https://ollama.com/) — the local inference server serving bge-m3 for embeddings
 
 ---
 
