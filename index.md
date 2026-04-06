@@ -53,7 +53,11 @@ homelab-agent/
 │       ├── memory-pipeline.md         # Memory pipeline — nightly consolidation orchestrator, tiered schedule
 │       ├── agent-bus.md               # Agent Bus — FastMCP inter-agent event log, NATS JetStream federation
 │       ├── backups.md                 # Backup strategy: Backrest/restic, Claude backup, Docker appdata
-│       └── multi-host.md             # Multi-host abstraction boundary design document
+│       ├── multi-host.md             # Multi-host abstraction boundary design document
+│       ├── doc-sync.md               # doc-sync documentation cache — upstream fetch, chunk, memsearch index
+│       ├── helm-ops-mcp.md           # helm-ops SSH-based MCP server for remote Helm host operations
+│       ├── librarian-weekly.md       # Weekly PM2 cron — prime-directive repo sync via librarian skill
+│       └── repo-sync-nightly.md      # Nightly repo hygiene — auto-commit doc repos, alert on dirty code repos
 ├── claude-code/
 │   ├── CLAUDE.md.example              # Root CLAUDE.md template
 │   └── projects/
