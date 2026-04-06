@@ -16,7 +16,7 @@ This is different from [qmd](qmd.md), which provides on-demand search across a b
 
 memsearch has two components:
 
-**CLI tool** (`memsearch`) — indexes markdown files, generates embeddings using the `all-MiniLM-L6-v2` sentence-transformer model (or ONNX bge-m3 if configured), and stores vectors in a local Milvus Lite database (`~/.memsearch/milvus.db`). Runs entirely locally, no API keys needed for embedding.
+**CLI tool** (`memsearch`) — indexes markdown files, generates embeddings via a remote Ollama instance (model: `bge-m3`, 1024-dim, batch_size=16), and stores vectors in a local Milvus Lite database (`~/.memsearch/milvus.db`). Requires `OLLAMA_HOST` to be set — the ollama provider reads this env var rather than `embedding.base_url` in the config.
 
 **Claude Code plugin** (v0.2.2) — hooks into Claude Code sessions. On session start, it retrieves memories relevant to the project context. On each prompt, it searches for memories relevant to the current conversation. Relevant results are silently injected into the context so the agent has them available without being explicitly asked.
 
@@ -39,8 +39,9 @@ uri = "~/.memsearch/milvus.db"
 collection = "memsearch_chunks"
 
 [embedding]
-provider = "local"       # or "onnx" (recommended), "openai", "voyage", "ollama"
-model = "all-MiniLM-L6-v2"
+provider = "ollama"      # uses OLLAMA_HOST env var — base_url in config is ignored
+model = "bge-m3"         # 1024-dim, MTEB 65, 8192-token context
+batch_size = 16
 
 [chunking]
 max_chunk_size = 1500
@@ -62,6 +63,14 @@ llm_model = "claude-sonnet-4-6"
 [reranker]
 model = "Alibaba-NLP/gte-reranker-modernbert-base"   # empty string = disabled
 ```
+
+**`OLLAMA_HOST` note:** The `ollama` provider does not read `embedding.base_url` from the config. It reads the `OLLAMA_HOST` environment variable exclusively. This must be set before any `memsearch index`, `memsearch watch`, or `memsearch compact` invocation. It is hardcoded in `~/.claude/scripts/memsearch-watch.sh` and `~/.claude/scripts/memsearch-compact.sh` for PM2 processes; for manual re-index runs, set it inline:
+
+```bash
+OLLAMA_HOST=https://ollama.<your-forge-domain> memsearch index
+```
+
+If your Ollama instance sits behind a rate-limited reverse proxy, ensure your host IP has a bypass rule configured — a full re-index issues many embedding requests in rapid succession.
 
 The `[paths] extra` config is where you tell memsearch which directories to index beyond what Claude Code auto-detects. The shared directory contains cross-agent knowledge; each agent directory contains domain-specific learnings.
 
@@ -110,13 +119,13 @@ The script (`~/.claude/scripts/memsearch-watch.sh`) uses `find` at startup to co
 
 ## Gotchas and Lessons Learned
 
-**CPU-only is fine.** Unlike qmd, which benefits significantly from GPU acceleration for embedding large document collections, memsearch indexes a relatively small set of short memory files. The `all-MiniLM-L6-v2` model is small and fast on CPU. Re-indexing a few dozen memory files takes seconds.
+**Embedding is remote — Ollama availability matters.** memsearch now uses a remote Ollama instance for embeddings (bge-m3 via GPU). If the Ollama host is unreachable, `memsearch-watch` will fail silently on each file change — writes to memory directories still succeed, but the index won't update until Ollama is back. Check `pm2 logs memsearch-watch` if searches feel stale. A local fallback is not configured; if you need offline embedding, switch `provider` back to `onnx` and run `memsearch reset && memsearch index`.
 
 **The database is disposable.** `milvus.db` is a derived artifact. If it gets corrupted or you want a clean slate, delete it and re-run `memsearch index`. The markdown files are the source of truth.
 
 **OLLAMA_HOST is hardcoded in both watch and compact scripts.** When using the `ollama` embedding provider, `OLLAMA_HOST` is set directly in `~/.claude/scripts/memsearch-watch.sh` and `~/.claude/scripts/memsearch-compact.sh`. Any domain change, cert rotation, or subdomain reconfiguration on the forge SWAG proxy requires updating both scripts and restarting the `memsearch-watch` PM2 process. There is no environment-level config for this — it's not in `config.toml`.
 
-**Switching embedding providers requires a full re-index.** Vector dimensions differ between models (384 dims for all-MiniLM-L6-v2, 1024 dims for bge-m3). After changing `embedding.provider`, run `memsearch reset` to drop the old index, then `memsearch index` to rebuild. Stop `memsearch-watch` first to avoid conflicts during re-indexing.
+**Switching embedding providers requires a full re-index.** Vector dimensions differ between models (384 dims for all-MiniLM-L6-v2, 1024 dims for bge-m3 — the current provider). After changing `embedding.provider` or `model`, stop `memsearch-watch` first, then run `memsearch reset` to drop the old index, then `memsearch index` to rebuild. Restart `memsearch-watch` when done.
 
 **Plugin version matters.** The CLI tool and Claude Code plugin are versioned separately. Make sure the plugin version is compatible with your Claude Code version — check the memsearch repo for compatibility notes after Claude Code updates.
 
