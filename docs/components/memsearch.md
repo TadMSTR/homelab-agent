@@ -1,6 +1,6 @@
 # memsearch
 
-memsearch is a semantic memory search tool built for Claude Code. It indexes markdown files from your agent memory directories, generates local embeddings using sentence-transformers, and auto-injects relevant memories at session start and on each prompt. When you start a Claude Code session, memsearch silently retrieves context from past sessions — decisions you made, things you learned, problems you solved — without you asking for it.
+memsearch is a semantic memory search tool built for Claude Code. It indexes markdown files from your agent memory directories, generates embeddings via a remote Ollama instance (bge-m3, GPU-accelerated), and auto-injects relevant memories at session start and on each prompt. When you start a Claude Code session, memsearch silently retrieves context from past sessions — decisions you made, things you learned, problems you solved — without you asking for it.
 
 It sits in [Layer 3](../../README.md#layer-3--multi-agent-claude-code-engine) of the architecture, tightly coupled to the Claude Code agent engine and the scoped memory system.
 
@@ -39,8 +39,9 @@ uri = "http://localhost:19530"
 collection = "memsearch_chunks"
 
 [embedding]
-provider = "ollama"      # uses OLLAMA_HOST env var — base_url in config is ignored
+provider = "ollama"      # uses OLLAMA_HOST env var exclusively (see note below)
 model = "bge-m3"         # 1024-dim, MTEB 65, 8192-token context
+base_url = ""            # ignored by the ollama provider — present in live config but unused
 batch_size = 16
 
 [chunking]
@@ -48,7 +49,7 @@ max_chunk_size = 1500
 overlap_lines = 2
 
 [watch]
-debounce_ms = 1500
+debounce_ms = 5000
 
 [paths]
 # Add extra directories to index beyond the auto-detected defaults:
@@ -72,7 +73,7 @@ OLLAMA_HOST=https://ollama.<your-forge-domain> memsearch index
 
 If your Ollama instance sits behind a rate-limited reverse proxy, ensure your claudebox host IP has a permanent bypass rule configured — a full re-index issues many embedding requests in rapid succession and will trigger rate limiting without it.
 
-**Model history:** The embedding stack went through two upgrades: `local/all-MiniLM-L6-v2` (384-dim, CPU-only, original) → `ollama/nomic-embed-text` (768-dim, forge GPU, Phase 3 initial) → `ollama/bge-m3` (1024-dim, forge GPU, Phase 3 final, current). Each transition required `memsearch reset && memsearch index` due to dimension incompatibility. The 22 files that failed to index under nomic-embed-text (512-token context limit) indexed successfully under bge-m3 (8192-token context).
+**Model history:** The embedding stack went through two upgrades: `local/all-MiniLM-L6-v2` (384-dim, CPU-only, original) → `ollama/nomic-embed-text` (768-dim, forge GPU, Phase 3 initial) → `ollama/bge-m3` (1024-dim, forge GPU, Phase 3 final, current). Each transition required a full re-index due to dimension incompatibility — stop Milvus, clear data volume, restart, re-run `memsearch index`. The 22 files that failed to index under nomic-embed-text (512-token context limit) indexed successfully under bge-m3 (8192-token context). bge-m3 via local ONNX was attempted first but rejected — it consumed 24GB RAM (64 ONNX threads) and took hours to index; the same model via forge GPU completed in ~7 minutes.
 
 The `[paths] extra` config is where you tell memsearch which directories to index beyond what Claude Code auto-detects. The shared directory contains cross-agent knowledge; each agent directory contains domain-specific learnings.
 
