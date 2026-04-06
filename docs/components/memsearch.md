@@ -114,6 +114,8 @@ The script (`~/.claude/scripts/memsearch-watch.sh`) uses `find` at startup to co
 
 **The database is disposable.** `milvus.db` is a derived artifact. If it gets corrupted or you want a clean slate, delete it and re-run `memsearch index`. The markdown files are the source of truth.
 
+**OLLAMA_HOST is hardcoded in both watch and compact scripts.** When using the `ollama` embedding provider, `OLLAMA_HOST` is set directly in `~/.claude/scripts/memsearch-watch.sh` and `~/.claude/scripts/memsearch-compact.sh`. Any domain change, cert rotation, or subdomain reconfiguration on the forge SWAG proxy requires updating both scripts and restarting the `memsearch-watch` PM2 process. There is no environment-level config for this — it's not in `config.toml`.
+
 **Switching embedding providers requires a full re-index.** Vector dimensions differ between models (384 dims for all-MiniLM-L6-v2, 1024 dims for bge-m3). After changing `embedding.provider`, run `memsearch reset` to drop the old index, then `memsearch index` to rebuild. Stop `memsearch-watch` first to avoid conflicts during re-indexing.
 
 **Plugin version matters.** The CLI tool and Claude Code plugin are versioned separately. Make sure the plugin version is compatible with your Claude Code version — check the memsearch repo for compatibility notes after Claude Code updates.
