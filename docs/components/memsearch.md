@@ -16,11 +16,11 @@ This is different from [qmd](qmd.md), which provides on-demand search across a b
 
 memsearch has two components:
 
-**CLI tool** (`memsearch`) — indexes markdown files, generates embeddings via a remote Ollama instance (model: `bge-m3`, 1024-dim, batch_size=16), and stores vectors in a local Milvus Lite database (`~/.memsearch/milvus.db`). Requires `OLLAMA_HOST` to be set — the ollama provider reads this env var rather than `embedding.base_url` in the config.
+**CLI tool** (`memsearch`) — indexes markdown files, generates embeddings via a remote Ollama instance (model: `bge-m3`, 1024-dim, batch_size=16), and stores vectors in a Milvus standalone Docker container (`localhost:19530`). Requires `OLLAMA_HOST` to be set — the ollama provider reads this env var rather than `embedding.base_url` in the config.
 
 **Claude Code plugin** (v0.2.2) — hooks into Claude Code sessions. On session start, it retrieves memories relevant to the project context. On each prompt, it searches for memories relevant to the current conversation. Relevant results are silently injected into the context so the agent has them available without being explicitly asked.
 
-The database is derived — it rebuilds from the source markdown files. If you delete `milvus.db`, re-run `memsearch index` and it regenerates. The source of truth is always the markdown files in the memory directories.
+The database is derived — it rebuilds from the source markdown files. If the index needs to be rebuilt, stop the Milvus container, wipe its data volume, restart it, then re-run `memsearch index`. The source of truth is always the markdown files in the memory directories.
 
 ## Prerequisites
 
@@ -35,7 +35,7 @@ memsearch configuration lives at `~/.memsearch/config.toml`. The 0.2.x format us
 
 ```toml
 [milvus]
-uri = "~/.memsearch/milvus.db"
+uri = "http://localhost:19530"
 collection = "memsearch_chunks"
 
 [embedding]
@@ -123,11 +123,11 @@ The script (`~/.claude/scripts/memsearch-watch.sh`) uses `find` at startup to co
 
 **Embedding is remote — Ollama availability matters.** memsearch now uses a remote Ollama instance for embeddings (bge-m3 via GPU). If the Ollama host is unreachable, `memsearch-watch` will fail silently on each file change — writes to memory directories still succeed, but the index won't update until Ollama is back. Check `pm2 logs memsearch-watch` if searches feel stale. A local fallback is not configured; if you need offline embedding, switch `provider` back to `onnx` and run `memsearch reset && memsearch index`.
 
-**The database is disposable.** `milvus.db` is a derived artifact. If it gets corrupted or you want a clean slate, delete it and re-run `memsearch index`. The markdown files are the source of truth.
+**The index is disposable.** The Milvus vector database is a derived artifact — all data in it was generated from the source markdown files. If the index gets corrupted or dimensions change (e.g. after a model switch), stop the Milvus container, clear its data volume, restart it, and re-run `memsearch index`. The markdown files are the source of truth. Stop `memsearch-watch` first to avoid write conflicts during re-indexing.
 
 **OLLAMA_HOST is hardcoded in both watch and compact scripts.** When using the `ollama` embedding provider, `OLLAMA_HOST` is set directly in `~/.claude/scripts/memsearch-watch.sh` and `~/.claude/scripts/memsearch-compact.sh`. Any domain change, cert rotation, or subdomain reconfiguration on the forge SWAG proxy requires updating both scripts and restarting the `memsearch-watch` PM2 process. There is no environment-level config for this — it's not in `config.toml`.
 
-**Switching embedding providers requires a full re-index.** Vector dimensions differ between models (384 dims for all-MiniLM-L6-v2, 1024 dims for bge-m3 — the current provider). After changing `embedding.provider` or `model`, stop `memsearch-watch` first, then run `memsearch reset` to drop the old index, then `memsearch index` to rebuild. Restart `memsearch-watch` when done.
+**Switching embedding providers requires a full re-index.** Vector dimensions differ between models (384 dims for all-MiniLM-L6-v2, 1024 dims for bge-m3 — the current provider). After changing `embedding.provider` or `model`, stop `memsearch-watch`, clear the Milvus data volume and restart the container (schema is dimension-locked), then re-run `memsearch index`. Restart `memsearch-watch` when done.
 
 **Plugin version matters.** The CLI tool and Claude Code plugin are versioned separately. Make sure the plugin version is compatible with your Claude Code version — check the memsearch repo for compatibility notes after Claude Code updates.
 
