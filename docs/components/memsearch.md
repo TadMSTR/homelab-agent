@@ -16,7 +16,7 @@ This is different from [qmd](qmd.md), which provides on-demand search across a b
 
 memsearch has two components:
 
-**CLI tool** (`memsearch`) — indexes markdown files, generates embeddings using the `all-MiniLM-L6-v2` sentence-transformer model, and stores vectors in a local Milvus Lite database (`~/.memsearch/milvus.db`). Runs entirely on CPU, no API keys needed.
+**CLI tool** (`memsearch`) — indexes markdown files, generates embeddings using the `all-MiniLM-L6-v2` sentence-transformer model (or ONNX bge-m3 if configured), and stores vectors in a local Milvus Lite database (`~/.memsearch/milvus.db`). Runs entirely locally, no API keys needed for embedding.
 
 **Claude Code plugin** (v0.2.2) — hooks into Claude Code sessions. On session start, it retrieves memories relevant to the project context. On each prompt, it searches for memories relevant to the current conversation. Relevant results are silently injected into the context so the agent has them available without being explicitly asked.
 
@@ -31,30 +31,57 @@ The database is derived — it rebuilds from the source markdown files. If you d
 
 ## Configuration
 
-memsearch configuration lives at `~/.memsearch/config.toml`:
+memsearch configuration lives at `~/.memsearch/config.toml`. The 0.2.x format uses `[embedding]`, `[reranker]`, and `[compact]` sections:
 
 ```toml
-[model]
-name = "all-MiniLM-L6-v2"
+[milvus]
+uri = "~/.memsearch/milvus.db"
+collection = "memsearch_chunks"
+
+[embedding]
+provider = "local"       # or "onnx" (recommended), "openai", "voyage", "ollama"
+model = "all-MiniLM-L6-v2"
+
+[chunking]
+max_chunk_size = 1500
+overlap_lines = 2
+
+[watch]
+debounce_ms = 1500
 
 [paths]
-# Default memory paths (auto-detected from Claude Code)
-# Add extra paths to index additional directories:
+# Add extra directories to index beyond the auto-detected defaults:
 extra = [
-    "~/.claude/memory/shared",
-    "~/.claude/memory/agents/homelab-ops",
-    "~/.claude/memory/agents/dev",
-    "~/.claude/memory/agents/research"
+    "~/.claude/memory/"
 ]
+
+[compact]
+llm_provider = "anthropic"
+llm_model = "claude-sonnet-4-6"
+
+[reranker]
+model = "Alibaba-NLP/gte-reranker-modernbert-base"   # empty string = disabled
 ```
 
-The `[paths] extra` config is where you tell memsearch which directories to index. This should include all agent memory directories that you want searchable. The shared directory contains cross-agent knowledge; each agent directory contains domain-specific learnings.
+The `[paths] extra` config is where you tell memsearch which directories to index beyond what Claude Code auto-detects. The shared directory contains cross-agent knowledge; each agent directory contains domain-specific learnings.
 
 After configuring paths, run `memsearch index` to build the initial database. Re-run it after new memory files are added — or let the memory-sync cron handle it (see [memory-sync](memory-sync.md)).
 
 A companion PM2 process (`memsearch-watch`, always-on) watches all session and working memory directories for changes and re-indexes on write with a 5-second debounce — so memories written during a session are searchable within seconds, not just after the nightly sync. See [Real-Time Indexing](#real-time-indexing) below.
 
-A companion PM2 job (`memsearch-compact`, cron at 4:30 AM daily) runs compaction on the Milvus Lite database after each nightly sync. Milvus accumulates fragmented segments over time; compaction merges them and reclaims disk space. It's not strictly required — memsearch works fine without it — but without periodic compaction the database grows faster than necessary. See [`pm2/ecosystem.config.js.example`](../../pm2/ecosystem.config.js.example) for the job definition.
+A companion PM2 job (`memsearch-compact`, runs as part of the nightly memory pipeline) uses an LLM to summarize and compress noisy session memory files. It reads a daily `.md` session file, calls the configured LLM to produce a condensed summary, and writes the output back to the same file. `memsearch-watch` picks up the rewritten file and re-indexes it, so searches against that day's session reflect the summarized version rather than the raw transcript. This is LLM-powered content compaction — not database-level compaction. See [`pm2/ecosystem.config.js.example`](../../pm2/ecosystem.config.js.example) for the job definition.
+
+## Reranker (new in 0.2.x)
+
+memsearch 0.2.x adds a cross-encoder reranker that re-scores search results after the initial vector retrieval. This significantly improves result quality for session-tier memory, which tends to be noisy (many short, similar entries).
+
+Enable it by setting the model in your config:
+
+```bash
+memsearch config set reranker.model "Alibaba-NLP/gte-reranker-modernbert-base"
+```
+
+The model (~500MB) downloads from HuggingFace on the first search call after configuration — not at config-set time. Two backends are auto-detected: ONNX Runtime (preferred, CPU-only) or sentence-transformers (PyTorch). If `onnxruntime` is not installed, the PyTorch backend is used automatically. Leave `reranker.model` empty to disable.
 
 ## Real-Time Indexing
 
@@ -87,6 +114,8 @@ The script (`~/.claude/scripts/memsearch-watch.sh`) uses `find` at startup to co
 
 **The database is disposable.** `milvus.db` is a derived artifact. If it gets corrupted or you want a clean slate, delete it and re-run `memsearch index`. The markdown files are the source of truth.
 
+**Switching embedding providers requires a full re-index.** Vector dimensions differ between models (384 dims for all-MiniLM-L6-v2, 1024 dims for bge-m3). After changing `embedding.provider`, run `memsearch reset` to drop the old index, then `memsearch index` to rebuild. Stop `memsearch-watch` first to avoid conflicts during re-indexing.
+
 **Plugin version matters.** The CLI tool and Claude Code plugin are versioned separately. Make sure the plugin version is compatible with your Claude Code version — check the memsearch repo for compatibility notes after Claude Code updates.
 
 **Plugin availability isn't guaranteed.** The Claude Code plugin ecosystem may change between versions. Before setting up the plugin, verify it exists: check `claude --help` for plugin commands, then look for memsearch in the marketplace. If the plugin isn't available, memsearch still works as a standalone CLI tool — you lose the auto-inject hooks but can use `memsearch search "query"` manually or via shell commands from within Claude Code sessions. The core indexing and search functionality doesn't depend on the plugin.
@@ -103,7 +132,7 @@ You can adopt memsearch without the rest of Layer 3 (PM2 agents, memory-sync, qm
 
 ## Further Reading
 
-- [memsearch GitHub](https://github.com/anthropics/memsearch) *(check for current repo location — may have moved)*
+- [memsearch GitHub](https://github.com/zilliztech/memsearch) — Zilliz project, actively maintained
 - [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-code)
 
 ---

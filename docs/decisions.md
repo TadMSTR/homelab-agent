@@ -6,7 +6,7 @@ The decisions are roughly chronological. Earlier ones shaped the constraints tha
 
 ## Agent Memory: memsearch over Memory MCP
 
-**Choice:** [memsearch](https://github.com/anthropics/memsearch) with local sentence-transformers embeddings.
+**Choice:** [memsearch](https://github.com/zilliztech/memsearch) with local sentence-transformers embeddings.
 **Alternatives considered:** Memory MCP (Anthropic's built-in), custom SQLite store.
 
 Memory MCP stored data in an opaque JSON database with no agent scoping — every session saw everything. memsearch uses plain markdown files organized into per-agent and shared directories, generates embeddings locally (no API calls), and auto-injects relevant context via Claude Code plugin hooks. The markdown-first approach means memory files are human-readable, git-trackable, and indexable by other tools (qmd indexes the same files).
@@ -83,7 +83,7 @@ systemd would work for the always-on services but is more awkward for scheduled 
 
 | Dependency | Pinning | Rationale |
 |------------|---------|-----------|
-| memsearch | pip version pin | Single maintainer, small user base, breaking changes possible |
+| memsearch | pip version pin | Zilliz project, well-maintained, breaking changes possible between minor versions |
 | qmd | Record installed version | Single maintainer, actively developed |
 | Authelia | Docker tag pin (4.38) | SWAG conf compatibility |
 | CUI | npm version or release tag | Small project, API surface may shift |
