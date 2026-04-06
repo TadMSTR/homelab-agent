@@ -70,7 +70,9 @@ model = "Alibaba-NLP/gte-reranker-modernbert-base"   # empty string = disabled
 OLLAMA_HOST=https://ollama.<your-forge-domain> memsearch index
 ```
 
-If your Ollama instance sits behind a rate-limited reverse proxy, ensure your host IP has a bypass rule configured — a full re-index issues many embedding requests in rapid succession.
+If your Ollama instance sits behind a rate-limited reverse proxy, ensure your claudebox host IP has a permanent bypass rule configured — a full re-index issues many embedding requests in rapid succession and will trigger rate limiting without it.
+
+**Model history:** The embedding stack went through two upgrades: `local/all-MiniLM-L6-v2` (384-dim, CPU-only, original) → `ollama/nomic-embed-text` (768-dim, forge GPU, Phase 3 initial) → `ollama/bge-m3` (1024-dim, forge GPU, Phase 3 final, current). Each transition required `memsearch reset && memsearch index` due to dimension incompatibility. The 22 files that failed to index under nomic-embed-text (512-token context limit) indexed successfully under bge-m3 (8192-token context).
 
 The `[paths] extra` config is where you tell memsearch which directories to index beyond what Claude Code auto-detects. The shared directory contains cross-agent knowledge; each agent directory contains domain-specific learnings.
 
@@ -78,7 +80,7 @@ After configuring paths, run `memsearch index` to build the initial database. Re
 
 A companion PM2 process (`memsearch-watch`, always-on) watches all session and working memory directories for changes and re-indexes on write with a 5-second debounce — so memories written during a session are searchable within seconds, not just after the nightly sync. See [Real-Time Indexing](#real-time-indexing) below.
 
-A companion PM2 job (`memsearch-compact`, runs as part of the nightly memory pipeline) uses an LLM to summarize and compress noisy session memory files. It reads a daily `.md` session file, calls the configured LLM to produce a condensed summary, and writes the output back to the same file. `memsearch-watch` picks up the rewritten file and re-indexes it, so searches against that day's session reflect the summarized version rather than the raw transcript. This is LLM-powered content compaction — not database-level compaction. See [`pm2/ecosystem.config.js.example`](../../pm2/ecosystem.config.js.example) for the job definition.
+A companion PM2 job (`memsearch-compact`, runs as part of the nightly memory pipeline) uses an LLM to summarize and compress noisy session memory files. It processes two locations: all per-project session stores (`~/.claude/projects/*/.memsearch/memory/`) and the global session store (`~/.memsearch/memory/`). For each, it compacts today's and yesterday's `.md` files — calls the configured LLM to produce a condensed summary and writes it back to the same file. `memsearch-watch` picks up the rewritten file and re-indexes it, so searches reflect the summarized version rather than the raw transcript. This is LLM-powered content compaction — not database-level compaction. `OLLAMA_HOST` must be set for this script too (see note above). See [`pm2/ecosystem.config.js.example`](../../pm2/ecosystem.config.js.example) for the job definition.
 
 ## Reranker (new in 0.2.x)
 
