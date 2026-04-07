@@ -183,6 +183,10 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 
 **Unreleased (after v3.0.2)**
 
+- Refactored from single 973-line `index.ts` to 9 focused modules — no behavior or tool changes
+- SSRF fix: `assertPublicUrl()` now correctly blocks IPv6 private addresses (`::1`, `fc00::/7`, `fe80::/10`); prior versions only validated IPv4
+- Vitest test scaffold added: 37 tests covering domain filtering, cache, SSRF validation, URL normalization, and parameter coercion
+
 - Crawl4AI fetch adapter as second-tier fallback (`CRAWL4AI_URL` env var); uses `markdown.raw_markdown` for clean extraction on JS-heavy or Firecrawl-failing pages
 - `CRAWL4AI_API_TOKEN` env var — optional Bearer token for Crawl4AI instances with API protection
 - Raw HTTP fetch as third-tier fallback — ensures fetch never fails silently
@@ -224,6 +228,44 @@ Phase 5 — Domain filtering
 - Hot-reload via `fs.watchFile` (5s poll) — no restart needed
 - `domain_profile` parameter added to all tools
 - Two built-in profiles: `homelab`, `dev`
+
+## Architecture
+
+The server is organized as 9 focused modules (refactored from a single 973-line `index.ts`):
+
+| Module | Responsibility |
+|--------|---------------|
+| `index.ts` | MCP server entry point and tool registration |
+| `search.ts` | SearXNG query execution and result parsing |
+| `rerank.ts` | ML reranking via local reranker endpoint |
+| `domain-filter.ts` | Domain boost/block logic and `domains.json` hot-reload |
+| `cache.ts` | Valkey read/write with namespaced TTLs |
+| `fetch.ts` | Fetch cascade (Firecrawl → Crawl4AI → raw HTTP) |
+| `expand.ts` | Query expansion via Ollama qwen3:4b |
+| `summarize.ts` | Search summarization via Ollama qwen3:14b |
+| `security.ts` | URL validation including SSRF protection |
+
+## Security
+
+### SSRF Protection
+
+All user-supplied URLs pass through `assertPublicUrl()` before any outbound request. This function blocks requests to:
+
+- RFC 1918 private IPv4 ranges (`10.x`, `172.16–31.x`, `192.168.x`)
+- IPv6 private/loopback addresses (`::1`, `fc00::/7`, `fe80::/10`)
+- Link-local and loopback ranges
+
+The IPv6 blocking was a pre-existing gap (prior versions only validated IPv4 private ranges). Fixed in the 2026-04-07 refactor.
+
+## Testing
+
+A Vitest test scaffold was added in the 2026-04-07 refactor — 37 tests covering the core modules. Run with:
+
+```bash
+pnpm test
+```
+
+Tests live in `src/__tests__/`. Coverage includes: domain filtering, cache key generation, SSRF validation (IPv4 and IPv6), URL normalization, and `expand` parameter coercion.
 
 ## Related Docs
 
