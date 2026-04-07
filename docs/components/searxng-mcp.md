@@ -2,7 +2,7 @@
 
 MCP server providing web search via a self-hosted SearXNG instance, with ML reranking, Valkey result caching, and domain filtering. Agents use this instead of the built-in `WebSearch` tool — private, no per-query API costs, and results are shaped by configurable domain boost/block lists.
 
-**Version:** 3.0.0
+**Version:** 3.2.0
 
 ## Tools
 
@@ -114,6 +114,19 @@ searxng-mcp-cache  (valkey/valkey:8-alpine, port 127.0.0.1:6381)
 
 `VALKEY_URL` is injected via the MCP server config in `~/.claude/settings.json`.
 
+## Reranking
+
+Results from SearXNG are reranked by a local cross-encoder model before being returned. As of v3.2.0, the reranker blends two signals:
+
+- **Cross-encoder score** — relevance of the result to the query
+- **Recency decay** — exponential decay based on `publishedDate`: `exp(-ageDays / 90)`, so a 90-day-old result has ~37% of a same-day result's recency weight
+
+The blend is: `finalScore = crossEncoderScore * (1 - weight) + recencyScore * weight`, where `weight` defaults to `0.15` (`RERANK_RECENCY_WEIGHT`).
+
+Recency weighting is **skipped** when `time_range` is set — if the agent has already filtered by date, adding decay is redundant.
+
+If the reranker is unavailable, results fall back to raw SearXNG ordering (no decay applied).
+
 ## Domain Filtering
 
 `domains.json` at the repo root configures boost and block lists. The file is hot-reloaded every 5 seconds — no server restart needed.
@@ -172,6 +185,7 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 | `CRAWL4AI_URL` | `` (empty) | Crawl4AI URL for second-tier fetch fallback. If empty, Crawl4AI is skipped and raw HTTP is used directly. |
 | `CRAWL4AI_API_TOKEN` | `` (empty) | Optional Bearer token for Crawl4AI API authentication. Sent as `Authorization: Bearer` header when set. |
 | `RERANKER_URL` | `http://localhost:8787` | Local ML reranker endpoint |
+| `RERANK_RECENCY_WEIGHT` | `0.15` | Blend weight for recency decay (0–1). Set to `0` to disable. Ignored when `time_range` is set. |
 | `VALKEY_URL` | `redis://localhost:6381` | Valkey connection URL |
 | `CACHE_TTL_SECONDS` | `3600` | Search result cache TTL |
 | `FETCH_CACHE_TTL_SECONDS` | `86400` | Fetched page cache TTL |
@@ -181,17 +195,24 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 
 ## Changelog
 
-**Unreleased (after v3.0.2)**
+**v3.2.0 (2026-04-07)**
 
-- Refactored from single 973-line `index.ts` to 9 focused modules — no behavior or tool changes
-- SSRF fix: `assertPublicUrl()` now correctly blocks IPv6 private addresses (`::1`, `fc00::/7`, `fe80::/10`); prior versions only validated IPv4
-- Vitest test scaffold added: 37 tests covering domain filtering, cache, SSRF validation, URL normalization, and parameter coercion
+- Recency weighting in reranker: exponential decay `exp(-ageDays/90)` blended with cross-encoder score at weight `0.15` (`RERANK_RECENCY_WEIGHT`)
+- Skipped when `time_range` is set — date-filtered queries don't benefit from additional decay
+
+**v3.1.0 (2026-04-07)**
 
 - Crawl4AI fetch adapter as second-tier fallback (`CRAWL4AI_URL` env var); uses `markdown.raw_markdown` for clean extraction on JS-heavy or Firecrawl-failing pages
 - `CRAWL4AI_API_TOKEN` env var — optional Bearer token for Crawl4AI instances with API protection
 - Raw HTTP fetch as third-tier fallback — ensures fetch never fails silently
 - `expand` parameter coercion fixed to `z.coerce.boolean()` — prevents MCP serialization errors when `true` is passed as `"true"`
-- Fetch cascade falls through to Crawl4AI on empty Firecrawl response (bot-blocked pages return `success: true` with empty content; empty-content check now triggers cascade, not only exceptions)
+- Fetch cascade falls through to Crawl4AI on empty Firecrawl response
+- SSRF fix: `assertPublicUrl()` now correctly blocks IPv6 private addresses (`::1`, `fc00::/7`, `fe80::/10`)
+
+**Unreleased**
+
+- Refactored from single 973-line `index.ts` to 9 focused modules — no behavior or tool changes
+- Vitest test scaffold added: 37 tests covering domain filtering, cache, SSRF validation, URL normalization, and parameter coercion
 
 **v3.0.2 (2026-04-04)**
 
@@ -237,7 +258,7 @@ The server is organized as 9 focused modules (refactored from a single 973-line 
 |--------|---------------|
 | `index.ts` | MCP server entry point and tool registration |
 | `search.ts` | SearXNG query execution and result parsing |
-| `rerank.ts` | ML reranking via local reranker endpoint |
+| `rerank.ts` | ML reranking with recency decay blending via local reranker endpoint |
 | `domain-filter.ts` | Domain boost/block logic and `domains.json` hot-reload |
 | `cache.ts` | Valkey read/write with namespaced TTLs |
 | `fetch.ts` | Fetch cascade (Firecrawl → Crawl4AI → raw HTTP) |
