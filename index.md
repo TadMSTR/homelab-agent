@@ -11,6 +11,7 @@ homelab-agent/
 ├── docs/
 │   ├── architecture.md                # Detailed system architecture, data flows, network topology
 │   ├── getting-started.md             # Setup order, prerequisites, stopping points
+│   ├── decisions.md                   # Architecture decisions — major choices and the reasoning behind them
 │   └── components/
 │       ├── README.md                      # Component docs overview — layer table, component inventory
 │       ├── swag.md                    # SWAG reverse proxy, Cloudflare DNS, proxy conf pattern
