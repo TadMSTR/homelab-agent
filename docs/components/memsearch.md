@@ -29,6 +29,14 @@ The database is derived — it rebuilds from the source markdown files. If the i
 - Claude Code CLI (for the plugin integration)
 - Markdown memory files to index (created by Claude Code agents during sessions)
 
+**If using `compact` with the `anthropic` provider** (the default config), you must separately install the `anthropic` package. memsearch does not declare it as a dependency — it's imported lazily inside `_compact_anthropic()`, so installation succeeds silently and the missing package only surfaces on the first real compaction run:
+
+```bash
+pip install anthropic --break-system-packages
+```
+
+memsearch runs under system Python (`~/.local`), so `--break-system-packages` is required. After any memsearch install or upgrade, re-run this command to ensure it's present.
+
 ## Configuration
 
 memsearch configuration lives at `~/.memsearch/config.toml`. The 0.2.x format uses `[embedding]`, `[reranker]`, and `[compact]` sections:
@@ -121,6 +129,8 @@ The script (`~/.claude/scripts/memsearch-watch.sh`) uses `find` at startup to co
 **memory-sync agent:** memsearch captures the **session tier** — raw session summaries auto-written by the Stop hook. The nightly memory-sync job (see [memory-sync](memory-sync.md)) scans these session notes and promotes durable items to the **working tier** (`~/.claude/memory/`). Working notes that pass the "would this matter in 3 months?" test are further promoted to the **distilled tier** (context repo). The flow across tiers: session (memsearch auto-capture) → working (memory-sync promotion) → distilled (memory-sync distillation) → qmd indexes distilled output for long-term search.
 
 ## Gotchas and Lessons Learned
+
+**`compact` silently fails if the `anthropic` package is missing.** memsearch 0.2.2 does not declare `anthropic` as a package dependency. The import lives inside `_compact_anthropic()` and is only executed when compaction actually runs against a file with chunks — not at import time. So `pip install memsearch` succeeds, the process starts without error, and the missing dependency only surfaces on the first real compaction job. Symptom: `memsearch-compact` logs show a `ModuleNotFoundError: No module named 'anthropic'` mid-run. Fix: `pip install anthropic --break-system-packages`. Re-run after any memsearch upgrade.
 
 **Embedding is remote — Ollama availability matters.** memsearch now uses a remote Ollama instance for embeddings (bge-m3 via GPU). If the Ollama host is unreachable, `memsearch-watch` will fail silently on each file change — writes to memory directories still succeed, but the index won't update until Ollama is back. Check `pm2 logs memsearch-watch` if searches feel stale. A local fallback is not configured; if you need offline embedding, switch `provider` back to `onnx` and run `memsearch reset && memsearch index`.
 
