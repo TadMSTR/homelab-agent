@@ -14,7 +14,7 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 **ntfy-mcp** — New FastMCP server for ntfy push notifications. One tool: `send_notification` with full ntfy header support (title, priority, tags, markdown, click URL, icon). Runs as a Docker container (port 8484). Wired into both Claude Code (`~/.claude/settings.json`) and LibreChat (`librechat.yaml`). Replaces ad-hoc curl invocations in agent workflows — every agent now has a native `send_notification` tool call.
 
-**LibreChat MCP sidecar containers** — Two new always-on containers added to the LibreChat Docker stack. `librechat-grafana-mcp` runs the official `mcp/grafana` server in streamable-http mode, exposing Grafana dashboard management and query tools to LibreChat agents. `librechat-backrest-mcp` wraps the `backrest-mcp-server` stdio binary via SuperGateway, giving LibreChat agents access to Backrest backup operations (trigger plans, fetch history) — same server as the Claude Desktop MCP integration, now available in-chat.
+**Grafana and Backrest MCP servers (HTTP mode)** — `mcp/grafana` and `backrest-mcp-server` deployed as always-on HTTP containers for use with Claude Desktop and Claude Code via CloudCLI. `grafana-mcp` runs the official Grafana MCP in streamable-http mode. `backrest-mcp` wraps the stdio `backrest-mcp-server` via SuperGateway to expose it over HTTP. Both co-located in the librechat compose stack for network convenience; no LibreChat integration.
 
 ---
 
