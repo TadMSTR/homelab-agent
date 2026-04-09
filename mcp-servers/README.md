@@ -169,6 +169,45 @@ directly; LibreChat containers reach it via `host.docker.internal`.
 **Standalone value:** Essential. This is the minimum viable MCP server for
 infrastructure work. The HTTP transport means multiple clients can share it
 without fighting over a stdio subprocess.
+---
+
+### pm2-mcp
+
+**Purpose:** Structured read and limited write access to PM2 services — list processes, get details, tail logs, restart, stop, start.
+
+**Built by:** me — FastMCP (Python) server that speaks directly to `pm2 jlist` rather than parsing human-readable output.
+
+**GitHub:** https://github.com/TadMSTR/pm2-mcp
+
+**Why it's here:** Shell-level PM2 inspection via homelab-ops works, but it means parsing `pm2 status` output or writing ad-hoc jq. pm2-mcp returns typed fields from `pm2 jlist` directly, validates service names before any write operation, and runs as a localhost-only HTTP service managed by PM2 itself.
+
+**Tools:**
+
+| Tool | Description |
+|------|-------------|
+| `list_services` | List all PM2 services with status, PID, CPU, and memory. Optional `status_filter`: `"online"`, `"stopped"`, or `"errored"`. |
+| `get_service` | Full detail for one service — script path, cwd, args, log paths, created_at. |
+| `get_logs` | Tail recent log output. Defaults: 50 lines, errors included. |
+| `restart_service` | Restart a service. Validates name first — returns `{ok: false}` if not found. |
+| `stop_service` | Stop a service without removing it from the PM2 process list. |
+| `start_service` | Resume a stopped service already registered in PM2. |
+
+**Transport:** Streamable-HTTP on `127.0.0.1:8486`, managed by PM2. Localhost-only — not exposed externally or to Docker networks.
+
+**Config pattern (Claude Code `settings.json`):**
+```json
+{
+  "pm2": {
+    "type": "streamable-http",
+    "url": "http://127.0.0.1:8486/mcp"
+  }
+}
+```
+
+**Security:** No authentication by default — localhost only. Write tools validate service names before acting. Don't proxy this externally.
+
+**Standalone value:** Medium-high. If you manage services with PM2, this removes the need to shell out for process status. The read tools are safe for any agent; scope the write tools (restart/stop/start) to agents that actually need them.
+
 
 ---
 
@@ -407,14 +446,18 @@ three self-hosted services that together form a full search pipeline:
 2. **Reranker** — a local ms-marco-MiniLM-L-12-v2 model that reranks search results by relevance to the query, so Claude sees the best matches first
 3. **Firecrawl-simple** — scrapes full page content from URLs and returns clean markdown, used by `fetch_url` and `search_and_fetch`
 
-Three tools: `search` (query with category/engine filters, results reranked),
-`fetch_url` (scrape a URL via Firecrawl, returns markdown), and
-`search_and_fetch` (search + rerank + fetch top results in one call).
+Four tools: `search` (query with category/engine filters, results reranked),
+`fetch_url` (scrape a URL, returns markdown), `search_and_fetch` (search + rerank +
+fetch top results in one call), and `search_and_summarize` (search + fetch + Ollama
+synthesis into a structured answer with sources).
 
-**Prerequisites:** Three Docker stacks running on the same network — SearXNG
-(see [component doc](../docs/components/searxng.md)), Firecrawl-simple
-(Trieve's lightweight Firecrawl fork), and a reranker service. All communicate
-over `claudebox-net`.
+The fetch pipeline uses a three-tier cascade: Firecrawl-simple → Crawl4AI → raw HTTP.
+Each tier is skipped if unavailable, so `fetch_url` never fails silently.
+
+**Prerequisites:** SearXNG (see [component doc](../docs/components/searxng.md)),
+Firecrawl-simple (Trieve's lightweight fork), Crawl4AI, and a reranker service —
+all running on the same Docker network (`claudebox-net`). Ollama is required for
+`search_and_summarize` but optional otherwise.
 
 **Config pattern (Claude Code `settings.json`):**
 ```json
@@ -428,6 +471,39 @@ over `claudebox-net`.
 
 **Standalone value:** High. If you self-host SearXNG, this gives any Claude Code
 session private web search with zero API costs.
+
+---
+
+### ntfy-mcp
+
+**Purpose:** Send push notifications via ntfy from any Claude agent — no shell access required.
+
+**Built by:** me — FastMCP (Python), stateless HTTP proxy between agents and an ntfy instance.
+
+**GitHub:** https://github.com/TadMSTR/ntfy-mcp
+
+**Why it's here:** Every automated workflow on claudebox already uses ntfy for push notifications (memory pipeline completions, backup results, agent alerts), but agents had to use `run_command` to fire curl. This gives every Claude Code and LibreChat session a native `send_notification` tool call.
+
+**Tool:**
+
+| Tool | Description |
+|------|-------------|
+| `send_notification` | Send a push notification with optional title, priority, tags, Markdown body, click URL, and icon. |
+
+**Transport:** Streamable-HTTP, runs as a Docker container on port 8484. Claude Code connects via `localhost`; LibreChat containers via `host.docker.internal`.
+
+**Config pattern (Claude Code `settings.json`):**
+```json
+{
+  "ntfy": {
+    "type": "streamable-http",
+    "url": "http://localhost:8484/mcp"
+  }
+}
+```
+
+**Standalone value:** High. If you already run ntfy for push notifications, this is a 10-minute integration. Stateless — no database, nothing to maintain.
+
 
 ---
 
@@ -462,12 +538,16 @@ all from a LibreChat agent.
 **GitHub:** https://github.com/TadMSTR/jobsearch-mcp
 
 **Why it's here:** A personal project that turned into a good example of building
-a non-trivial FastMCP server with Postgres persistence, vector search (Qdrant),
-and per-user state in a multi-user LibreChat environment.
+a non-trivial FastMCP server with Postgres persistence, local vector search (Qdrant +
+Ollama bge-m3 embeddings), and per-user state in a multi-user LibreChat environment.
+v2 added a Resume Profile system — agents can store a resume, extract structured criteria,
+and score job listings against the profile using semantic similarity.
 
 **Standalone value:** Medium. Useful if you're job hunting and want to aggregate
 searches across Adzuna, Remotive, WeWorkRemotely, Jobicy, and LinkedIn from a
-single interface. Requires Postgres and optionally Qdrant for semantic matching.
+single interface. Requires Postgres, Qdrant, and Ollama (bge-m3 model) for semantic
+matching and resume scoring. v1→v2 upgrade requires dropping and recreating the
+Qdrant collection (embedding dimensions changed).
 
 ---
 
@@ -516,10 +596,12 @@ You don't need all of these. Here's a prioritized adoption path:
 
 **Add as needed:**
 11. Playwright — browser automation
-12. Backrest — backup management (if you use Backrest/restic)
-13. Fluxer — chat bot for Fluxer platform (shelved, community use case)
-14. jobsearch-mcp — job search and application tracking
-15. Bluesky — social media (niche use case)
+12. pm2-mcp — PM2 process inspection and management (if you use PM2)
+13. ntfy-mcp — push notifications from agents (if you run ntfy)
+14. Backrest — backup management (if you use Backrest/restic)
+15. Fluxer — chat bot for Fluxer platform (shelved, community use case)
+16. jobsearch-mcp — job search and application tracking
+17. Bluesky — social media (niche use case)
 
 ## Notes on MCP Transport
 
@@ -533,8 +615,8 @@ which is useful when:
 - The server needs to run as a long-lived service (managed by PM2)
 - You want to expose the server on the network
 
-homelab-ops, SearXNG MCP, and qmd (in HTTP mode) all run as PM2 services with
-HTTP transport. LibreChat containers reach them via `host.docker.internal`;
+homelab-ops, pm2-mcp, SearXNG MCP, and qmd (in HTTP mode) all run as PM2 services
+with HTTP transport. ntfy-mcp runs as a Docker container with HTTP transport. LibreChat containers reach them via `host.docker.internal`;
 Claude Code connects directly to `localhost`. See the `pm2/` directory for
 ecosystem config examples.
 
