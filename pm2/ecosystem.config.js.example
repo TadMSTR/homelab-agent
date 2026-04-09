@@ -2,7 +2,7 @@
 //
 // PM2 manages long-running services and scheduled jobs on the AI host.
 // Services fall into two categories:
-//   - Always-on: daemons that run continuously (qmd, cui)
+//   - Always-on: daemons that run continuously (qmd, cloudcli)
 //   - Scheduled: cron jobs that run at set intervals, then stop (backups, syncs, monitors)
 //
 // Install PM2: npm install -g pm2
@@ -31,17 +31,6 @@ module.exports = {
         QMD_HOST: "0.0.0.0",   // Bind to all interfaces (needed if other hosts connect)
       },
       autorestart: true,        // Restart if it crashes
-      max_restarts: 10,
-    },
-
-    {
-      // Claude Code web UI — browser-based terminal for Claude Code sessions
-      // with push notifications for long-running tasks.
-      // See: https://github.com/wbopan/cui
-      name: "cui",
-      script: "/usr/bin/cui-server",  // Adjust to your install path
-      interpreter: "/usr/bin/node",
-      autorestart: true,
       max_restarts: 10,
     },
 

@@ -20,7 +20,6 @@ PM2 manages both always-on daemons and scheduled cron jobs on the host. The ecos
 | memsearch-watch | Re-indexes all memory directories within 5 seconds of any write — keeps semantic search current in real time |
 | task-dispatcher | Routes submitted tasks between agents — auto-approves low-risk, gates medium/high via ntfy; runs every 2 minutes |
 | cloudcli | Claude Code browser UI — file explorer, multi-session tabs, git integration, shell terminal (port 3004) |
-| cui | Claude Code web UI — headless browser-based terminal sessions |
 | agent-panel | Lightweight operations panel — PM2 services, Docker containers, diagnostics, file browser |
 
 ---

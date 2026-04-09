@@ -172,7 +172,6 @@ depUpdates: {
   sidecarPath: '/home/YOUR_USER/.local/share/logs/dep-updates-latest.json',
   safeUpdateCommands: [
     'npm install -g qmd@latest',
-    'npm install -g cui-server@latest',
     // add commands for deps you're comfortable auto-updating
   ],
   pinned: {
@@ -205,7 +204,7 @@ The diagnostics system is driven entirely by `config/config.js`. Key fields:
 ```js
 diagnostics: {
   expectedContainers: ['swag', 'authelia', ...],  // must be running
-  expectedPM2: ['qmd', 'cui', 'agent-panel', ...], // must be online
+  expectedPM2: ['qmd', 'agent-panel', ...], // must be online
   nfsMounts: ['/mnt/storage/backup'],              // must be mounted
   expectedPorts: [{ port: 443, label: 'swag' }, ...],
   tlsCertPath: '/path/to/fullchain.pem',

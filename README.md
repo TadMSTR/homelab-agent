@@ -270,7 +270,7 @@ To run the full stack, you need:
 - A dedicated machine (mini PC, old desktop, VM — 16GB+ RAM recommended, 32GB if running local models via Ollama)
 - Debian/Ubuntu (or any Linux with Docker support)
 - Docker CE + Compose
-- Node.js 20+ and npm (for qmd, cui, MCP servers)
+- Node.js 20+ and npm (for qmd, MCP servers)
 - Python 3.11+ (for memsearch)
 - A [Claude Pro or Max subscription](https://claude.ai) (for Claude Desktop + Claude Code)
 - An Anthropic API key (for LibreChat)
@@ -299,7 +299,6 @@ homelab-agent/
 │       ├── cloudcli.md              ← Claude Code web UI — file explorer, git, shell, MCP management
 │       ├── auto-mode.md             ← Walk-away Claude Code config — approval skip, session limits, cost guardrails
 │       ├── helm-dashboard.md        ← CloudCLI monitoring plugin — agent sessions, handoff queue, live updates
-│       ├── cui.md                   ← Claude Code web UI — headless monitoring, push notifications
 │       ├── agent-panel.md           ← Homelab operations panel — PM2, Docker, diagnostics, files
 │       ├── diag-check.md            ← Scheduled diagnostics via agent panel API, failure alerts
 │       ├── grafana-claudebox.md     ← Local Grafana + InfluxDB for agent observability
@@ -376,7 +375,6 @@ homelab-agent/
 | [TadMSTR/unraid-mcp-server](https://github.com/TadMSTR/unraid-mcp-server) | Unraid MCP server — array status, disk health, Docker, shares via GraphQL |
 | [tobi/qmd](https://github.com/tobi/qmd) | Semantic search engine with MCP server mode — hybrid BM25 + vector + LLM reranking |
 | [siteboon/claudecodeui](https://github.com/siteboon/claudecodeui) | CloudCLI — Claude Code browser UI with file explorer, multi-session tabs, and notifications |
-| [wbopan/cui](https://github.com/wbopan/cui) | CUI — Claude Code web UI with browser-based terminal sessions |
 | [danny-avila/LibreChat](https://github.com/danny-avila/LibreChat) | Multi-provider chat interface with agents, MCP, memory, and RAG |
 | [zilliztech/memsearch](https://github.com/zilliztech/memsearch) | Semantic memory search for markdown knowledge bases — Claude Code plugin for session recall |
 | [letta-ai/letta](https://github.com/letta-ai/letta) | Stateful AI agent framework with multi-tier memory system — discovering it prompted refinements to this stack's memory pipeline |

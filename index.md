@@ -23,7 +23,6 @@ homelab-agent/
 │       ├── dockhand.md                # Dockhand Docker stack manager, socket access
 │       ├── open-notebook.md           # Open Notebook AI research, SurrealDB, dual-port proxy
 │       ├── cloudcli.md                # CloudCLI web UI — file explorer, git, shell, MCP management
-│       ├── cui.md                     # CUI web UI — headless agent monitoring, push notifications
 │       ├── agent-panel.md             # Homelab operations panel — PM2, Docker, diagnostics, files
 │       ├── agent-workspace-check.md   # Pre-edit workspace access resolver
 │       ├── agent-workspace-scan.md    # Hourly workspace manifest validation + self-healing
@@ -109,7 +108,6 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Docker management (Dockhand) | `docs/components/dockhand.md`, `docker/dockhand/` | Claude Code, MCP |
 | AI notebook (Open Notebook) | `docs/components/open-notebook.md`, `docker/open-notebook/` | Claude Code, MCP |
 | Claude Code browser UI (CloudCLI) | `docs/components/cloudcli.md` | Docker, MCP |
-| Claude Code browser UI (CUI) | `docs/components/cui.md` | Docker, MCP |
 | Homelab operations panel | `docs/components/agent-panel.md` | Docker compose, MCP |
 | Scheduled diagnostics | `docs/components/diag-check.md`, `docs/components/agent-panel.md` | Docker compose, MCP |
 | Agent observability (Grafana) | `docs/components/grafana-claudebox.md` | MCP, Claude Code |
@@ -144,8 +142,8 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | "I want to deploy LibreChat with web search" | `docs/components/librechat.md` — then `docker/librechat/` and `docker/firecrawl-simple/` |
 | "I want to set up reverse proxy + SSO" | `docs/components/swag.md` → `docs/components/authelia.md` — then `docker/swag/` and `docker/authelia/` |
 | "I want to deploy SearXNG" | `docs/components/searxng.md` |
-| "I want a browser-based Claude Code UI" | `docs/components/cloudcli.md` (interactive sessions, file explorer) or `docs/components/cui.md` (headless monitoring, push notifications) |
-| "I want to monitor headless agent runs" | `docs/components/cui.md` — then `docs/components/agent-panel.md` for the operations panel |
+| "I want a browser-based Claude Code UI" | `docs/components/cloudcli.md` — interactive sessions, file explorer, git integration |
+| "I want to monitor headless agent runs" | `docs/components/agent-panel.md` — operations panel for PM2 services, Docker, diagnostics |
 | "I want project/task tracking for homelab builds" | `docs/components/plane.md` — Plane setup, MCP integration, SWAG multi-path proxy |
 | "I want a live dashboard for unattended agent builds" | `docs/components/helm-dashboard.md` — CloudCLI plugin; then `docs/components/auto-mode.md` for walk-away permission config |
 | "I want durable workflow execution for multi-phase builds" | `docs/components/temporal.md` — then `docs/components/agent-orchestration.md` for the task queue and dispatcher |
@@ -179,7 +177,6 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/dockhand.md` | ✅ Complete | 2026-03 |
 | `docs/components/open-notebook.md` | ✅ Complete | 2026-03 |
 | `docs/components/cloudcli.md` | ✅ Complete | 2026-03 |
-| `docs/components/cui.md` | ✅ Complete | 2026-03 |
 | `docs/components/agent-panel.md` | ✅ Complete | 2026-03 |
 | `docs/components/agent-workspace-check.md` | ✅ Complete | 2026-03 |
 | `docs/components/agent-workspace-scan.md` | ✅ Complete | 2026-03 |
@@ -238,7 +235,6 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Dockhand | [`docs/components/dockhand.md`](docs/components/dockhand.md) | — | `docker/dockhand/docker-compose.yml` |
 | Open Notebook | [`docs/components/open-notebook.md`](docs/components/open-notebook.md) | — | `docker/open-notebook/docker-compose.yml` |
 | CloudCLI | [`docs/components/cloudcli.md`](docs/components/cloudcli.md) | — | (PM2 host service) |
-| CUI | [`docs/components/cui.md`](docs/components/cui.md) | — | (PM2 host service) |
 | Agent Panel | [`docs/components/agent-panel.md`](docs/components/agent-panel.md) | — | (PM2 host service) |
 | Agent Workspace Check | [`docs/components/agent-workspace-check.md`](docs/components/agent-workspace-check.md) | — | (Skill / pre-edit hook) |
 | Agent Workspace Scan | [`docs/components/agent-workspace-scan.md`](docs/components/agent-workspace-scan.md) | — | (PM2 cron job) |

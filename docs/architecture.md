@@ -82,7 +82,6 @@ Docker bridge network (claudebox-net):
   │     ├── → librechat:3080
   │     ├── → dockhand:3000
   │     ├── → open-notebook:8502
-  │     └── → cui:3001 (host service, via host.docker.internal)
   ├── authelia
   ├── librechat + mongodb + meilisearch
   │     └── → host:8181 (qmd HTTP, for RAG)
