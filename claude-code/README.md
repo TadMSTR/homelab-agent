@@ -14,6 +14,7 @@ Templates and examples for setting up Claude Code with structured context and sc
 | dev | [dev.md](projects/dev.md) | Code development, git workflows, repo conventions |
 | research | [research.md](projects/research.md) | Technical research, findings format, knowledge capture |
 | memory-sync | [memory-sync.md](projects/memory-sync.md) | Automated knowledge distillation from agent memory |
+| security | [security.md](projects/security.md) | Post-build security audits, findings triage, action plan routing |
 
 ## How It Works
 

@@ -10,7 +10,7 @@ Utility scripts for backup, monitoring, reindexing, and maintenance. Most are ex
 | [docker-stack-backup.sh](docker-stack-backup.sh) | docker-stack-backup | Discovers Compose stacks, stops containers, archives appdata + compose files, restarts. Supports dry-run, configurable compression, retry logic, and notifications (ntfy, Pushover, email). |
 | [memory-sync.sh](memory-sync.sh) | memory-sync | Runs Claude Code in headless mode to distill durable knowledge from agent memory and LibreChat conversations into the context repo. |
 | [qmd-reindex.sh](qmd-reindex.sh) | qmd-reindex | Pulls latest from all configured git repos and re-runs `qmd index` to refresh the semantic search index. |
-| [check-qmd-repos.sh](check-qmd-repos.sh) | qmd-repo-check | Scans the personal repos directory for repos not yet in the QMD index. Repos matching configured keywords (`claude`, `mcp`, etc.) are auto-added to `~/.config/qmd/index.yml` and a reindex is triggered. Everything else is reported via push notification for manual review. State is tracked so repeat notifications are suppressed until the unindexed set changes. |
+| [check-qmd-repos.sh](check-qmd-repos.sh) | qmd-repo-check | Scans the personal repos directory for git repos not yet in the QMD index. Auto-adds each new repo to `~/.config/qmd/index.yml` with a default file pattern and triggers a reindex. Sends a push notification listing what was added. |
 | [check-resources.sh](check-resources.sh) | resource-monitor | Checks RAM, disk, Docker health, PM2 status, and NFS mount availability. Alerts via push notification if thresholds are exceeded. |
 | [check-dep-updates.sh](check-dep-updates.sh) | dep-update-check | Checks npm global packages, pip packages, Docker images, and Claude Code for available updates. |
 
