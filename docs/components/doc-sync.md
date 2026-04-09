@@ -23,7 +23,7 @@ doc-sync.py (PM2 cron, 3 AM daily)
   │    └─ write chunks to ~/.claude/memory/docs/<service>/
   │         (each chunk is a separate .md file with YAML frontmatter)
   │
-  └─ memsearch-watch picks up new/updated files within 5 seconds
+  └─ runs memsearch index on ~/.claude/memory/docs/
        → immediately searchable via memsearch or archival-search
 ```
 
@@ -120,7 +120,7 @@ python3 ~/scripts/doc-sync.py --dry-run
 
 ## How Agents Use It
 
-Cached docs are in `~/.claude/memory/docs/`, which memsearch-watch indexes continuously. Agents query them the same way they query any other memory:
+Cached docs are in `~/.claude/memory/docs/`, indexed into memsearch by doc-sync after each sync run. Agents query them the same way they query any other memory:
 
 ```bash
 # Direct memsearch query
@@ -148,7 +148,7 @@ Python 3.11+. No API keys, no GPU — doc-sync fetches from public URLs and runs
 
 **HTML quality varies.** Some documentation sites produce noisy markdown after html2text conversion — navigation menus, sidebars, and footer links end up in chunks. Prefer raw markdown URLs when available. If a service's cached chunks look noisy, switching its URL to a GitHub raw source usually fixes it.
 
-**memsearch-watch must be running.** New and updated cache files are only indexed if `memsearch-watch` is active. Check with `pm2 list`. If it's down, run `memsearch index` manually to rebuild from the cache directory.
+**`--service` skips the memsearch index step.** Running `doc-sync.py --service <name>` syncs only that service and does not re-index — a partial index would leave other services' stale chunks untouched but also miss the updated chunks. After a targeted sync, run `memsearch index ~/.claude/memory/docs` manually to update the index.
 
 ## Related Docs
 

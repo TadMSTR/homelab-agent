@@ -7,7 +7,7 @@ It sits in [Layer 1](../../README.md#layer-1--host--core-tooling) alongside home
 - **Source:** `~/repos/personal/pm2-mcp/server.py`
 - **Transport:** streamable-http (localhost only)
 - **Port:** 8486
-- **PM2 service:** id 25 (`pm2-mcp`)
+- **PM2 service:** id 26 (`pm2-mcp`)
 
 ## Why a Dedicated PM2 Server
 
@@ -62,18 +62,20 @@ For agents doing health checks or operational responses, pm2-mcp is the right to
 
 ## Configuration
 
-Claude Code `settings.json`:
+Claude Code CLI reads MCP servers from `~/.claude.json` (not `settings.json`):
 
 ```json
 {
   "mcpServers": {
     "pm2": {
-      "type": "streamable-http",
+      "type": "http",
       "url": "http://127.0.0.1:8486/mcp"
     }
   }
 }
 ```
+
+Note: use `"type": "http"` not `"type": "streamable-http"` in `~/.claude.json`, and bind to `127.0.0.1` explicitly — `localhost` resolves to IPv6 (`::1`) first on Debian, which will fail silently.
 
 pm2-mcp is **not** wired into LibreChat — it's localhost-only and there's no use case for LibreChat agents managing claudebox PM2 services directly.
 
