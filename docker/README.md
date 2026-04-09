@@ -10,11 +10,13 @@ All services share a single Docker bridge network. Secrets and environment-speci
 |-------|-----------|---------------|
 | [authelia/](authelia/) | Authelia SSO gateway | [docs/components/authelia.md](../docs/components/authelia.md) |
 | [dockhand/](dockhand/) | Dockhand Docker stack manager | [docs/components/dockhand.md](../docs/components/dockhand.md) |
-| [firecrawl-simple/](firecrawl-simple/) | Firecrawl API, Puppeteer, Redis, worker | [docs/components/librechat.md](../docs/components/librechat.md) (§Web Search Pipeline) |
-| [librechat/](librechat/) | LibreChat, MongoDB, Meilisearch | [docs/components/librechat.md](../docs/components/librechat.md) |
+| [firecrawl-simple/](firecrawl-simple/) | Firecrawl API, Puppeteer, Redis, worker | [docs/components/searxng.md](../docs/components/searxng.md) (§Web Search Pipeline) |
+| [jobsearch/](jobsearch/) | jobsearch-mcp, job-watcher, Postgres, Qdrant, Valkey | [docs/components/jobsearch-mcp.md](../docs/components/jobsearch-mcp.md) |
+| [librechat/](librechat/) | LibreChat, MongoDB, Meilisearch, LibreChat Exporter, optional MCP sidecars | [docs/components/librechat.md](../docs/components/librechat.md) |
+| [ntfy-mcp/](ntfy-mcp/) | ntfy-mcp notification server | [mcp-servers/README.md](../mcp-servers/README.md#ntfy-mcp) |
 | [open-notebook/](open-notebook/) | Open Notebook, SurrealDB | [docs/components/open-notebook.md](../docs/components/open-notebook.md) |
+| [reranker/](reranker/) | FlashRank reranker (custom build) | [docs/components/searxng.md](../docs/components/searxng.md) (§Rerank) |
 | [searxng/](searxng/) | SearXNG, Valkey | [docs/components/searxng.md](../docs/components/searxng.md) |
-| [reranker/](reranker/) | FlashRank reranker (custom build) | [docs/components/librechat.md](../docs/components/librechat.md) (§Rerank) |
 | [swag/](swag/) | SWAG reverse proxy | [docs/components/swag.md](../docs/components/swag.md) |
 
 ## Deployment Order

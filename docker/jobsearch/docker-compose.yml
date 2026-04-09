@@ -1,19 +1,26 @@
 # jobsearch-mcp Docker Stack
 #
-# Multi-board job search MCP server with per-user application tracking.
-# Three containers: the FastMCP server (local build), Postgres for tracking
-# state, and Qdrant for semantic job matching.
+# Multi-board job search MCP server with resume scoring and application tracking.
+# Five containers: the FastMCP server (local build), a background job-watcher,
+# Postgres for state, Qdrant for vector search, and Valkey for caching.
 #
-# The MCP server exposes a streamable-http endpoint on port 8383.
+# The MCP server exposes a streamable-HTTP endpoint on port 8383.
 # LibreChat reaches it via host.docker.internal — see docs/components/jobsearch-mcp.md
 # for the librechat.yaml wiring.
 #
+# Embeddings use Ollama bge-m3 running on the host — set OLLAMA_HOST to reach it.
+# Crawl4AI is used for job description fetching alongside Firecrawl (optional).
+#
 # Prerequisites:
-#   - Built image from source: docker compose build jobsearch-mcp
-#   - .env file with API keys (see .env.example in the source repo)
-#   - firecrawl-simple running and accessible (for job description fetching)
+#   - Built image from source: docker compose build jobsearch-mcp job-watcher
+#   - .env file with required vars (see source repo for .env.example)
+#   - Ollama running on the host with bge-m3 model pulled
+#   - claudebox-net Docker network already created
 #
 # Source repo: https://github.com/TadMSTR/jobsearch-mcp
+#
+# v1 → v2 upgrade note: drop and recreate the Qdrant collection — embedding
+# dimensions changed (Voyage → bge-m3).
 
 services:
   jobsearch-mcp:
@@ -26,16 +33,51 @@ services:
     environment:
       - POSTGRES_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@jobsearch-postgres:5432/jobsearch
       - QDRANT_URL=http://jobsearch-qdrant:6333
+      - VALKEY_URL=redis://jobsearch-valkey:6379
+      - OLLAMA_HOST=${OLLAMA_HOST}              # e.g., http://host.docker.internal:11434
+      - OLLAMA_EMBED_MODEL=${OLLAMA_EMBED_MODEL:-bge-m3}
       - ADZUNA_APP_ID=${ADZUNA_APP_ID}
       - ADZUNA_APP_KEY=${ADZUNA_APP_KEY}
       - FIRECRAWL_URL=${FIRECRAWL_URL}
-      - VOYAGE_API_KEY=${VOYAGE_API_KEY}
+      - CRAWL4AI_URL=${CRAWL4AI_URL:-http://host.docker.internal:11235}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - USAJOBS_API_KEY=${USAJOBS_API_KEY:-}
+      - USAJOBS_EMAIL=${USAJOBS_EMAIL:-}
+      - FINDWORK_API_KEY=${FINDWORK_API_KEY:-}
       - MCP_PORT=8383
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       jobsearch-postgres:
         condition: service_healthy
       jobsearch-qdrant:
+        condition: service_started
+      jobsearch-valkey:
+        condition: service_started
+    networks:
+      - jobsearch-net
+      - claudebox-net
+    restart: unless-stopped
+
+  job-watcher:
+    build:
+      context: /path/to/jobsearch-mcp  # Same source repo as jobsearch-mcp
+      dockerfile: Dockerfile
+    container_name: job-watcher
+    command: >
+      sh -c "while true; do python -m src.job_watcher; sleep ${JOB_WATCH_INTERVAL_SECONDS:-14400}; done"
+    env_file: job-watcher.env
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      jobsearch-postgres:
+        condition: service_healthy
+      jobsearch-valkey:
         condition: service_started
     networks:
       - jobsearch-net
@@ -68,6 +110,15 @@ services:
       - jobsearch-net
     restart: unless-stopped
 
+  jobsearch-valkey:
+    image: valkey/valkey:7-alpine
+    container_name: jobsearch-valkey
+    networks:
+      - jobsearch-net
+    restart: unless-stopped
+
 networks:
   jobsearch-net:
     name: jobsearch-net
+  claudebox-net:
+    external: true

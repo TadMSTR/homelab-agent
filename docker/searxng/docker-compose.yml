@@ -1,0 +1,65 @@
+# SearXNG Docker Stack
+#
+# Privacy-respecting meta-search engine with Valkey for rate limiting and caching.
+# SearXNG is bound to localhost (127.0.0.1:8081) — only accessible from the host
+# and containers on claudebox-net. Not exposed externally.
+#
+# Valkey is on a separate internal network — no external access needed.
+#
+# Prerequisites:
+#   - External Docker network (claudebox-net) already created
+#   - .env file with SEARXNG_SECRET
+#   - SearXNG settings.yml in /opt/appdata/searxng/searxng/
+#
+# See docs/components/searxng.md for full setup and searxng-mcp wiring.
+
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    volumes:
+      - /opt/appdata/searxng/searxng:/etc/searxng:rw
+    tmpfs:
+      - /var/cache/searxng:size=64m
+    environment:
+      - SEARXNG_SECRET=${SEARXNG_SECRET}
+      - SEARXNG_VALKEY_URL=valkey://valkey:6379/0
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
+    ports:
+      - "127.0.0.1:8081:8080"
+    networks:
+      - claudebox-net
+      - searxng-internal
+    depends_on:
+      - valkey
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: searxng-valkey
+    tmpfs:
+      - /data:size=64m
+    command: valkey-server --save "" --appendonly no
+    networks:
+      - searxng-internal
+    restart: unless-stopped
+
+networks:
+  claudebox-net:
+    external: true
+  searxng-internal:
+    # Internal-only network for SearXNG <-> Valkey communication

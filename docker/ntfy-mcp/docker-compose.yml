@@ -1,0 +1,33 @@
+# ntfy-mcp Docker Stack
+#
+# MCP server for sending push notifications via ntfy.
+# Exposes a streamable-HTTP endpoint on port 8484.
+# Claude Code connects via localhost; LibreChat containers via host.docker.internal.
+#
+# Prerequisites:
+#   - ntfy instance running (self-hosted or ntfy.sh)
+#   - claudebox-net Docker network already created
+#   - Source repo cloned: https://github.com/TadMSTR/ntfy-mcp
+#
+# See mcp-servers/README.md#ntfy-mcp for Claude Code and LibreChat wiring.
+
+services:
+  ntfy-mcp:
+    build:
+      context: /path/to/ntfy-mcp  # Path to cloned source repo
+      dockerfile: Dockerfile
+    container_name: ntfy-mcp
+    ports:
+      - "8484:8484"
+    environment:
+      - NTFY_URL=${NTFY_URL:-https://ntfy.sh}
+      - NTFY_DEFAULT_TOPIC=${NTFY_DEFAULT_TOPIC:-claudebox}
+      - NTFY_TOKEN=${NTFY_TOKEN:-}    # Leave empty for open instances
+      - MCP_PORT=8484
+    networks:
+      - claudebox-net
+    restart: unless-stopped
+
+networks:
+  claudebox-net:
+    external: true
