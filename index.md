@@ -116,6 +116,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Job search agent | `docs/components/jobsearch-mcp.md`, `docker/jobsearch/` | Claude Code, MCP |
 | Config version control | `docs/components/config-version-control.md` | MCP, Claude Code |
 | Claude Code / CLAUDE.md | `claude-code/CLAUDE.md.example`, `claude-code/projects/` | Docker, MCP |
+| PM2 MCP server | `docs/components/pm2-mcp.md` | Claude Code, MCP |
 | PM2 services / cron | `pm2/ecosystem.config.js.example` | Docker compose, MCP config |
 | Memory system | `README.md` (§The Memory / Context System), `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `docs/components/graphiti.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
 | Documentation health | `docs/components/doc-health.md` | Docker, MCP |
