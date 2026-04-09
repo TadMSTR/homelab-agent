@@ -37,6 +37,7 @@ homelab-agent/
 │       ├── doc-health.md              # Weekly doc audit — drift, coverage, staleness, sanitization
 │       ├── ai-cost-tracking.md        # Claude Code JSONL → Telegraf → InfluxDB → Grafana cost metrics
 │       ├── homelab-ops-mcp.md         # FastMCP HTTP tool server — shell, files, processes
+│       ├── pm2-mcp.md                 # PM2 process manager MCP — list, logs, restart/stop/start
 │       ├── config-version-control.md  # Git tracking for docker/ and appdata configs
 │       ├── jobsearch-mcp.md           # Multi-board job search, resume scoring, application tracking
 │       ├── agent-orchestration.md     # Task queue, agent manifests, dispatcher

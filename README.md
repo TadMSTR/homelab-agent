@@ -80,6 +80,7 @@ The foundation is a dedicated machine running Claude Desktop with MCP (Model Con
 | GitHub | Repo management, issues, PRs, code search across multiple accounts | Anthropic |
 | Grafana | Dashboard management, alert rules, Loki log queries, InfluxDB metrics | Grafana |
 | homelab-ops | Shell, file, and process operations over HTTP (Claude Code + LibreChat) | me |
+| pm2-mcp | PM2 process manager — list services, tail logs, restart/stop/start via structured `pm2 jlist` output (Claude Code) | me |
 | InfluxDB | Time-series queries and writes for Telegraf-shipped metrics | community |
 | jobsearch-mcp | Multi-board job search, resume scoring, application tracking (LibreChat) | me |
 | memsearch | Memory recall from past Claude Code sessions (plugin, not MCP) | community |
@@ -327,6 +328,7 @@ homelab-agent/
 │       ├── doc-health.md            ← Weekly doc audit — drift, coverage, staleness, sanitization
 │       ├── ai-cost-tracking.md      ← Claude Code JSONL parser, cost metrics, Telegraf pipeline
 │       ├── homelab-ops-mcp.md       ← FastMCP HTTP tool server — shell, files, processes
+│       ├── pm2-mcp.md               ← PM2 process manager MCP — list, log, restart/stop/start services
 │       ├── claudebox-deploy.md      ← Provisioning script — full machine rebuild from NFS backup
 │       ├── multi-host.md            ← Multi-host architecture — claudebox and remote build target coordination
 │       ├── config-version-control.md ← Git tracking for docker/ and appdata configs
