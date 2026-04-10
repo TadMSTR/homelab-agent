@@ -85,14 +85,14 @@ Transition a task's status and append a history entry. The server enforces valid
 
 | From | To |
 |------|----|
-| `approved` | `working` |
-| `working` | `completed` |
+| `approved` | `in-progress` |
+| `in-progress` | `completed` |
 | Any non-terminal | `failed` |
 
-Non-terminal states: `submitted`, `pending-approval`, `approved`, `working`, `input-required`.
+Non-terminal states: `submitted`, `pending-approval`, `approved`, `in-progress`.
 Terminal states: `completed`, `failed`.
 
-Transitions not in the table above are rejected with an error. The dispatcher owns the `submitted → approved` and `submitted → pending-approval` transitions; agents own `approved → working → completed`.
+Transitions not in the table above are rejected with an error. The dispatcher owns the `submitted → approved` and `submitted → pending-approval` transitions; agents own `approved → in-progress → completed`.
 
 **Read-only fields:** `alert_state` and `retry_policy` are managed exclusively by the dispatcher. `update_task` does not expose them — passing either field is ignored, not an error.
 
@@ -152,7 +152,7 @@ If MCP server proliferation reaches a point where unauthenticated LAN exposure i
 
 **Task dispatcher** (`~/scripts/task-dispatcher.py`): Reads the same `~/.claude/task-queue/` directory. The MCP server handles writes agents care about (submit, update status); the dispatcher handles routing, approval gating, alerting, and archiving. Both use atomic write (`.tmp → rename`) to prevent race conditions.
 
-**inject-task-queue.sh (SessionStart hook):** Surfaces `approved` and `input-required` tasks to agents at session start. Agents claiming a task via `update_task` (setting `working`) removes it from the hook's next injection — the transition is the acknowledgment.
+**inject-task-queue.sh (SessionStart hook):** Surfaces `approved` and `input-required` tasks to agents at session start. Agents claiming a task via `update_task` (setting `in-progress`) removes it from the hook's next injection — the transition is the acknowledgment.
 
 **task-approve CLI** (`~/bin/task-approve`): Covers the `pending-approval → approved` transition, which the MCP server intentionally does not expose. Approval is a human action.
 
