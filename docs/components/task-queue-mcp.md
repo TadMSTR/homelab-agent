@@ -2,7 +2,7 @@
 
 task-queue-mcp is a FastMCP (Python) server that exposes the agent orchestration task queue as an MCP tool interface. It gives Claude Code sessions and LibreChat agents structured, validated access to `~/.claude/task-queue/` YAML files — replacing raw file writes with type-checked tools that enforce the schema and transition rules the dispatcher expects.
 
-It runs as a Docker container on port 8485 and is wired globally into `~/.claude/settings.json` so all agent sessions have access.
+It runs as a Docker container on port 8485 and is wired globally into `~/.claude.json` so all agent sessions have access.
 
 ## Why a Dedicated MCP Server
 
@@ -130,12 +130,12 @@ The container runs read-write on the task-queue directory only. The rest of the 
 
 ## Configuration
 
-Claude Code `settings.json` (global, all agent sessions):
+Claude Code `~/.claude.json` (global, all agent sessions):
 ```json
 {
-  "task-queue-mcp": {
-    "type": "url",
-    "url": "http://localhost:8485/mcp"
+  "task-queue": {
+    "type": "http",
+    "url": "http://127.0.0.1:8485/mcp"
   }
 }
 ```

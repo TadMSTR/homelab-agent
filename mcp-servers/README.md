@@ -156,11 +156,11 @@ homelab-ops handles most of my day-to-day infrastructure work.
 **Transport:** Streamable-HTTP on port 8282, managed by PM2. Claude Code connects
 directly; LibreChat containers reach it via `host.docker.internal`.
 
-**Config pattern (Claude Code `settings.json`):**
+**Config pattern (`~/.claude.json`):**
 ```json
 {
   "homelab-ops": {
-    "type": "url",
+    "type": "http",
     "url": "http://localhost:8282/mcp"
   }
 }
@@ -194,11 +194,11 @@ without fighting over a stdio subprocess.
 
 **Transport:** Streamable-HTTP on `127.0.0.1:8486`, managed by PM2. Localhost-only â€” not exposed externally or to Docker networks.
 
-**Config pattern (Claude Code `settings.json`):**
+**Config pattern (`~/.claude.json`):**
 ```json
 {
   "pm2": {
-    "type": "streamable-http",
+    "type": "http",
     "url": "http://127.0.0.1:8486/mcp"
   }
 }
@@ -459,11 +459,11 @@ Firecrawl-simple (Trieve's lightweight fork), Crawl4AI, and a reranker service â
 all running on the same Docker network (`claudebox-net`). Ollama is required for
 `search_and_summarize` but optional otherwise.
 
-**Config pattern (Claude Code `settings.json`):**
+**Config pattern (`~/.claude.json`):**
 ```json
 {
   "searxng": {
-    "type": "url",
+    "type": "http",
     "url": "http://localhost:YOUR_PORT/mcp"
   }
 }
@@ -492,12 +492,12 @@ session private web search with zero API costs.
 
 **Transport:** Streamable-HTTP, runs as a Docker container on port 8484. Claude Code connects via `localhost`; LibreChat containers via `host.docker.internal`.
 
-**Config pattern (Claude Code `settings.json`):**
+**Config pattern (`~/.claude.json`):**
 ```json
 {
   "ntfy": {
-    "type": "streamable-http",
-    "url": "http://localhost:8484/mcp"
+    "type": "http",
+    "url": "http://127.0.0.1:8484/mcp"
   }
 }
 ```
