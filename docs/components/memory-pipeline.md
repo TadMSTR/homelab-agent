@@ -99,7 +99,7 @@ The most expensive step — runs an LLM-backed session consolidation (5–15 min
 
 If memory-sync **times out** (exit code 124):
 - Logs: `--- memory-sync: TIMED OUT after 1500s ---`
-- Fires an ntfy alert to `https://ntfy.glitch42.com/claudebox` with title `[memory-pipeline] memory-sync timeout`
+- Fires an ntfy alert to `https://ntfy.example.com/your-channel` with title `[memory-pipeline] memory-sync timeout`
 - Continues to Step 2 with whatever data exists on disk
 
 If memory-sync **fails** for any other reason:

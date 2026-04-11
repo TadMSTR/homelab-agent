@@ -69,7 +69,7 @@ log_event(
     source="claudebox",
     target="security",
     summary="Security audit request: helm-temporal-worker",
-    artifact_path="/home/ted/.claude/comms/artifacts/audit-requests/helm-temporal-worker/request.md",
+    artifact_path="$HOME/.claude/comms/artifacts/audit-requests/helm-temporal-worker/request.md",
 )
 ```
 

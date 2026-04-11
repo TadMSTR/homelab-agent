@@ -32,7 +32,7 @@ Creates a new task file. Generates a UUID4 `id`, sets `created` to the current U
   "summary": "Deploy qmd stack update per plan",
   "payload": {
     "description": "Apply the qmd stack update from the build plan...",
-    "context_refs": ["/home/ted/.claude/projects/research/build-plans/qmd-update/plan.md"],
+    "context_refs": ["$HOME/.claude/projects/research/build-plans/qmd-update/plan.md"],
     "priority": "normal"
   },
   "ttl_days": 30
@@ -123,7 +123,7 @@ read_only: true
 tmpfs: [/tmp]
 user: "1000:1000"
 volumes:
-  - /home/ted/.claude/task-queue:/home/ted/.claude/task-queue  # rw
+  - $HOME/.claude/task-queue:$HOME/.claude/task-queue  # rw
 ```
 
 The container runs read-write on the task-queue directory only. The rest of the filesystem is read-only. `/tmp` is a tmpfs mount for any transient scratch space `yaml.dump` needs.

@@ -1,6 +1,6 @@
 # Temporal
 
-Temporal is a durable execution platform for reliable, long-running workflows. In this stack it provides the workflow engine for multi-phase build automation on the Helm platform — replacing ad-hoc script chains with structured workflows that survive failures, retries, and restarts. It runs as a 5-container Docker stack on a dedicated `temporal-network`, with the UI proxied at `temporal.claudebox.me` behind Authelia.
+Temporal is a durable execution platform for reliable, long-running workflows. In this stack it provides the workflow engine for multi-phase build automation on the Helm platform — replacing ad-hoc script chains with structured workflows that survive failures, retries, and restarts. It runs as a 5-container Docker stack on a dedicated `temporal-network`, with the UI proxied at `temporal.yourdomain` behind Authelia.
 
 The immediate use case is automating Helm platform build phases: each phase becomes a Temporal workflow, with activities for Docker stack deployment, health checks, SWAG configuration, and post-deploy verification. If a step fails, Temporal retries according to the workflow's retry policy rather than requiring manual re-entry.
 
@@ -66,7 +66,7 @@ sequenceDiagram
 ### Ports
 
 - `127.0.0.1:7233` — Temporal gRPC API (localhost-only; worker and client connections)
-- `temporal-ui:8080` — Web UI (internal only, proxied by SWAG at `temporal.claudebox.me`)
+- `temporal-ui:8080` — Web UI (internal only, proxied by SWAG at `temporal.yourdomain`)
 
 ### Storage
 
@@ -119,7 +119,7 @@ This forces search attribute cache refresh on every read — useful during initi
 
 ## Working with Temporal
 
-**Web UI:** `https://temporal.claudebox.me` — shows workflow executions, activity history, namespaces, and search attributes. Requires Authelia SSO.
+**Web UI:** `https://temporal.yourdomain` — shows workflow executions, activity history, namespaces, and search attributes. Requires Authelia SSO.
 
 **CLI (tctl / temporal):** The admin-tools image includes the `temporal` CLI. Access via the running server container:
 

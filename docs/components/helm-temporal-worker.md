@@ -134,7 +134,7 @@ Shell wrapper around `complete_activity.py`. Not a symlink — system Python lac
 
 ```bash
 #!/bin/bash
-cd /home/ted/repos/personal/helm-temporal-worker
+cd $HOME/repos/personal/helm-temporal-worker
 venv/bin/python3 complete_activity.py "$@"
 ```
 
@@ -144,8 +144,8 @@ venv/bin/python3 complete_activity.py "$@"
 
 | Setting | Value |
 |---------|-------|
-| `interpreter` | `/home/ted/repos/personal/helm-temporal-worker/venv/bin/python3` |
-| `cwd` | `/home/ted/repos/personal/helm-temporal-worker` |
+| `interpreter` | `$HOME/repos/personal/helm-temporal-worker/venv/bin/python3` |
+| `cwd` | `$HOME/repos/personal/helm-temporal-worker` |
 | `autorestart` | `true` |
 | `max_restarts` | 10 |
 | `exp_backoff_restart_delay_ms` | 5000 |

@@ -119,7 +119,7 @@ Most files in `/opt/appdata/` are owned by container UIDs (e.g., `root`, `nobody
 
 Version control and backups cover the same directories but serve different purposes:
 
-- **Backrest** (2 AM daily) snapshots `/home/ted` which includes `~/docker/` and `~/scripts/`. Full restic snapshot, 90-day retention, recoverable as a point-in-time filesystem state.
+- **Backrest** (2 AM daily) snapshots `$HOME` which includes `~/docker/` and `~/scripts/`. Full restic snapshot, 90-day retention, recoverable as a point-in-time filesystem state.
 - **docker-stack-backup** (1 AM daily) archives compose files + appdata into tarballs on NFS.
 - **Git + Gitea** provides per-file change history with commit messages, diffing, and the ability to roll back individual files without a full restore.
 

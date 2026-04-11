@@ -20,7 +20,7 @@ The `_netdev` flag ensures the mount waits for network availability at boot. Sys
 | Time | Job | Scope |
 |------|-----|-------|
 | 1:00 AM | docker-stack-backup | Docker appdata + compose files |
-| 2:00 AM | Backrest/restic | `/home/ted`, `/etc`, `/opt/Obsidian` |
+| 2:00 AM | Backrest/restic | `$HOME`, `/etc`, `/opt/Obsidian` |
 | 3:00 AM | backup-claude.sh | Claude Desktop memory, config, extensions |
 
 The ordering is intentional. Docker containers get backed up first (requires stopping and restarting them), then the system-level restic backup runs, then the Claude-specific data. Each job completes well before the next starts.
@@ -43,7 +43,7 @@ The systemd service has `Requires=mnt-storage-claudebox.mount` so Backrest won't
 
 All three plans run daily at 2:00 AM local time with 90-day retention (keep last 90 snapshots).
 
-**claudebox-home** backs up `/home/ted` — the most important plan. This covers repos, scripts, dotfiles, Claude Code memory files, and the prime directive checkout. Excludes are tuned to skip caches and ephemeral data that would bloat the repo without adding recovery value:
+**claudebox-home** backs up `$HOME` — the most important plan. This covers repos, scripts, dotfiles, Claude Code memory files, and the prime directive checkout. Excludes are tuned to skip caches and ephemeral data that would bloat the repo without adding recovery value:
 
 ```
 Excludes:
@@ -236,6 +236,6 @@ Worth being explicit about what falls outside the backup scope:
 
 **The docker-stack-backup restart logic matters.** The script only restarts containers that were running *before* the backup, not everything in the compose file. This prevents accidentally starting services that were intentionally stopped. The retry logic (3 attempts with delay) handles the occasional Docker daemon hiccup after rapid stop/start cycles.
 
-**The Claude backup script exists because of a scope gap.** Backrest covers `/home/ted` which includes `~/.config/Claude/`, so technically the data is covered. But the rsync + dated snapshot approach gives you a simpler, faster restore path for just the Claude data. You could drop the custom script and rely solely on Backrest — the trade-off is convenience versus one more moving part.
+**The Claude backup script exists because of a scope gap.** Backrest covers `$HOME` which includes `~/.config/Claude/`, so technically the data is covered. But the rsync + dated snapshot approach gives you a simpler, faster restore path for just the Claude data. You could drop the custom script and rely solely on Backrest — the trade-off is convenience versus one more moving part.
 
 **Test restores.** Having backups is half the job. Periodically verify you can actually restore from each mechanism: `restic restore` from a Backrest snapshot, copy from the `latest/` directory in the Claude backup, and extract a docker-stack-backup tarball. The docker-stack-backup repo includes a companion `docker-stack-restore.sh` script for guided restores.

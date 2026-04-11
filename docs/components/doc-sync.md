@@ -94,7 +94,7 @@ Prefer raw markdown sources (`raw.githubusercontent.com`, `llms.txt`, `.md` URLs
 `doc-sync-daily` runs at 3 AM daily:
 
 ```
-script: /usr/bin/python3 /home/ted/scripts/doc-sync.py
+script: /usr/bin/python3 $HOME/scripts/doc-sync.py
 cron:   0 3 * * *
 ```
 

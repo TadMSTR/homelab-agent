@@ -13,7 +13,7 @@ Blog articles are written in markdown and published externally (dev.to via the `
 The stack is a single `squidfunk/mkdocs-material` container mounted against the blog repo:
 
 - **Port:** `127.0.0.1:8082` → container port 8000
-- **Volume:** `/home/ted/repos/personal/blog:/docs`
+- **Volume:** `$HOME/repos/personal/blog:/docs`
 - **Network:** `claudebox-net` (reached by SWAG)
 - **SWAG proxy:** `blog-preview.<your-claudebox-domain>` with Authelia forward auth
 
@@ -62,7 +62,7 @@ services:
     image: squidfunk/mkdocs-material
     container_name: blog-preview
     volumes:
-      - /home/ted/repos/personal/blog:/docs
+      - $HOME/repos/personal/blog:/docs
     ports:
       - "127.0.0.1:8082:8000"
     restart: unless-stopped

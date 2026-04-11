@@ -75,7 +75,7 @@ Two new blocks added to `/etc/telegraf/telegraf.conf`:
 ```toml
 # Claude Code cost metrics — exec input
 [[inputs.exec]]
-  commands = ["/home/ted/scripts/claude-cost-metrics.py"]
+  commands = ["$HOME/scripts/claude-cost-metrics.py"]
   timeout = "30s"
   interval = "5m"
   data_format = "influx"

@@ -191,7 +191,7 @@ All NATS publishes are fire-and-forget (`timeout=5`). If NATS is down, the dispa
 
 **n8n:** Posts task metadata to `N8N_WEBHOOK_URL` on each submitted task (fire-and-forget). Used for risk-based routing logic in the n8n task dispatcher workflow. If `N8N_WEBHOOK_URL` is not set, no-ops silently.
 
-**ntfy:** Sends notifications to `https://ntfy.glitch42.com/claudebox` for:
+**ntfy:** Sends notifications to `https://ntfy.example.com/your-channel` for:
 - Pending-approval tasks (default priority)
 - Stale approved tasks >24h unclaimed (default priority, deduplicated)
 - Routing exhausted / task failed (high priority)

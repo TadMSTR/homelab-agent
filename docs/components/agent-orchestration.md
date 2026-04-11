@@ -33,7 +33,7 @@ Manifests are the registry. Each one describes what an agent can do, where it li
 ```yaml
 # ~/.claude/agent-manifests/claudebox.yml
 name: claudebox
-project_path: /home/ted/.claude/projects/claudebox/
+project_path: /home/YOUR_USER/.claude/projects/claudebox/
 type: claude-code                       # claude-code or pm2-cron
 capabilities:
   - build
@@ -151,7 +151,7 @@ PM2 config:
 ```javascript
 {
   name: "task-dispatcher",
-  script: "/home/ted/scripts/task-dispatcher.py",
+  script: "$HOME/scripts/task-dispatcher.py",
   interpreter: "python3",
   cron_restart: "*/2 * * * *",
   watch: false,
@@ -186,7 +186,7 @@ The hook is registered in `~/.claude/settings.json`:
 {
   "hooks": {
     "SessionStart": [
-      { "type": "command", "command": "bash /home/ted/.claude/hooks/inject-task-queue.sh", "timeout": 10 }
+      { "type": "command", "command": "bash $HOME/.claude/hooks/inject-task-queue.sh", "timeout": 10 }
     ]
   }
 }
