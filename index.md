@@ -265,6 +265,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Temporal | [`docs/components/temporal.md`](docs/components/temporal.md) | `~/docker/temporal/.env` | `~/docker/temporal/docker-compose.yml` |
 | Helm Temporal Worker | [`docs/components/helm-temporal-worker.md`](docs/components/helm-temporal-worker.md) | — | (PM2 host service) |
 | Task Dispatcher | [`docs/components/task-dispatcher.md`](docs/components/task-dispatcher.md) | — | (PM2 cron job) |
+| Task Queue MCP | [`docs/components/task-queue-mcp.md`](docs/components/task-queue-mcp.md) | — | (Docker container, PM2-managed) |
 | Memory Pipeline | [`docs/components/memory-pipeline.md`](docs/components/memory-pipeline.md) | — | (PM2 cron jobs) |
 | Agent Bus | [`docs/components/agent-bus.md`](docs/components/agent-bus.md) | — | (PM2 host service + NATS) |
 | Backups | [`docs/components/backups.md`](docs/components/backups.md) | [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) | (Backrest systemd + PM2 cron + user crontab) |
