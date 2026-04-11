@@ -1,0 +1,34 @@
+title = "homelab public repo config"
+
+[extend]
+useDefault = true
+
+# Block real homelab domain references in public repos
+[[rules]]
+id = "ntfy-real-channel"
+description = "Real ntfy channel URL (internal homelab endpoints)"
+regex = '''https?://ntfy\.(glitch42|tadmstr)\.me/'''
+tags = ["homelab", "internal-domain"]
+
+[[rules]]
+id = "internal-domain"
+description = "Internal homelab domain references"
+regex = '''(claudebox|tadmstr|glitch42)\.me'''
+tags = ["homelab", "internal-domain"]
+
+[[rules]]
+id = "real-internal-ip"
+description = "Real internal IPs (10.10.1.x range)"
+regex = '''10\.10\.1\.\d{1,3}'''
+tags = ["homelab", "internal-ip"]
+
+[allowlist]
+description = "Known-safe placeholder patterns"
+regexes = [
+    '''192\.168\.x\.x''',
+    '''10\.10\.x\.x''',
+    '''\$\{.*\}''',
+    '''your-domain''',
+    '''example\.com''',
+    '''yourdomain''',
+]
