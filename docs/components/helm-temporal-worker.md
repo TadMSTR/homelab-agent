@@ -105,6 +105,37 @@ The workflow definition. Takes a `BuildPlanInput` with a plan name and list of `
 - **Retry policy:** maximum 2 attempts; `PhaseFailedError` is non-retryable (agent explicitly failed the phase)
 - If any phase returns `status != "success"`, the workflow raises `PhaseFailedError` and stops
 
+### workflows/build_pipeline.py — `BuildPipelineWorkflow`
+
+The autonomous end-to-end pipeline workflow. Takes a `BuildPipelineInput` with a plan name and build type, and orchestrates the full research → implement → audit → triage → fix → close sequence as durable Temporal activities. Unlike `BuildPlanWorkflow` (which executes arbitrary caller-defined phases), `BuildPipelineWorkflow` has a fixed activity sequence:
+
+| Step | Activity | Description |
+|------|----------|-------------|
+| 1 | `prefab_scaffolding` | Pre-create directories, stubs, and skeleton files before the main build |
+| 2 | `implement_build` | Core build phase — dispatches to the helm-build or claudebox agent |
+| 3 | `request_security_audit` | Submits audit request to the security agent's queue |
+| 4 | `process_triage_output` | Reads the audit report and extracts actionable findings |
+| 5 | `apply_flag_fixes` | Applies non-judgment security fixes (Category A findings) directly |
+| 6 | `notify_blocks` | Sends ntfy for any findings requiring human triage (Category B/C) |
+| 7 | `wait_for_block_resolution` | Polls until all blocking findings are resolved or accepted |
+| 8 | `close_build` | Runs build-close-out: CHANGELOG, touched-files, doc-update-queue entries |
+| 9 | `summarize_workflow` | Writes a structured workflow digest to the `build-reports` Gitea repo |
+
+Each activity uses the same `raise_complete_async()` + task queue pattern as `BuildPlanWorkflow` — activities dispatch tasks to agents and suspend until `temporal-complete` signals back. Steps 6–7 implement a wait-loop: the workflow fires ntfy, then an external signal (from the operator running `task-approve`) unblocks step 7 before the pipeline continues.
+
+Triggered via the Temporal CLI or a launcher script once a build plan is ready:
+
+```bash
+docker run --rm --network temporal-network \
+  temporalio/admin-tools:1.30.2 \
+  temporal workflow start \
+    --workflow-type BuildPipelineWorkflow \
+    --task-queue helm-build \
+    --namespace default \
+    --workflow-id "pipeline-$(date +%Y%m%d-%H%M%S)" \
+    --input '{"plan_name": "my-build", "build_type": "helm"}'
+```
+
 ### complete_activity.py
 
 CLI tool invoked by Claude Code agents (via the `~/scripts/temporal-complete` wrapper) to signal phase completion back to Temporal:

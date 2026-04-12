@@ -58,20 +58,20 @@ For each task with `status: submitted`:
    - Fallback: compare `risk_level` against manifest's `max_auto_risk`
 
 4. **Status transition:**
-   - Auto-approved → `status: approved`, NATS `tasks.approved` published
+   - Auto-approved → `status: approved`, NATS `tasks.approved` published, n8n approved webhook posted (`post_n8n_approved_webhook()` — triggers the n8n → trigger-proxy → RemoteTrigger session chain; fire-and-forget, no-op if `N8N_WEBHOOK_URL` unset)
    - Needs approval → `status: pending-approval`, ntfy notification sent, NATS `tasks.approval-requested` published
-   - n8n webhook posted for every submitted task (fire-and-forget, no-op if `N8N_WEBHOOK_URL` unset)
+   - n8n submission webhook posted for every submitted task regardless of approval outcome (fire-and-forget, no-op if `N8N_WEBHOOK_URL` unset)
 
 ### Routing Failure: Exponential Backoff Retry
 
-When routing fails (no manifest match, unknown agent, etc.), the dispatcher retries up to 3 times with exponential backoff before marking the task `failed`:
+When routing fails (no manifest match, unknown agent, etc.), the dispatcher retries up to 3 times with exponential backoff before moving the task to the dead-letter queue:
 
 | Attempt | Backoff |
 |---------|---------|
 | 1st retry | 5 minutes |
 | 2nd retry | 10 minutes |
 | 3rd retry | 20 minutes |
-| Exhausted | `status: failed`, ntfy high-priority alert |
+| Exhausted | moved to `dead-letters/`, ntfy high-priority alert |
 
 The retry state is stored on the task YAML itself:
 
@@ -83,7 +83,13 @@ retry_policy:
   last_failure_reason: "No agent found for task_type=build_phase"
 ```
 
-This means retries survive dispatcher restarts — the task file carries its own retry schedule. On failure exhaustion, NATS `tasks.failed` is published and a high-priority ntfy notification fires.
+This means retries survive dispatcher restarts — the task file carries its own retry schedule. On failure exhaustion, `move_to_dead_letter()` is called, NATS `tasks.failed` is published, and a high-priority ntfy notification fires.
+
+### Dead-Letter Queue
+
+When a task exhausts all retry attempts, it is moved to `~/.claude/task-queue/dead-letters/` rather than left in the main queue or deleted. The move is atomic (`Path.rename()`). Dead-lettered tasks are retained indefinitely for audit purposes.
+
+A high-priority ntfy notification fires on dead-letter with the task summary and last failure reason. To recover a dead-lettered task, move the YAML file back to `~/.claude/task-queue/`, reset `status` to `submitted`, and clear the `retry_policy` block — the dispatcher will pick it up on the next run.
 
 ### Phase 2: Alert Deduplication
 
@@ -189,7 +195,7 @@ If the source agent isn't in either list, `max_auto_risk` applies.
 
 All NATS publishes are fire-and-forget (`timeout=5`). If NATS is down, the dispatcher continues normally.
 
-**n8n:** Posts task metadata to `N8N_WEBHOOK_URL` on each submitted task (fire-and-forget). Used for risk-based routing logic in the n8n task dispatcher workflow. If `N8N_WEBHOOK_URL` is not set, no-ops silently.
+**n8n:** Posts task metadata to `N8N_WEBHOOK_URL` at two points in the lifecycle: on submission (routing and risk-based logic in the n8n task dispatcher workflow) and on approval (`post_n8n_approved_webhook()` — drives the n8n → trigger-proxy → RemoteTrigger agent session chain). Both are fire-and-forget. If `N8N_WEBHOOK_URL` is not set, both no-op silently.
 
 **ntfy:** Sends notifications to `https://ntfy.example.com/your-channel` for:
 - Pending-approval tasks (default priority)
@@ -210,7 +216,7 @@ All NATS publishes are fire-and-forget (`timeout=5`). If NATS is down, the dispa
 
 **task-approve partial ID matching.** The tool matches on full UUID, UUID prefix, or filename stem. If two tasks have IDs with the same 8-char prefix (extremely unlikely with UUID4), `find_task` returns the first file found by glob sort. Use the full UUID if ambiguity is a concern.
 
-**Atomic writes everywhere.** Both `task-dispatcher.py` and `task-approve.py` use the `.tmp → rename` pattern for all writes. This prevents a half-written task file from being read mid-write by another tool or hook. If a write fails, the `.tmp` file is cleaned up and the original is untouched.
+**Atomic writes everywhere.** Both `task-dispatcher.py` and `task-approve.py` use the `.tmp → rename` pattern for all writes. This prevents a half-written task file from being read mid-write by another tool or hook. If a write fails, the `.tmp` file is cleaned up and the original is untouched. New task files are created via `os.open(..., 0o600)` — they are only readable by the owning user. The `~/.claude/task-queue/` directory itself is `0700`. This prevents other local processes (e.g., Docker containers with a bind-mounted home directory) from reading task contents.
 
 ## Further Reading
 

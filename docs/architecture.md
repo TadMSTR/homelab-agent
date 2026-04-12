@@ -197,6 +197,44 @@ Building agent session start (next session)
 
 Not every build triggers an audit — only those with real network or auth surface. Pure documentation changes and memory-only builds skip it. A resource monitor job sends a push notification if any handoff stays `pending` for more than 7 days.
 
+### Autonomous Build Pipeline (End-to-End)
+
+The autonomous pipeline wires task queue events to agent sessions without human dispatch. When a task is approved, the dispatcher notifies n8n, which triggers a RemoteTrigger session on claude.ai — no manual chat required.
+
+```
+task-dispatcher.py (PM2, runs every 2 min)
+  │
+  │  task approved → post_n8n_approved_webhook()
+  ▼
+n8n (Docker) — TaskApproved workflow
+  │
+  │  HTTP POST to 172.18.0.1:5679 (trigger-proxy, reachable from Docker bridge)
+  │  with: { trigger_id, target_agent, task_id }
+  ▼
+trigger-proxy (PM2, always-on) — validates X-Trigger-Secret, refreshes OAuth
+  │
+  │  POST api.anthropic.com/v1/code/triggers/{trigger_id}/run
+  ▼
+RemoteTrigger → fires Claude Code agent session on claude.ai
+  │
+  │  Agent picks up task from inject-task-queue.sh (SessionStart hook)
+  │  executes work, calls temporal-complete if applicable
+  ▼
+  (task marked completed; Temporal workflow advances to next phase)
+```
+
+**BuildPipelineWorkflow** in the Temporal worker orchestrates the full research → build → security audit → triage → fix → close sequence as a durable workflow. Each phase is a Temporal activity dispatched through the same task queue → n8n → trigger-proxy → agent chain, so the entire pipeline runs autonomously once the initial workflow is started.
+
+**New repos added with this pipeline:**
+- `build-reports` — structured per-build phase output, one file per workflow execution; added to `repo-sync-nightly` and `qmd` semantic indexing
+- `agent-activity` — task history, workflow digests, and drift logs across all agents
+
+**Components involved:**
+- [Task Dispatcher](components/task-dispatcher.md) — routes approved tasks, posts n8n webhooks
+- [Trigger Proxy](components/trigger-proxy.md) — OAuth bridge for n8n → RemoteTrigger calls
+- [n8n](components/n8n.md) — workflow engine that sequences the trigger chain
+- [Helm Temporal Worker](components/helm-temporal-worker.md) — BuildPipelineWorkflow durable orchestration
+
 ### Search Flow (qmd Dual Transport)
 
 qmd serves two clients through different transports:
