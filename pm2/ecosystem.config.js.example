@@ -70,6 +70,21 @@ module.exports = {
     },
 
     {
+      // Trigger proxy — local HTTP proxy that fires claude.ai RemoteTriggers
+      // on behalf of n8n (which runs in Docker and can't access Claude Code
+      // credentials directly). Binds to the Docker bridge IP (172.18.0.1)
+      // so only containers on the default bridge network can reach it.
+      // Reads OAuth token from ~/.claude/.credentials.json and refreshes
+      // automatically. Trigger IDs come from agent-manifests/.trigger-map.yml.
+      // See: scripts/trigger-proxy.py
+      name: "trigger-proxy",
+      script: "/home/YOUR_USER/scripts/trigger-proxy.py",
+      interpreter: "python3",
+      autorestart: true,
+      max_restarts: 10,
+    },
+
+    {
       // Agent panel — lightweight web UI for monitoring PM2 services,
       // viewing logs, and inspecting agent activity from a browser.
       name: "agent-panel",
@@ -89,6 +104,22 @@ module.exports = {
     // Pattern: autorestart: false + cron_restart = "run at schedule, don't loop"
     // PM2 starts the script at cron time, script runs to completion, PM2 marks
     // it as "stopped" until next cron trigger.
+
+    {
+      // Agent task dispatcher — processes the task queue every 2 minutes.
+      // Routes submitted tasks to the appropriate agent based on manifests
+      // in ~/.claude/agent-manifests/. Auto-approves low-risk tasks, sends
+      // ntfy for tasks requiring approval. Fires n8n webhook on approval
+      // to trigger RemoteTrigger → agent session. Moves exhausted-retry
+      // tasks to dead-letters/ with ntfy alert.
+      // See: scripts/task-dispatcher.py
+      name: "task-dispatcher",
+      script: "/home/YOUR_USER/scripts/task-dispatcher.py",
+      interpreter: "python3",
+      cron_restart: "*/2 * * * *",  // Every 2 minutes
+      autorestart: false,
+      watch: false,
+    },
 
     {
       // Backup Docker appdata to NFS/remote storage
