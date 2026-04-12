@@ -28,6 +28,7 @@ For the architecture overview and how these components relate, see the [main REA
 |-----------|-----|---------------|
 | qmd | [qmd.md](qmd.md) | Semantic search, dual transport (stdio + HTTP), GPU acceleration, config |
 | memsearch | [memsearch.md](memsearch.md) | Memory recall for Claude Code, plugin integration, config |
+| Milvus | [memsearch.md](memsearch.md) (§Vector Store) | Milvus standalone vector database — backing store for memsearch and qmd indexes |
 | memory-sync | [memory-sync.md](memory-sync.md) | Automated knowledge distillation pipeline, distillation rules, PM2 cron |
 | Graphiti | [graphiti.md](graphiti.md) | Temporal knowledge graph — Neo4j, entity ontology, data flow, Graphiti MCP |
 | graphiti-mcp | [graphiti-mcp.md](graphiti-mcp.md) | Graphiti MCP server container — quick reference, see graphiti.md for full docs |

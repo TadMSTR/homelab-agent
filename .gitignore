@@ -17,6 +17,7 @@ core.*
 .env
 *.env
 .env.*
+!.env.example
 secrets.*
 *.key
 *.pem

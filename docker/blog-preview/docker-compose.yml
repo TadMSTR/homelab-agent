@@ -1,0 +1,15 @@
+services:
+  blog-preview:
+    image: squidfunk/mkdocs-material
+    container_name: blog-preview
+    volumes:
+      - /path/to/blog-repo:/docs
+    ports:
+      - "127.0.0.1:8082:8000"
+    restart: unless-stopped
+    networks:
+      - claudebox-net
+
+networks:
+  claudebox-net:
+    external: true
