@@ -1,0 +1,28 @@
+services:
+  task-queue-mcp:
+    build:
+      context: /path/to/task-queue-mcp
+      dockerfile: Dockerfile
+    container_name: task-queue-mcp
+    user: "1000:1000"
+    ports:
+      - "8485:8485"
+    environment:
+      - TASK_QUEUE_DIR=/task-queue
+      - MCP_PORT=8485
+    volumes:
+      - /path/to/user/.claude/task-queue:/task-queue
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - claudebox-net
+    restart: unless-stopped
+
+networks:
+  claudebox-net:
+    external: true

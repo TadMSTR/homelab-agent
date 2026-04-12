@@ -1,0 +1,28 @@
+services:
+  milvus:
+    image: milvusdb/milvus:v2.5.27
+    container_name: milvus
+    command: milvus run standalone
+    security_opt:
+      - seccomp:unconfined  # Required: embedded etcd uses clone syscall flags blocked by default Docker seccomp profile
+    environment:
+      ETCD_USE_EMBED: "true"
+      ETCD_DATA_DIR: /var/lib/milvus/etcd
+      ETCD_CONFIG_PATH: /milvus/configs/embedEtcd.yaml
+      COMMON_STORAGETYPE: local
+    volumes:
+      - /opt/appdata/milvus:/var/lib/milvus
+      - ./embedEtcd.yaml:/milvus/configs/embedEtcd.yaml:ro
+    ports:
+      - "127.0.0.1:19530:19530"
+      # 9091 (health/metrics) intentionally not published — librechat-exporter owns that host port.
+      # Healthcheck below hits the container-internal port directly; host binding not needed.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9091/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    mem_limit: 3g
+    cpus: '2.0'
+    restart: unless-stopped

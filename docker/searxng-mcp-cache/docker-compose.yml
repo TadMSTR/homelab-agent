@@ -1,0 +1,8 @@
+services:
+  searxng-mcp-cache:
+    image: valkey/valkey:8-alpine
+    container_name: searxng-mcp-cache
+    command: valkey-server --save "" --appendonly no --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:6381:6379"
+    restart: unless-stopped

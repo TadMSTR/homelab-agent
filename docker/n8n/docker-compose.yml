@@ -1,0 +1,41 @@
+services:
+  n8n-db:
+    image: postgres:16-alpine
+    container_name: n8n-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-n8n}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: n8n
+    volumes:
+      - /opt/appdata/n8n/postgres:/var/lib/postgresql/data
+    networks:
+      - claudebox-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-n8n} -d n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  n8n:
+    image: n8nio/n8n:2.14.2
+    container_name: n8n
+    restart: unless-stopped
+    depends_on:
+      n8n-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:5678:5678"
+    volumes:
+      - /opt/appdata/n8n/data:/home/node/.n8n
+      - /path/to/user/.claude/task-queue:/task-queue:ro
+      - /path/to/user/.claude/agent-manifests:/agent-manifests:ro
+    networks:
+      - claudebox-net
+    env_file:
+      - .env
+
+networks:
+  claudebox-net:
+    external: true

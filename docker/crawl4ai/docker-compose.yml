@@ -1,0 +1,28 @@
+services:
+  crawl4ai:
+    image: unclecode/crawl4ai:0.8.6
+    container_name: crawl4ai
+    restart: unless-stopped
+    shm_size: "1g"
+    ports:
+      - "127.0.0.1:11235:11235"
+    networks:
+      - claudebox-net
+    volumes:
+      - /opt/appdata/crawl4ai:/root/.crawl4ai
+    environment:
+      - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11235/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  claudebox-net:
+    external: true
