@@ -39,7 +39,7 @@ ARCHIVE_DIR = TASK_QUEUE_DIR / "archive"
 DEAD_LETTER_DIR = TASK_QUEUE_DIR / "dead-letters"
 MANIFEST_DIR = Path.home() / ".claude" / "agent-manifests"
 LOG_FILE = TASK_QUEUE_DIR / "dispatcher.log"
-NTFY_URL = "https://ntfy.YOUR_DOMAIN/YOUR_TOPIC"
+NTFY_URL = "https://ntfy.glitch42.com/claudebox"
 N8N_WEBHOOK_URL = os.environ.get("N8N_WEBHOOK_URL", "")  # task-submitted webhook
 N8N_APPROVED_WEBHOOK_URL = "http://localhost:5678/webhook/task-approved"
 
@@ -65,7 +65,8 @@ def atomic_write(path: Path, data: dict) -> None:
     """Write YAML to a tmp file then mv into place to prevent race conditions."""
     tmp = path.with_suffix(".tmp")
     try:
-        with open(tmp, "w") as f:
+        fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
             yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
         tmp.rename(path)
     except Exception:

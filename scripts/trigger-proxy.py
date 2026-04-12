@@ -17,6 +17,7 @@ Log: /var/log/claudebox/trigger-proxy.log
 import json
 import logging
 import os
+import secrets
 import sys
 import time
 from datetime import datetime, timezone
@@ -32,6 +33,7 @@ TRIGGER_MAP_FILE = Path.home() / ".claude" / "agent-manifests" / ".trigger-map.y
 TRIGGER_API_BASE = "https://api.anthropic.com/v1/code/triggers"
 OAUTH_REFRESH_URL = "https://claude.ai/api/auth/oauth/token"
 LOG_FILE = "/var/log/claudebox/trigger-proxy.log"
+TRIGGER_SECRET = os.environ.get("TRIGGER_PROXY_SECRET", "")
 
 # --- Logging ---
 os.makedirs("/var/log/claudebox", exist_ok=True)
@@ -56,7 +58,7 @@ def load_credentials() -> dict:
 
 
 def save_credentials(creds: dict) -> None:
-    """Write updated credentials back to file (atomic)."""
+    """Write updated credentials back to file (atomic, permissions-safe)."""
     tmp = CREDENTIALS_FILE.with_suffix(".tmp")
     try:
         existing = {}
@@ -64,7 +66,10 @@ def save_credentials(creds: dict) -> None:
             with open(CREDENTIALS_FILE) as f:
                 existing = json.load(f)
         existing["claudeAiOauth"] = creds
-        with open(tmp, "w") as f:
+        # Use os.open with explicit 0600 so rename preserves tight permissions.
+        # open(tmp, "w") would inherit umask (0644) and downgrade credentials.json.
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
             json.dump(existing, f, indent=2)
         tmp.rename(CREDENTIALS_FILE)
     except Exception as e:
@@ -193,8 +198,19 @@ class TriggerProxyHandler(BaseHTTPRequestHandler):
             self.send_json(404, {"error": "not found"})
             return
 
+        # Shared-secret check — rejects requests from containers that don't know the secret
+        if TRIGGER_SECRET:
+            provided = self.headers.get("X-Trigger-Secret", "")
+            if not secrets.compare_digest(provided, TRIGGER_SECRET):
+                log.warning(f"Rejected unauthorized /fire-trigger from {self.address_string()}")
+                self.send_json(401, {"error": "unauthorized"})
+                return
+
         try:
             length = int(self.headers.get("Content-Length", 0))
+            if length > 65536:
+                self.send_json(413, {"error": "request too large"})
+                return
             body = json.loads(self.rfile.read(length)) if length else {}
         except Exception as e:
             self.send_json(400, {"error": f"invalid JSON: {e}"})
