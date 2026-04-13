@@ -51,6 +51,7 @@ homelab-agent/
 │       ├── temporal.md                # Temporal durable workflow engine — multi-phase build automation, 5-container stack
 │       ├── helm-temporal-worker.md    # Helm Temporal Worker — PM2 bridge from Temporal to Claude Code agents
 │       ├── task-dispatcher.md         # Task dispatcher — PM2 cron for agent task queue routing and approval gating
+│       ├── trigger-proxy.md           # Trigger Proxy — PM2 OAuth bridge for n8n Docker → claude.ai RemoteTrigger
 │       ├── memory-pipeline.md         # Memory pipeline — nightly consolidation orchestrator, tiered schedule
 │       ├── agent-bus.md               # Agent Bus — FastMCP inter-agent event log, NATS JetStream federation
 │       ├── backups.md                 # Backup strategy: Backrest/restic, Claude backup, Docker appdata
@@ -213,6 +214,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/temporal.md` | ✅ Complete | 2026-03 |
 | `docs/components/helm-temporal-worker.md` | ✅ Complete | 2026-03 |
 | `docs/components/task-dispatcher.md` | ✅ Complete | 2026-03 |
+| `docs/components/trigger-proxy.md` | ✅ Complete | 2026-04 |
 | `docs/components/memory-pipeline.md` | ✅ Complete | 2026-03 |
 | `docs/components/agent-bus.md` | ✅ Complete | 2026-03 |
 | `docs/components/blog-preview.md` | ✅ Complete | 2026-04 |
@@ -265,6 +267,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Temporal | [`docs/components/temporal.md`](docs/components/temporal.md) | `~/docker/temporal/.env` | `~/docker/temporal/docker-compose.yml` |
 | Helm Temporal Worker | [`docs/components/helm-temporal-worker.md`](docs/components/helm-temporal-worker.md) | — | (PM2 host service) |
 | Task Dispatcher | [`docs/components/task-dispatcher.md`](docs/components/task-dispatcher.md) | — | (PM2 cron job) |
+| Trigger Proxy | [`docs/components/trigger-proxy.md`](docs/components/trigger-proxy.md) | — | (PM2 host service) |
 | Task Queue MCP | [`docs/components/task-queue-mcp.md`](docs/components/task-queue-mcp.md) | — | (Docker container, PM2-managed) |
 | Memory Pipeline | [`docs/components/memory-pipeline.md`](docs/components/memory-pipeline.md) | — | (PM2 cron jobs) |
 | Agent Bus | [`docs/components/agent-bus.md`](docs/components/agent-bus.md) | — | (PM2 host service + NATS) |
