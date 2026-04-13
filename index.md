@@ -33,6 +33,7 @@ homelab-agent/
 │       ├── memsearch.md               # memsearch memory recall for Claude Code sessions
 │       ├── memory-sync.md             # Automated knowledge distillation pipeline
 │       ├── graphiti.md                # Temporal knowledge graph — Neo4j, entity ontology, data flow
+│       ├── graphiti-mcp.md            # Graphiti MCP server — Streamable HTTP, episode/node/fact tools
 │       ├── doc-health.md              # Weekly doc audit — drift, coverage, staleness, sanitization
 │       ├── ai-cost-tracking.md        # Claude Code JSONL → Telegraf → InfluxDB → Grafana cost metrics
 │       ├── homelab-ops-mcp.md         # FastMCP HTTP tool server — shell, files, processes
@@ -188,6 +189,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/memsearch.md` | ✅ Complete | 2026-03 |
 | `docs/components/memory-sync.md` | ✅ Complete | 2026-03 |
 | `docs/components/graphiti.md` | ✅ Complete | 2026-03 |
+| `docs/components/graphiti-mcp.md` | ✅ Complete | 2026-04 |
 | `docs/components/nats-jetstream.md` | ✅ Complete | 2026-03 |
 | `docs/components/n8n.md` | ✅ Complete | 2026-03 |
 | `docs/components/doc-health.md` | ✅ Complete | 2026-03 |
@@ -247,6 +249,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | memsearch | [`docs/components/memsearch.md`](docs/components/memsearch.md) | `~/.memsearch/config.toml` | (host-level service) |
 | memory-sync | [`docs/components/memory-sync.md`](docs/components/memory-sync.md), [`claude-code/projects/memory-sync.md`](claude-code/projects/memory-sync.md) | — | (PM2 cron job) |
 | Graphiti | [`docs/components/graphiti.md`](docs/components/graphiti.md) | `config.yaml`, `.env` | (Docker stack: neo4j + graphiti-mcp) |
+| Graphiti MCP | [`docs/components/graphiti-mcp.md`](docs/components/graphiti-mcp.md) | — | (Docker container, graphiti-internal network) |
 | doc-health | [`docs/components/doc-health.md`](docs/components/doc-health.md) | — | (PM2 cron job) |
 | AI Cost Tracking | [`docs/components/ai-cost-tracking.md`](docs/components/ai-cost-tracking.md) | — | (host script + PM2) |
 | homelab-ops MCP | [`docs/components/homelab-ops-mcp.md`](docs/components/homelab-ops-mcp.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§homelab-ops) | — | (PM2 host service) |
