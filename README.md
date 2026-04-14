@@ -76,7 +76,6 @@ The foundation is a dedicated machine running Claude Desktop with MCP (Model Con
 | basic-memory | Persistent knowledge base as Obsidian-compatible markdown files | community |
 | Bluesky | Social media management via AT Protocol | me (fork) |
 | Desktop Commander | Filesystem operations, terminal commands, process management (Claude Desktop) | Anthropic |
-| Fluxer | Chat bot gateway + MCP tools for the Fluxer platform (shelved) | me |
 | GitHub | Repo management, issues, PRs, code search across multiple accounts | Anthropic |
 | Grafana | Dashboard management, alert rules, Loki log queries, InfluxDB metrics | Grafana |
 | homelab-ops | Shell, file, and process operations over HTTP (Claude Code + LibreChat) | me |
@@ -368,11 +367,10 @@ homelab-agent/
 
 ## Related Repos
 
+Third-party tools this stack depends on or was influenced by:
+
 | Repo | Description |
 |------|-------------|
-| [TadMSTR/backrest-mcp-server](https://github.com/TadMSTR/backrest-mcp-server) | Backrest MCP server — trigger backups and query operation history via Backrest's API |
-| [TadMSTR/bsky-mcp-server](https://github.com/TadMSTR/bsky-mcp-server) | Bluesky MCP server (personal fork) — AT Protocol integration for Claude |
-| [TadMSTR/unraid-mcp-server](https://github.com/TadMSTR/unraid-mcp-server) | Unraid MCP server — array status, disk health, Docker, shares via GraphQL |
 | [tobi/qmd](https://github.com/tobi/qmd) | Semantic search engine with MCP server mode — hybrid BM25 + vector + LLM reranking |
 | [siteboon/claudecodeui](https://github.com/siteboon/claudecodeui) | CloudCLI — Claude Code browser UI with file explorer, multi-session tabs, and notifications |
 | [danny-avila/LibreChat](https://github.com/danny-avila/LibreChat) | Multi-provider chat interface with agents, MCP, memory, and RAG |
