@@ -47,6 +47,9 @@ For the architecture overview and how these components relate, see the [main REA
 | Component | Doc | What It Covers |
 |-----------|-----|---------------|
 | homelab-ops MCP | [homelab-ops-mcp.md](homelab-ops-mcp.md) | FastMCP HTTP tool server — shell, files, processes; shared by Claude Code and LibreChat |
+| pm2-mcp | [pm2-mcp.md](pm2-mcp.md) | Typed PM2 tool server — structured service health, log tail, restart/stop/start |
+| ntfy-mcp | [ntfy-mcp.md](ntfy-mcp.md) | Push notification MCP server — `send_notification` tool call for Claude Code sessions |
+| pm2-logrotate | [pm2-logrotate.md](pm2-logrotate.md) | PM2 log rotation module — daily rotation, 7-day retention, gzip compression |
 | claudebox-deploy | [claudebox-deploy.md](claudebox-deploy.md) | Provisioning script — full machine rebuild from NFS backup, repo cloning, state restore |
 
 ## Cross-Cutting
