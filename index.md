@@ -38,6 +38,8 @@ homelab-agent/
 │       ├── ai-cost-tracking.md        # Claude Code JSONL → Telegraf → InfluxDB → Grafana cost metrics
 │       ├── homelab-ops-mcp.md         # FastMCP HTTP tool server — shell, files, processes
 │       ├── pm2-mcp.md                 # PM2 process manager MCP — list, logs, restart/stop/start
+│       ├── ntfy-mcp.md                # Push notification MCP server — send_notification tool for Claude Code
+│       ├── pm2-logrotate.md           # PM2 log rotation module — daily rotation, 7-day retention, gzip compression
 │       ├── config-version-control.md  # Git tracking for docker/ and appdata configs
 │       ├── jobsearch-mcp.md           # Multi-board job search, resume scoring, application tracking
 │       ├── agent-orchestration.md     # Task queue, agent manifests, dispatcher
@@ -195,6 +197,8 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/doc-health.md` | ✅ Complete | 2026-03 |
 | `docs/components/ai-cost-tracking.md` | ✅ Complete | 2026-03 |
 | `docs/components/homelab-ops-mcp.md` | ✅ Complete | 2026-03 |
+| `docs/components/ntfy-mcp.md` | ✅ Complete | 2026-04 |
+| `docs/components/pm2-logrotate.md` | ✅ Complete | 2026-04 |
 | `docs/components/config-version-control.md` | ✅ Complete | 2026-03 |
 | `docs/components/jobsearch-mcp.md` | ✅ Complete | 2026-03 |
 | `docs/components/backups.md` | ✅ Complete | 2026-03 |
@@ -253,6 +257,8 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | doc-health | [`docs/components/doc-health.md`](docs/components/doc-health.md) | — | (PM2 cron job) |
 | AI Cost Tracking | [`docs/components/ai-cost-tracking.md`](docs/components/ai-cost-tracking.md) | — | (host script + PM2) |
 | homelab-ops MCP | [`docs/components/homelab-ops-mcp.md`](docs/components/homelab-ops-mcp.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§homelab-ops) | — | (PM2 host service) |
+| ntfy-mcp | [`docs/components/ntfy-mcp.md`](docs/components/ntfy-mcp.md) | `~/docker/ntfy-mcp/.env` | `~/docker/ntfy-mcp/docker-compose.yml` |
+| pm2-logrotate | [`docs/components/pm2-logrotate.md`](docs/components/pm2-logrotate.md) | — | — |
 | Config Version Control | [`docs/components/config-version-control.md`](docs/components/config-version-control.md) | — | — |
 | jobsearch-mcp | [`docs/components/jobsearch-mcp.md`](docs/components/jobsearch-mcp.md), [`mcp-servers/README.md`](mcp-servers/README.md) (§jobsearch-mcp) | `.env` | `docker/jobsearch/docker-compose.yml` |
 | n8n | [`docs/components/n8n.md`](docs/components/n8n.md) | `~/docker/n8n/.env` | `~/docker/n8n/docker-compose.yml` |
