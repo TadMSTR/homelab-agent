@@ -318,6 +318,7 @@ homelab-agent/
 │       ├── repo-sync-nightly.md     ← 23:30 cron: auto-commits doc repos, alerts on code repos with pending changes
 │       ├── agent-workspace-scan.md  ← Hourly workspace marker validation, drift heal, CIA event emission
 │       ├── agent-workspace-check.md ← Pre-edit resolver skill — two-party permission enforcement
+│       ├── scoped-mcp.md            ← Per-agent MCP tool proxy — manifest-driven scoping, credential isolation, audit log
 │       ├── agent-orchestration.md   ← Multi-agent coordination — handoff protocol, session sequencing
 │       ├── task-dispatcher.md       ← Agent task queue — NATS-backed dispatch, 3-phase pipeline
 │       ├── agent-bus.md             ← Inter-agent event bus — FastMCP server, NATS federation, event types

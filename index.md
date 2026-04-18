@@ -63,7 +63,8 @@ homelab-agent/
 │       ├── helm-ops-mcp.md           # helm-ops SSH-based MCP server for remote Helm host operations
 │       ├── librarian-weekly.md       # Weekly PM2 cron — prime-directive repo sync via librarian skill
 │       ├── repo-sync-nightly.md      # Nightly repo hygiene — auto-commit doc repos, alert on dirty code repos
-│       └── blog-preview.md           # Local MkDocs Material preview server for blog article drafting
+│       ├── blog-preview.md           # Local MkDocs Material preview server for blog article drafting
+│       └── scoped-mcp.md             # Per-agent MCP tool proxy — manifest-driven scoping, credential isolation, audit log
 ├── claude-code/
 │   ├── CLAUDE.md.example              # Root CLAUDE.md template
 │   └── projects/
@@ -120,6 +121,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Config version control | `docs/components/config-version-control.md` | MCP, Claude Code |
 | Claude Code / CLAUDE.md | `claude-code/CLAUDE.md.example`, `claude-code/projects/` | Docker, MCP |
 | PM2 MCP server | `docs/components/pm2-mcp.md` | Claude Code, MCP |
+| Per-agent MCP scoping | `docs/components/scoped-mcp.md` | Claude Code, MCP |
 | PM2 services / cron | `pm2/ecosystem.config.js.example` | Docker compose, MCP config |
 | Memory system | `README.md` (§The Memory / Context System), `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `docs/components/graphiti.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
 | Documentation health | `docs/components/doc-health.md` | Docker, MCP |
@@ -224,6 +226,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/memory-pipeline.md` | ✅ Complete | 2026-03 |
 | `docs/components/agent-bus.md` | ✅ Complete | 2026-03 |
 | `docs/components/blog-preview.md` | ✅ Complete | 2026-04 |
+| `docs/components/scoped-mcp.md` | ✅ Complete | 2026-04 |
 | `docs/architecture.md` | ✅ Complete | 2026-03 |
 | `docs/getting-started.md` | ✅ Complete | 2026-03 |
 | `scripts/` | ✅ Complete | 2026-03 |
@@ -282,3 +285,4 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Agent Bus | [`docs/components/agent-bus.md`](docs/components/agent-bus.md) | — | (PM2 host service + NATS) |
 | Backups | [`docs/components/backups.md`](docs/components/backups.md) | [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) | (Backrest systemd + PM2 cron + user crontab) |
 | Blog Preview | [`docs/components/blog-preview.md`](docs/components/blog-preview.md) | — | (Docker container, claudebox-net) |
+| scoped-mcp | [`docs/components/scoped-mcp.md`](docs/components/scoped-mcp.md) | `manifests/<agent-type>.yml` | (stdio subprocess, one per agent) |

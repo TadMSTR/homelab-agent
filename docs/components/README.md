@@ -41,6 +41,7 @@ For the architecture overview and how these components relate, see the [main REA
 | Security Agent | [security-agent.md](security-agent.md) | Post-build security audits, three-category triage, action plan routing, stale queue monitoring |
 | Auto Mode | [auto-mode.md](auto-mode.md) | Claude Code permission classifier — settings.json environment rules, per-project SSH permissions, CloudCLI SDK patch |
 | Temporal | [temporal.md](temporal.md) | Durable workflow engine — multi-phase build automation, 5-container stack, Postgres-backed state, gRPC API |
+| scoped-mcp | [scoped-mcp.md](scoped-mcp.md) | Per-agent MCP tool proxy — manifest-driven module loading, resource scoping, credential isolation, audit logging |
 
 ## Layer 1 — Core Tooling
 
