@@ -2,7 +2,7 @@
 
 MCP server providing web search via a self-hosted SearXNG instance, with ML reranking, Valkey result caching, and domain filtering. Agents use this instead of the built-in `WebSearch` tool — private, no per-query API costs, and results are shaped by configurable domain boost/block lists.
 
-**Version:** 3.2.0
+**Version:** 3.2.1
 
 ## Tools
 
@@ -209,10 +209,13 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 - Fetch cascade falls through to Crawl4AI on empty Firecrawl response
 - SSRF fix: `assertPublicUrl()` now correctly blocks IPv6 private addresses (`::1`, `fc00::/7`, `fe80::/10`)
 
-**Unreleased**
+**v3.2.1 (2026-04-19)**
 
+- CI/CD: GitHub Actions workflows added — Node.js 20/22 matrix CI and automated release workflow with SHA-pinned actions at current major versions, scoped permissions, and `--verify-tag` enforcement on release
+- Biome linter adopted — style-only fixes applied across all source modules (no behavior changes)
+- `_BOOST_FACTOR` dead constant removed from `src/domains.ts`
 - Refactored from single 973-line `index.ts` to 9 focused modules — no behavior or tool changes
-- Vitest test scaffold added: 37 tests covering domain filtering, cache, SSRF validation, URL normalization, and parameter coercion
+- Vitest test scaffold: 37 tests covering domain filtering, cache, SSRF validation, URL normalization, and parameter coercion
 
 **v3.0.2 (2026-04-04)**
 
