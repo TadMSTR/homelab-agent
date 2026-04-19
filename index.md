@@ -54,6 +54,7 @@ homelab-agent/
 │       ├── temporal.md                # Temporal durable workflow engine — multi-phase build automation, 5-container stack
 │       ├── helm-temporal-worker.md    # Helm Temporal Worker — PM2 bridge from Temporal to Claude Code agents
 │       ├── task-dispatcher.md         # Task dispatcher — PM2 cron for agent task queue routing and approval gating
+│       ├── task-queue-mcp.md          # Task Queue MCP — FastMCP server, typed task queue tool access, schema enforcement
 │       ├── trigger-proxy.md           # Trigger Proxy — PM2 OAuth bridge for n8n Docker → claude.ai RemoteTrigger
 │       ├── memory-pipeline.md         # Memory pipeline — nightly consolidation orchestrator, tiered schedule
 │       ├── agent-bus.md               # Agent Bus — FastMCP inter-agent event log, NATS JetStream federation
@@ -222,6 +223,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/temporal.md` | ✅ Complete | 2026-03 |
 | `docs/components/helm-temporal-worker.md` | ✅ Complete | 2026-03 |
 | `docs/components/task-dispatcher.md` | ✅ Complete | 2026-03 |
+| `docs/components/task-queue-mcp.md` | ✅ Complete | 2026-04 |
 | `docs/components/trigger-proxy.md` | ✅ Complete | 2026-04 |
 | `docs/components/memory-pipeline.md` | ✅ Complete | 2026-03 |
 | `docs/components/agent-bus.md` | ✅ Complete | 2026-03 |
