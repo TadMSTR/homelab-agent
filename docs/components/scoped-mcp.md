@@ -208,3 +208,5 @@ See `examples/custom-module/` in the repo and `docs/module-authoring.md` for the
 ## Full Reference
 
 [TadMSTR/scoped-mcp README](https://github.com/TadMSTR/scoped-mcp) — complete API reference, quickstart, comparison table, non-goals, and multi-agent setup examples.
+
+**Security disclosures:** scoped-mcp has a formal security policy ([SECURITY.md](https://github.com/TadMSTR/scoped-mcp/blob/main/SECURITY.md)) covering scope bypass, credential isolation failures, and path traversal. Use the GitHub private advisory channel or the project email rather than opening a public issue.
