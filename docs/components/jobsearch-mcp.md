@@ -34,7 +34,7 @@ Five containers:
 | jobsearch-qdrant | qdrant/qdrant | Vector index for semantic job matching |
 | jobsearch-valkey | valkey/valkey:7-alpine | Enrichment cache — avoids re-fetching recently seen JDs |
 
-The MCP containers share an isolated `jobsearch-net` bridge network. `jobsearch-mcp` also joins `claudebox-net` so LibreChat containers can reach it. Only the MCP server binds a host port (8383).
+The MCP containers share an isolated `jobsearch-net` bridge network. Only the MCP server binds a host port (8383) — this is how LibreChat and other clients reach it via `host.docker.internal:8383`. If you need to attach the stack to an external Docker network (e.g., for a proxy or sidecar), use a `docker-compose.override.yml` rather than editing the base compose file.
 
 ## Prerequisites
 
@@ -203,6 +203,19 @@ To disable job-watcher without removing it, set `JOB_WATCH_INTERVAL_SECONDS` to 
 ```bash
 curl http://localhost:11434/api/pull -d '{"name": "bge-m3"}'
 ```
+
+**CVE-2025-46656 is a known suppressed finding in CI.** The vuln is in `markdownify` (a transitive dep of `python-jobspy`) and cannot be fixed locally — it requires an upstream release. CI runs `pip-audit --ignore-vuln CVE-2025-46656` to keep the gate passing. The suppression is intentional and documented in `ci.yml`. Accept it as an upstream-blocked risk until a fix ships.
+
+## CI
+
+GitHub Actions workflows added in v2.1.0:
+
+| Workflow | Triggers | What it does |
+|----------|----------|--------------|
+| `ci.yml` | Push, PR to `main` | Runs tests on Python 3.11, 3.12, 3.13; ruff lint+format check; `pip-audit` dependency scan |
+| `release.yml` | Push of `v*` tag | Builds wheel + sdist, creates a GitHub Release with attached artifacts |
+
+Both workflows use SHA-pinned actions. The `pip-audit` step runs with `--ignore-vuln CVE-2025-46656` (see Gotcha above).
 
 ## Standalone Value
 
