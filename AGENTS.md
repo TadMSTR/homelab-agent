@@ -1,8 +1,3 @@
----
-tier: showcase
-promoted: null
----
-
 # AGENTS.md — homelab-agent
 
 Public reference repository documenting a multi-agent AI homelab platform built on Claude Code. Covers the full three-layer architecture: dedicated host with MCP tool integrations, self-hosted Docker service stack, and multi-agent Claude Code engine with scoped memory and automated knowledge accumulation.
