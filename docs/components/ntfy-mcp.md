@@ -105,6 +105,16 @@ The container is **not** registered with LibreChat — it's Claude Code only. Li
 
 **Claude Code sessions.** Every writer, build, and homelab agent has `ntfy` in its MCP server list. Agents use it to signal completions, request operator input, and report errors — see the escalation protocol in each project's CLAUDE.md.
 
+```mermaid
+flowchart LR
+    A["Claude Code agent"] -->|"MCP tool call"| B["ntfy-mcp\nclaudebox:8484"]
+    B -->|"HTTP POST"| C["ntfy server\natlas"]
+    C --> D["claudebox\ncompletions"]
+    C --> E["claudebox-alerts\nsecurity · health"]
+    D --> F["subscribers\nmobile · web · desktop"]
+    E --> F
+```
+
 **ntfy on atlas.** The ntfy server itself runs on atlas (not claudebox). ntfy-mcp is purely a client — it forwards `send_notification` calls as HTTP POST requests to the atlas instance. There is no local ntfy server on claudebox.
 
 **Topic routing.** Default topic is `claudebox`. Agents can override with the `topic` parameter — some use project-specific topics for filtering (e.g., `claudebox-alerts` for security and health events vs. `claudebox` for general completions).
