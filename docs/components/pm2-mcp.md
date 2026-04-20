@@ -25,15 +25,19 @@ For agents doing health checks or operational responses, pm2-mcp is the right to
 |------|-------------|
 | `list_services` | List all PM2 services with key fields. Optional `status_filter`: `"online"`, `"stopped"`, or `"errored"`. |
 | `get_service` | Full detail for one service by name: script path, cwd, args, log files, created_at, plus all summary fields. |
-| `get_logs` | Tail recent log output for a service. `lines` defaults to 50; `include_errors` defaults to `true`. |
+| `get_logs` | Tail recent log output for a service. `lines` defaults to 50 (max 500); `include_errors` defaults to `true`. |
+| `get_status` | Server metadata and PM2 health summary — configured host/port, PM2 version, service counts by status. |
 
 ### Write
 
 | Tool | Description |
 |------|-------------|
-| `restart_service` | Restart a running or errored service. Returns `{ok: true}` or `{ok: false, error: ...}`. |
+| `restart_service` | Restart a running or errored service. Validates name first — returns `{ok: false}` if not found. |
 | `stop_service` | Stop a service. Does not remove it from the PM2 process list. |
 | `start_service` | Resume a stopped service already registered in PM2. Does not register a new process. |
+| `reload_service` | Gracefully reload a service (zero-downtime). Preferred over `restart_service` for production services. |
+| `save` | Persist the current PM2 process list to disk. Call after write operations to survive reboots. |
+| `flush_logs` | Clear log files for a service. |
 
 ### `list_services` response shape
 
@@ -62,6 +66,35 @@ For agents doing health checks or operational responses, pm2-mcp is the right to
 
 ## Configuration
 
+### Running as a PM2 process
+
+The recommended setup uses `ecosystem.config.js` with env vars:
+
+```js
+{
+  name: 'pm2-mcp',
+  script: 'server.py',
+  interpreter: 'python3',
+  env: {
+    PYTHONUNBUFFERED: '1',
+    MCP_HOST: '127.0.0.1',
+    MCP_PORT: '8486',
+  }
+}
+```
+
+```bash
+pm2 start ecosystem.config.js --only pm2-mcp
+pm2 save
+```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MCP_HOST` | `127.0.0.1` | Bind address |
+| `MCP_PORT` | `8486` | Listen port |
+
+### Wiring to Claude Code
+
 Claude Code CLI reads MCP servers from `~/.claude.json` (not `settings.json`):
 
 ```json
@@ -79,6 +112,14 @@ Note: use `"type": "http"` not `"type": "streamable-http"` in `~/.claude.json`, 
 
 pm2-mcp is **not** wired into LibreChat — it's localhost-only and there's no use case for LibreChat agents managing claudebox PM2 services directly.
 
+## CI
+
+GitHub Actions runs on Python 3.11, 3.12, and 3.13:
+
+- **Lint:** ruff
+- **Tests:** pytest (32 tests, all mocking `_run_pm2` — no live PM2 required)
+- **Audit:** pip-audit (pinned to `fastmcp>=3.2.4` after CVE fix)
+
 ## Security Considerations
 
 pm2-mcp binds to `127.0.0.1` only. Any client that can reach port 8486 can restart or stop services — the write tools have no confirmation step. This is acceptable because:
@@ -87,11 +128,19 @@ pm2-mcp binds to `127.0.0.1` only. Any client that can reach port 8486 can resta
 - Only Claude Code agents (running as `ted`) connect to it
 - Write tools validate service names and return structured errors rather than running blind
 
-The `start_service` tool resumes registered services only — it cannot register arbitrary new processes. There is no `delete` or `flush` tool exposure.
+All write tools (`restart_service`, `stop_service`, `start_service`, `reload_service`, `flush_logs`) validate the service name against the live PM2 process list before acting. An unrecognized name returns `{ok: false, error: "service '...' not found"}` without touching PM2.
+
+The `start_service` tool resumes registered services only — it cannot register arbitrary new processes. There is no `delete` tool exposure.
 
 ## Gotchas and Lessons Learned
 
 **`start_service` ≠ registering a new process.** It calls `pm2 start <name>` on an already-registered service. To register a new PM2 process, use homelab-ops-mcp's `run_command` with the appropriate `pm2 start` invocation.
+
+**`reload_service` vs `restart_service`.** `reload_service` sends SIGINT and waits for a clean exit before bringing the process back up — zero downtime if the app handles it. `restart_service` is a hard kill-and-restart. Use `reload_service` for production services; `restart_service` for hung or errored ones.
+
+**Call `save` after write operations.** PM2's in-memory process list isn't automatically persisted. After any `restart_service`, `stop_service`, `start_service`, or `reload_service` that you want to survive a reboot, call `save` to flush the list to disk.
+
+**`flush_logs` is destructive.** It clears the log files for a service in place — there's no archive step. Only call it when old log content is genuinely not needed.
 
 **`get_logs` output format.** PM2 interleaves stdout and stderr in its log file even when you ask for one stream. The `include_errors` parameter controls whether the stderr log path is also read — it doesn't filter the stdout log file itself.
 
