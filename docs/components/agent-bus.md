@@ -2,7 +2,7 @@
 
 The Agent Bus is a FastMCP MCP server that provides a unified inter-agent event log for the claudebox multi-agent setup. Agents call `log_event` when they produce or consume cross-agent work items — task handoffs, audit requests, build completions, diagnose sessions. Events are appended to local JSONL files and federated to NATS JetStream in the background.
 
-**Repo:** `TadMSTR/agent-bus-mcp`  
+**Repo:** `TadMSTR/agent-bus`  
 **Deploy path:** `~/repos/personal/agent-bus/`  
 **Transport:** stdio (MCP only — no port binding)  
 **Storage:** `~/.claude/comms/`
@@ -22,9 +22,10 @@ Before the agent bus, inter-agent events existed only in session notes and memor
 graph TD
     Agent["Claude Code Agent"] -->|"log_event(type, source, target, summary)"| Server["server.py (FastMCP, stdio)"]
 
-    Server --> Log["~/.claude/comms/logs/<br/>YYYY-MM-DD-cross-agent.jsonl"]
+    Server --> Log["$AGENT_BUS_COMMS_DIR/logs/<br/>YYYY-MM-DD-cross-agent.jsonl"]
     Server --> NATS["NATS JetStream<br/>agent-bus.hostname.events"]
     Server -->|"high-priority only<br/>(audit.requested, task.failed,<br/>handoff.created)"| Ntfy["ntfy alert"]
+    Server -->|"matching WEBHOOK_EVENTS"| Webhook["HTTP webhook"]
 
     subgraph "Background (every 30s)"
         FedLoop["federation loop<br/>file+offset cursor → gap-fill NATS"]
@@ -40,10 +41,24 @@ graph TD
     end
 ```
 
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AGENT_BUS_COMMS_DIR` | `~/.claude/comms` | Base directory for logs, artifacts, and cursors |
+| `NATS_URL` | `nats://localhost:4222` | NATS server URL (optional) |
+| `NTFY_URL` | — | ntfy topic URL for push notifications (optional) |
+| `AGENT_BUS_CROSS_AGENT_RETENTION_DAYS` | `90` | Days to retain cross-agent log files |
+| `AGENT_BUS_SESSION_RETENTION_DAYS` | `30` | Days to retain session log files |
+| `AGENT_BUS_WEBHOOK_URL` | — | URL to POST event JSON to (optional) |
+| `AGENT_BUS_WEBHOOK_EVENTS` | — | Comma-separated event types to fire on, or `*` for all (optional) |
+
+`NATS_URL`, `NTFY_URL`, and the webhook vars are fully optional — the server operates on local JSONL alone without them.
+
 ## Storage Layout
 
 ```
-~/.claude/comms/
+$AGENT_BUS_COMMS_DIR/          (default: ~/.claude/comms)
 ├── logs/
 │   ├── YYYY-MM-DD-cross-agent.jsonl   # inter-agent events
 │   └── YYYY-MM-DD-session.jsonl       # session-scoped (memory, skills)
@@ -90,6 +105,10 @@ query_events(since="2026-03-29T06:00:00Z")
 ### `get_event`
 
 Retrieve a specific event by UUID. Used when `artifact_path` in a log entry points back to a known event.
+
+### `get_status`
+
+Returns current server configuration and health: configured paths, which optional integrations are active (NATS, ntfy, webhook), date range of available logs, and today's event count. Useful for verifying setup after installation or after changing env vars.
 
 ## Event Vocabulary
 
@@ -177,6 +196,8 @@ After scanning, the cursor file is `touch()`ed to the current time. On the next 
 **Inline emit + federation loop = at-least-once delivery.** Every event is published twice to NATS: once inline when logged, and again by the federation loop replay. The AGENT_BUS stream's 2-minute dedup window suppresses duplicates for recent events. For events older than 2 minutes (e.g., after NATS downtime), consumers will see duplicates — design them to be idempotent.
 
 **stdio transport only.** `server.py` runs as an MCP stdio server (not HTTP). It cannot be reached by services outside Claude Code sessions. The Python client (`agent_bus_client.py`) exists specifically for this gap — use it from PM2 cron scripts and non-MCP callers.
+
+**Webhook fires are fire-and-forget.** `emit_webhook()` POSTs event JSON to `AGENT_BUS_WEBHOOK_URL` for each event matching `AGENT_BUS_WEBHOOK_EVENTS` (or all events if `*`). There is no retry — if the endpoint is down, the event is still logged locally and federated to NATS normally. Set `AGENT_BUS_WEBHOOK_EVENTS` to a specific list to avoid flooding high-volume webhook receivers.
 
 **Session log is not federated.** Events with `scope="session"` go to `-session.jsonl` and are never published to NATS. They're for local query only (e.g., "what skills ran in today's memory-sync?"). Use `scope="cross-agent"` for anything that needs NATS visibility.
 
