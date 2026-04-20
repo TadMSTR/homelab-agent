@@ -116,6 +116,7 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 | **n8n** | Workflow automation | n8n with Postgres backend. Handles webhook-triggered workflows and event routing between the AI platform and external systems. Task queue and agent manifests mounted read-only for agent-triggered workflows. See [n8n](docs/components/n8n.md). |
 | **Helm Dashboard** | CloudCLI monitoring plugin | Browser tab for observing unattended agent builds — agent sessions, memory state, handoff queue, knowledge graph, PM2/Docker infrastructure, Plane work items, and WebSocket live updates. Pairs with auto mode configuration for walk-away workflows. See [helm-dashboard](docs/components/helm-dashboard.md) and [auto-mode](docs/components/auto-mode.md). |
 | **qmd** | Semantic search MCP server | Hybrid search (BM25 + vector + LLM reranking) over all repos, docs, and agent memory. Local embeddings via GGUF models, GPU-accelerated on AMD iGPU via Vulkan. |
+| **Hister** | Browser-based memory search | Self-hosted semantic + keyword search over the Claude memory corpus (~500 files: agent memory, prime-directive, build plans, platform docs). Independent of live Claude sessions — search past decisions from any browser. Semantic search via `nomic-embed-text` on the forge GPU; Bleve full-text keyword index; SearXNG fallback on zero results. Web UI behind Authelia SSO; MCP endpoint at `/mcp` for programmatic access. See [hister](docs/components/hister.md). |
 
 All containers share a single Docker network. SWAG handles SSL termination and routes `chat.yourdomain`, `auth.yourdomain`, `cloudcli.yourdomain`, etc. to the appropriate container.
 
@@ -310,6 +311,7 @@ homelab-agent/
 │       ├── plane.md                 ← Project management integration — work items, cycles, agent dispatch
 │       ├── qmd.md                   ← Semantic search, dual transport, GPU acceleration
 │       ├── memsearch.md             ← Memory recall for Claude Code, plugin integration
+│       ├── hister.md                ← Browser-based memory search — semantic + keyword, preview shim
 │       ├── memory-sync.md           ← Knowledge distillation pipeline, PM2 cron
 │       ├── memory-pipeline.md       ← 3-job memory schedule — real-time indexing, distillation, graph sync
 │       ├── doc-sync.md              ← Local docs cache — service reference docs fetched, chunked, memsearch-indexed

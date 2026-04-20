@@ -235,6 +235,18 @@ RemoteTrigger → fires Claude Code agent session on claude.ai
 - [n8n](components/n8n.md) — workflow engine that sequences the trigger chain
 - [Helm Temporal Worker](components/helm-temporal-worker.md) — BuildPipelineWorkflow durable orchestration
 
+### Memory Search Options
+
+Three tools provide memory search with different access patterns:
+
+| Tool | Access pattern | Scope |
+|------|---------------|-------|
+| **memsearch** | Automatic, in-session | Session memory files — auto-injected into Claude Code context via plugin |
+| **qmd** | On-demand, MCP tool call | Repos, infrastructure docs, distilled agent memory — explicit queries |
+| **Hister** | Browser UI or MCP endpoint | Full memory corpus (~500 files) — independent of any live Claude session |
+
+They complement rather than compete. memsearch handles automatic recall during sessions; qmd handles structured document search; Hister is the human-readable window into what the agents know, accessible from any browser without starting a Claude Code session. See [hister](components/hister.md).
+
 ### Search Flow (qmd Dual Transport)
 
 qmd serves two clients through different transports:
