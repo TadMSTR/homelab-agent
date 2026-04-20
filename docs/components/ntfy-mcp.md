@@ -109,6 +109,13 @@ The container is **not** registered with LibreChat — it's Claude Code only. Li
 
 **Topic routing.** Default topic is `claudebox`. Agents can override with the `topic` parameter — some use project-specific topics for filtering (e.g., `claudebox-alerts` for security and health events vs. `claudebox` for general completions).
 
+## CI
+
+GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and pull request:
+
+- **Test matrix:** Python 3.11, 3.12, 3.13
+- **Dependency scan:** `pip-audit` on each Python version — catches CVEs in transitive dependencies
+
 ## Security Considerations
 
 Port 8484 is bound on all interfaces on the host, but the container is only reachable from `claudebox-net` Docker services and the host itself. No external exposure through SWAG.
@@ -117,7 +124,15 @@ Port 8484 is bound on all interfaces on the host, but the container is only reac
 
 The server has no authentication of its own. Any process on claudebox that can reach port 8484 can send notifications. This is acceptable because claudebox is a single-user machine and the ntfy topics involved are alerting channels, not sensitive data conduits.
 
+**Header injection protection.** All user-supplied header values (`title`, `tags`, `click`, `icon`) pass through a `_clean()` helper that strips `\r` and `\n` before writing to HTTP headers.
+
+**Topic allowlist.** Topics are validated against `^[a-zA-Z0-9_-]{1,64}$`. The previous path-separator check (`/` or `..`) was bypassable via URL-encoded equivalents (`%2F`, `%2E%2E`) that reverse proxies may decode before forwarding — the allowlist closes that class entirely. Invalid topics return `{"ok": false, "error": "Invalid topic: ..."}`.
+
+**Non-root container.** The Dockerfile runs as `appuser` (uid 1001) — no process in the container runs as root.
+
 ## Gotchas and Lessons Learned
+
+**Topic character restrictions.** Topics must match `^[a-zA-Z0-9_-]{1,64}$`. Dots, slashes, spaces, and any URL-encoded variants are rejected. This is stricter than ntfy's own naming guidance — it's intentional to prevent path traversal bypasses via reverse-proxy URL decoding.
 
 **Rebuilding after source changes.** ntfy-mcp is built from local source — `docker compose up -d` won't pull a new image, it uses the existing build. After editing the server source, rebuild explicitly: `docker compose up -d --build`.
 
