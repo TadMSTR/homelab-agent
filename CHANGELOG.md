@@ -4,6 +4,14 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-04-20
+
+**Hister memory search** — Self-hosted semantic + keyword search engine deployed over the Claude memory corpus and knowledge files. Provides browser-based search independent of live Claude sessions, covering ~500 files: agent memory, prime-directive, build plans, and platform docs. Semantic search uses `nomic-embed-text` via Ollama on forge; keyword search uses Bleve full-text indexing; SearXNG fallback fires on zero results. Web UI served at a private subdomain behind Authelia SSO; MCP endpoint at `/mcp` for programmatic access. Stack runs as a single container on `claudebox-net`, port 4433 internal-only; compose + `data/config.yml` (access token) added to backup/deploy scripts.
+
+**Hister preview shim** (`scripts/hister-preview.py`) — Python HTTP service (PM2, port 4434) that intercepts Hister's `/api/preview` requests and renders markdown files as styled HTML, replacing a `chromedp` (headless Chrome) dependency not available in the container image. Fetches the raw file via Hister's `/api/file` endpoint, strips YAML frontmatter, converts with the Python `markdown` library, and returns JSON matching Hister's preview response schema (`{title, content, html, htmlType}`). SWAG routes `/api/preview` to the shim before it reaches the Hister container. Covered by the `~/scripts/` rsync in backup.
+
+---
+
 ## 2026-04-12
 
 **Automation infrastructure** — Wires the full autonomous multi-agent workflow pipeline. `trigger-proxy` new always-on Python service (`172.18.0.1:5679`) that lets n8n Docker workflows fire Claude Code RemoteTrigger sessions; reads OAuth token from `~/.claude/.credentials.json` with auto-refresh and proxies to `api.anthropic.com/v1/code/triggers/{id}/run`. `task-dispatcher` updated to post to n8n's task-approved webhook on approvals and move TTL-expired tasks to a `dead-letters/` subdirectory. Agent manifests added for dev and writer agents (capabilities, model pins, `interaction_permissions`); RemoteTrigger IDs for 8 agent variants stored at `~/.claude/agent-manifests/.trigger-map.yml`. Model pins locked in `settings.json` for 7 agent project chats (Sonnet for 6, Opus for security). Two new Gitea repos: `build-reports` (structured phase output per build) and `agent-activity` (task history, workflow digests, drift logs); both added to `repo-sync-nightly` and `qmd` semantic indexing.
