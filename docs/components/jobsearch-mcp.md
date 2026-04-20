@@ -38,17 +38,29 @@ The MCP containers share an isolated `jobsearch-net` bridge network. Only the MC
 
 ## Prerequisites
 
-Before deploying, you need:
+The server is modular — start minimal and add services as needed. Tools that require an unconfigured service return a clear error message rather than a bare exception.
+
+**Required for basic use (search + track):**
 
 | Service | Purpose | Notes |
 |---------|---------|-------|
 | **Adzuna** | Job search API, salary data | Free key at [developer.adzuna.com](https://developer.adzuna.com/) |
-| **Anthropic** | Powers `score_fit`, `build_profile`, `tailor_resume` | Uses `claude-haiku-4-5` — inexpensive |
-| **Ollama** | Embeddings for semantic job matching | Run locally; pull `bge-m3` before first `index_job` call |
-| **Firecrawl** | Primary JD extraction | Use the self-hosted firecrawl-simple stack — no API key needed |
-| **Crawl4AI** | Fallback JD extraction | Optional but recommended; self-hosted, no key needed |
-| **SMTP relay** | job-watcher email alerts | Brevo free tier works (587/STARTTLS); only needed if using job-watcher |
-| **USAJobs** | Government job listings | Optional API key + email at [developer.usajobs.gov](https://developer.usajobs.gov/); works without key at reduced rate limits |
+
+**Required for specific features:**
+
+| Service | Enables | Notes |
+|---------|---------|-------|
+| **Anthropic** | `score_fit`, `build_profile`, `tailor_resume`, `cover_letter_brief` | Uses `claude-haiku-4-5` — inexpensive |
+| **Ollama (bge-m3)** | `index_job`, `match_jobs` — semantic job matching | Run locally; pull `bge-m3` before first use |
+| **Firecrawl Simple** | Full JD extraction (primary tier) | Self-hosted — [trieve-ai/firecrawl-simple](https://github.com/trieve-ai/firecrawl-simple); no key needed |
+
+**Optional:**
+
+| Service | Purpose | Notes |
+|---------|---------|-------|
+| **Crawl4AI** | Fallback JD extraction (second tier) | Self-hosted, no key needed |
+| **SMTP relay** | job-watcher email alerts | Brevo free tier works (587/STARTTLS) |
+| **USAJobs** | Government job listings | Key + email at [developer.usajobs.gov](https://developer.usajobs.gov/); works without key at reduced rate limits |
 | **Findwork** | Tech job board | Optional key at [findwork.dev](https://findwork.dev/); omit to skip source |
 
 Postgres, Qdrant, and Valkey are included in the compose stack — no external services needed for those.
@@ -203,6 +215,8 @@ To disable job-watcher without removing it, set `JOB_WATCH_INTERVAL_SECONDS` to 
 ```bash
 curl http://localhost:11434/api/pull -d '{"name": "bge-m3"}'
 ```
+
+**Tools degrade gracefully when optional services aren't configured.** `score_fit`, `build_profile`, `tailor_resume`, and `cover_letter_brief` return a structured error dict (not a bare exception) when `ANTHROPIC_API_KEY` is unset. `index_job` and `match_jobs` do the same when `OLLAMA_HOST` is unset. This means you can deploy with just an Adzuna key and get useful functionality immediately — the error messages tell you exactly what to add to unlock each feature.
 
 **CVE-2025-46656 is a known suppressed finding in CI.** The vuln is in `markdownify` (a transitive dep of `python-jobspy`) and cannot be fixed locally — it requires an upstream release. CI runs `pip-audit --ignore-vuln CVE-2025-46656` to keep the gate passing. The suppression is intentional and documented in `ci.yml`. Accept it as an upstream-blocked risk until a fix ships.
 
