@@ -88,7 +88,14 @@ Docker bridge network (claudebox-net):
   ├── searxng + valkey
   │     └── searxng serves librechat web search queries
   ├── dockhand (+ Docker socket mount)
-  └── open-notebook + surrealdb
+  ├── open-notebook + surrealdb
+  └── matrix-synapse + matrix-db + matrix-element
+        └── swag routes matrix.yourdomain → synapse:8008
+                        element.yourdomain → element:80
+
+Host PM2 services (no external ports):
+  ├── matrix-mcp (port 8487, 127.0.0.1 — Matrix client API bridge for agents)
+  └── ... (other PM2 services)
 ```
 
 </details>
@@ -234,6 +241,37 @@ RemoteTrigger → fires Claude Code agent session on claude.ai
 - [Trigger Proxy](components/trigger-proxy.md) — OAuth bridge for n8n → RemoteTrigger calls
 - [n8n](components/n8n.md) — workflow engine that sequences the trigger chain
 - [Helm Temporal Worker](components/helm-temporal-worker.md) — BuildPipelineWorkflow durable orchestration
+
+### Agent Communications Layer
+
+Every agent session can post messages, upload artifacts, and read replies using the `matrix-mcp` MCP server. This connects agents to a Synapse Matrix homeserver running on `claudebox-net`, with Element Web as the operator's browser client.
+
+```
+Agent session
+  │  mcp__matrix__send_matrix_message / post_artifact / get_matrix_messages
+  ▼
+matrix-mcp (PM2, port 8487, 127.0.0.1)
+  │  Matrix client API (HTTPS)
+  ▼
+Synapse + PostgreSQL (Docker, claudebox-net)
+  │
+  ▼
+Element Web (Docker) — operator reads/replies via browser
+  │
+  ▼
+matrix-channel (Node.js Channel plugin)
+  │  injects Matrix replies as user input
+  ▼
+Active Claude Code session
+```
+
+**11 rooms:** one per agent (`#claudebox`, `#dev`, `#homelab-ops`, `#research`, `#security`, `#helm-build`, `#pr`, `#writer`, `#memory-sync`) plus `#announcements` and `#general`. Each agent's `CLAUDE.md` specifies its room and uses `send_matrix_message` for activity updates and `post_artifact` for logs and build output.
+
+**Dispatcher routing:** `task-dispatcher.py` routes state transitions (submit, approve, reject, complete, handoff) to Matrix rooms. ntfy is retained only for dead-letter events and pending-approval notifications where the operator needs to act before the pipeline can continue.
+
+**matrix-channel** is a Claude Code Channel plugin that polls a Matrix room and injects operator replies back into an interactive session — enabling permission relay without a separate chat window.
+
+See [matrix.md](components/matrix.md) for the full component doc.
 
 ### Memory Search Options
 

@@ -4,6 +4,18 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-04-23
+
+**Matrix agent communications stack** — Deployed a Synapse v1.151.0 + PostgreSQL 16 + Element Web v1.12.15 homeserver as the primary agent notification and communication layer. Replaces ntfy for most events; ntfy is retained only for pending-approval and dead-letter notifications.
+
+Two new public repos: [`matrix-mcp`](https://github.com/TadMSTR/matrix-mcp) (FastMCP HTTP server, port 8487, `127.0.0.1` only) and [`matrix-channel`](https://github.com/TadMSTR/matrix-channel) (Node.js Claude Code Channel plugin). `matrix-mcp` exposes four tools to agents: `send_matrix_message`, `post_artifact`, `get_matrix_messages`, `list_matrix_rooms`. `matrix-channel` polls a Matrix room and injects operator replies as user input into an active Claude Code session, enabling permission relay without a separate chat window.
+
+11 rooms — one per agent (`#claudebox`, `#dev`, `#homelab-ops`, `#research`, `#security`, `#helm-build`, `#pr`, `#writer`, `#memory-sync`) plus `#announcements` and `#general`. `task-dispatcher.py` updated with a `matrix_notify()` routing helper: submit/approve/reject/complete/handoff events now post to Matrix rooms instead of ntfy. 9 agent `CLAUDE.md` files updated with `## Communications` sections specifying room assignments.
+
+**Security hardening (7 findings resolved):** SWAG proxy blocks `/_synapse/admin/` with 403 (M1); `homeserver.yaml` set to mode 640 (M2); `post_artifact` allowlist pruned to `~/repos/`, `~/.claude/comms/`, `~/.claude/memory/` — `/opt/appdata/` and Docker compose trees removed (M3); `html.escape()` applied to title in `formatted_body` (L1); `bleach.clean()` with Matrix-spec allowlist wraps all markdown rendering (L2); `</claude-channel>` tag-boundary injection escaped in matrix-channel (L3); Docker Compose hardening flags added — `no-new-privileges:true`, `cap_drop: ALL`, memory limits per container (L4).
+
+---
+
 ## 2026-04-22
 
 **ollama-queue-proxy v0.2.0 deployed** — Upgraded from v0.1.2 to v0.2.0 (Smart Pool Manager). Five new capabilities now live on claudebox: port-based client injection (memsearch-watch reaches the proxy on `127.0.0.1:11436` with no Bearer header — identity injected as `memsearch-watch` by the proxy); model-aware weighted round-robin routing (proxy polls `/api/tags` every 30s and routes to the host already holding the requested model); SHA256-keyed Valkey embedding cache (24h TTL, `/api/embed` + `/api/embeddings` deduplicated); `keep_alive: "5m"` defaulting to prevent model unloads between bursty requests; per-client concurrency cap (`max_concurrent: 2` on `memsearch-watch`). Valkey added as a dedicated sidecar container on an internal-only Docker network (`oqp-internal`). `deploy-claudebox.sh` updated so the queue-proxy stack auto-starts on rebuild.
