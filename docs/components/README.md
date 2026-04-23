@@ -21,6 +21,7 @@ For the architecture overview and how these components relate, see the [main REA
 | Grafana (claudebox) | [grafana-claudebox.md](grafana-claudebox.md) | Local Grafana + InfluxDB for AI agent observability — separate from atlas infrastructure monitoring |
 | Plane | [plane.md](plane.md) | Self-hosted project management — Helm platform tracking, 11-container stack, MCP integration, multi-path SWAG proxy |
 | Helm Dashboard | [helm-dashboard.md](helm-dashboard.md) | CloudCLI plugin — monitoring tab for walk-away agent builds, eight panels, WebSocket live updates |
+| ollama-queue-proxy | [ollama-queue-proxy.md](ollama-queue-proxy.md) | Smart pool manager for Ollama fleet — per-client auth, priority queuing, model-aware routing, Valkey embedding cache, client injection |
 
 ## Layer 3 — Multi-Agent Engine
 
