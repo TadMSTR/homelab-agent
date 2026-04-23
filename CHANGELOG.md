@@ -172,3 +172,18 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 ## 2026-03-09
 
 **Initial public release** — homelab-agent published as a sanitized reference implementation of an AI-powered homelab operations platform. Docs cover all three layers: host tooling and MCP servers, self-hosted service stack, and multi-agent Claude Code engine.
+
+## [Unreleased] — 2026-04-23
+
+### Added
+
+- **Matrix agent communications stack** — Synapse v1.151.0 Matrix homeserver + PostgreSQL 16 + Element Web v1.12.15 deployed on claudebox. Accessible at `matrix.<your-domain>` (Synapse) and `element.<your-domain>` (Element Web) via SWAG. Federation and public registration disabled; single-user internal deployment.
+- **matrix-mcp** — FastMCP HTTP server (port 8487, loopback only) providing `send_matrix_message`, `get_matrix_messages`, `list_matrix_rooms`, and `post_artifact` tools to all Claude agent sessions via global `~/.claude.json` MCP registration.
+- **matrix-channel** — Node.js Channel plugin (matrix-js-sdk v34) enabling two-way messaging in interactive Claude Code sessions. Watches `#approvals`, `#task-queue`, `#announcements`, and `#dev` rooms. Trusted-sender filter: `@ted:<your-server-name>` only. Supports permission relay for remote task approval via Element.
+- **11 agent rooms** — `#task-queue`, `#approvals`, `#research`, `#claudebox`, `#dev`, `#helm-build`, `#homelab-ops`, `#security`, `#pr`, `#writer`, `#announcements`. Bot user `@claude-agent:<your-server-name>` joined to all rooms.
+- **Matrix routing in task-dispatcher** — `matrix_notify()` function routes state transitions to Matrix: pending-approval → `#approvals` + `#task-queue`; auto-approved → `#task-queue`; stale/dead-letter → `#task-queue`. ntfy retained for pending-approval and dead-letter only.
+- **## Communications section** added to all 9 agent `CLAUDE.md` files with room assignments.
+
+### Fixed
+
+- **task-dispatcher.py** — `archive_expired()` raised `TypeError` when `created` field was a bare date string (e.g. `2026-04-23`). `datetime.fromisoformat()` returns a naive datetime for date-only strings; now localized to UTC before comparison with timezone-aware `now`.
