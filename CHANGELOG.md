@@ -10,6 +10,12 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-04-21
+
+**ollama-queue-proxy public release** — Published [`TadMSTR/ollama-queue-proxy`](https://github.com/TadMSTR/ollama-queue-proxy) as a new public showcase repo. Smart pool manager for Ollama: per-client API keys with individual priority ceilings (`max_priority: low/normal/high`), three-tier priority queuing (high › normal › low) with per-tier depth limits and expiry, model-aware weighted round-robin routing across multiple Ollama hosts, SHA256-keyed Valkey embedding cache (24h TTL, `/api/embed` + `/api/embeddings` only), port-based client injection for clients without Bearer header support, and `keep_alive` defaulting to prevent model unloads between bursty requests. Security-first design: management endpoints (`/queue/pause`, `/queue/drain`, etc.) require a separate management key; per-client concurrency caps prevent batch workloads from starving interactive ones; webhook SSRF protection covers IP literals and hostnames. Drop-in compatible — point any Ollama consumer at the proxy port with one config change.
+
+---
+
 ## 2026-04-20
 
 **Hister memory search** — Self-hosted semantic + keyword search engine deployed over the Claude memory corpus and knowledge files. Provides browser-based search independent of live Claude sessions, covering ~500 files: agent memory, prime-directive, build plans, and platform docs. Semantic search uses `nomic-embed-text` via Ollama on forge; keyword search uses Bleve full-text indexing; SearXNG fallback fires on zero results. Web UI served at a private subdomain behind Authelia SSO; MCP endpoint at `/mcp` for programmatic access. Stack runs as a single container on `claudebox-net`, port 4433 internal-only; compose + `data/config.yml` (access token) added to backup/deploy scripts.
