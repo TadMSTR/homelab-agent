@@ -4,7 +4,7 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
-## 2026-04-23
+## 2026-04-22
 
 **ollama-queue-proxy v0.2.0 deployed** — Upgraded from v0.1.2 to v0.2.0 (Smart Pool Manager). Five new capabilities now live on claudebox: port-based client injection (memsearch-watch reaches the proxy on `127.0.0.1:11436` with no Bearer header — identity injected as `memsearch-watch` by the proxy); model-aware weighted round-robin routing (proxy polls `/api/tags` every 30s and routes to the host already holding the requested model); SHA256-keyed Valkey embedding cache (24h TTL, `/api/embed` + `/api/embeddings` deduplicated); `keep_alive: "5m"` defaulting to prevent model unloads between bursty requests; per-client concurrency cap (`max_concurrent: 2` on `memsearch-watch`). Valkey added as a dedicated sidecar container on an internal-only Docker network (`oqp-internal`). `deploy-claudebox.sh` updated so the queue-proxy stack auto-starts on rebuild.
 
