@@ -4,6 +4,12 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-04-23
+
+**ollama-queue-proxy v0.2.0 deployed** — Upgraded from v0.1.2 to v0.2.0 (Smart Pool Manager). Five new capabilities now live on claudebox: port-based client injection (memsearch-watch reaches the proxy on `127.0.0.1:11436` with no Bearer header — identity injected as `memsearch-watch` by the proxy); model-aware weighted round-robin routing (proxy polls `/api/tags` every 30s and routes to the host already holding the requested model); SHA256-keyed Valkey embedding cache (24h TTL, `/api/embed` + `/api/embeddings` deduplicated); `keep_alive: "5m"` defaulting to prevent model unloads between bursty requests; per-client concurrency cap (`max_concurrent: 2` on `memsearch-watch`). Valkey added as a dedicated sidecar container on an internal-only Docker network (`oqp-internal`). `deploy-claudebox.sh` updated so the queue-proxy stack auto-starts on rebuild.
+
+---
+
 ## 2026-04-20
 
 **Hister memory search** — Self-hosted semantic + keyword search engine deployed over the Claude memory corpus and knowledge files. Provides browser-based search independent of live Claude sessions, covering ~500 files: agent memory, prime-directive, build plans, and platform docs. Semantic search uses `nomic-embed-text` via Ollama on forge; keyword search uses Bleve full-text indexing; SearXNG fallback fires on zero results. Web UI served at a private subdomain behind Authelia SSO; MCP endpoint at `/mcp` for programmatic access. Stack runs as a single container on `claudebox-net`, port 4433 internal-only; compose + `data/config.yml` (access token) added to backup/deploy scripts.
