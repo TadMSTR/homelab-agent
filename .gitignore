@@ -22,3 +22,4 @@ secrets.*
 *.key
 *.pem
 *.p12
+*.secret
