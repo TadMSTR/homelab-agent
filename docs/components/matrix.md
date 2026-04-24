@@ -82,7 +82,7 @@ All three run on `claudebox-net`. Only Synapse's client API (`/_matrix/`) is exp
 | `#research` | Research agent |
 | `#security` | Security audit agent |
 | `#helm-build` | Helm/forge build agent |
-| `#pr` | PR review agent |
+| `#outreach` | Outreach agent |
 | `#writer` | Documentation agent |
 | `#memory-sync` | Nightly memory pipeline reports |
 | `#announcements` | Cross-agent broadcasts |
