@@ -84,7 +84,7 @@ All three run on `claudebox-net`. Only Synapse's client API (`/_matrix/`) is exp
 | `#helm-build` | Helm/forge build agent |
 | `#outreach` | Outreach agent |
 | `#writer` | Documentation agent |
-| `#memory-sync` | Nightly memory pipeline reports |
+| `#memory-sync` | Memory-pipeline and doc-sync completion summaries |
 | `#announcements` | Cross-agent broadcasts |
 | `#general` | Operator + system channel |
 
@@ -117,6 +117,18 @@ Each agent's `CLAUDE.md` includes a `## Communications` section specifying its a
 | Dead-letter / TTL expired | ntfy (pending-approval channel) |
 
 ntfy retains only the dead-letter and pending-approval paths. All other dispatcher events route to Matrix.
+
+## Nightly Cron Integration
+
+Three PM2 cron jobs post completion summaries via `matrix-notify.py` (`~/scripts/matrix-notify.py`), a lightweight Python helper that resolves short room names to room IDs from `MATRIX_ROOM_<NAME>` env vars and sends a single message via the Synapse client API. Credentials from `~/.claude-secrets/matrix.env`; room names are validated against an explicit allowlist before sending.
+
+| Cron job | Posts on success | Posts on failure |
+|----------|-----------------|-----------------|
+| `memory-pipeline` | `#memory-sync` | `#memory-sync` |
+| `doc-sync` | `#memory-sync` | `#memory-sync` |
+| `repo-sync-nightly` | `#announcements` | silent |
+
+`memory-pipeline` and `doc-sync` post regardless of outcome so failures are visible in `#memory-sync` rather than disappearing into PM2 logs. `repo-sync-nightly` only posts on successful syncs — failures go to the PM2 log without a Matrix notification.
 
 ## matrix-channel
 

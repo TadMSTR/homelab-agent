@@ -4,6 +4,14 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-04-24
+
+**matrix-notification-wiring** — Wired three nightly PM2 cron jobs to post Matrix completion summaries via a new `matrix-notify.py` helper (`~/scripts/matrix-notify.py`). `memory-pipeline` and `doc-sync` post to `#memory-sync` on both success and failure; `repo-sync-nightly` posts to `#announcements` on successful syncs only. Bot account joined to `#memory-sync` room during build. No new services or ports — reuses the existing matrix-mcp venv and `~/.claude-secrets/matrix.env` credentials.
+
+**Security hardening (4 low findings resolved):** `timeout 15` prefix added to bash `matrix_notify()` callers in `memory-pipeline.sh` and `repo-sync.sh` to prevent indefinite stall when Synapse is unreachable (L1); `_ALLOWED_ROOMS` frozenset added to `matrix-notify.py`'s `resolve_room()`, matching the allowlist pattern in `room_map.py` (L2); `log.warning()` replaces silent `except Exception: pass` in `doc-sync.py`'s notification path (L3); `.gitignore` with secrets patterns added to public doc repos — `homelab-agent` and `TadMSTR` profile (L4).
+
+---
+
 ## 2026-04-23
 
 **Matrix agent communications stack** — Deployed a Synapse v1.151.0 + PostgreSQL 16 + Element Web v1.12.15 homeserver as the primary agent notification and communication layer. Replaces ntfy for most events; ntfy is retained only for pending-approval and dead-letter notifications.
