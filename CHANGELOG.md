@@ -4,6 +4,14 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-04-25
+
+**ketesa-deployment** — Deployed Ketesa (`ghcr.io/etkecc/ketesa`, digest-pinned), a browser-based Synapse admin UI, on claudebox behind Authelia-protected SWAG. Ketesa is a purely client-side app: the browser loads static assets from `ketesa.yourdomain`, then makes admin API calls directly to Synapse at `matrix.yourdomain/_synapse/admin/`. No host port — internal only on `claudebox-net`. `config.json` sets `restrictBaseUrl` to lock the UI to the local homeserver. Alongside: `homeserver.yaml` hardened with `allow_guest_access: false`, `allow_public_rooms_over_federation: false`, `allow_public_rooms_without_auth: false`, and `auto_join_rooms: [#announcements:yourdomain]`.
+
+**Security hardening (2 Low findings resolved, 1 deferred):** `/_synapse/admin/` proxy rule changed from flat 403 to LAN-CIDR allowlist (`192.168.0.0/16`, `10.10.0.0/16`) — Synapse enforces admin token natively, and Ketesa's browser-direct API calls require LAN reachability of the admin path (L1); `read_only`, `tmpfs`, `mem_limit`, and `cpus` constraints added to the `ketesa` compose entry — commit `6a6c802` (L2). L3 deferred: `claudebox-net` network segmentation is out of scope for this build.
+
+---
+
 ## 2026-04-24
 
 **matrix-notification-wiring** — Wired three nightly PM2 cron jobs to post Matrix completion summaries via a new `matrix-notify.py` helper (`~/scripts/matrix-notify.py`). `memory-pipeline` and `doc-sync` post to `#memory-sync` on both success and failure; `repo-sync-nightly` posts to `#announcements` on successful syncs only. Bot account joined to `#memory-sync` room during build. No new services or ports — reuses the existing matrix-mcp venv and `~/.claude-secrets/matrix.env` credentials.

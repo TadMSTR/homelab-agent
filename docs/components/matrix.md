@@ -68,7 +68,7 @@ This enables permission relay — when an agent needs approval for a destructive
 | `matrix-db` | `postgres:16-alpine` | Synapse PostgreSQL backend |
 | `matrix-element` | `vectorim/element-web:v1.12.15` | Browser client |
 
-All three run on `claudebox-net`. Only Synapse's client API (`/_matrix/`) is exposed externally via SWAG. The admin API (`/_synapse/admin/`) is explicitly blocked at the proxy layer — external requests return 403 regardless of credentials.
+All three run on `claudebox-net`. Only Synapse's client API (`/_matrix/`) is exposed externally via SWAG. The admin API (`/_synapse/admin/`) is restricted to LAN CIDRs (`192.168.0.0/16`, `10.10.0.0/16`) at the proxy — external requests return 403. LAN access still requires a valid Synapse admin token (enforced natively by Synapse).
 
 ## Room Structure
 
@@ -140,7 +140,7 @@ Three PM2 cron jobs post completion summaries via `matrix-notify.py` (`~/scripts
 
 ## Security
 
-- **SWAG admin block:** `/_synapse/admin/` returns 403 at the proxy — the admin API is never reachable externally
+- **SWAG admin allowlist:** `/_synapse/admin/` restricted to LAN CIDRs (`192.168.0.0/16`, `10.10.0.0/16`) at the proxy — external requests return 403; LAN access requires a valid Synapse admin token (enforced natively)
 - **homeserver.yaml permissions:** Mode 640 — readable only by the Synapse process user, not world-readable
 - **post_artifact allowlist:** High-risk paths (`/opt/appdata/`, Docker compose trees) excluded; agents needing to post from those trees copy files into `~/.claude/comms/artifacts/` first
 - **HTML sanitization:** All markdown content passes through `bleach.clean()` with explicit tag/attr/protocol allowlists; `html.escape()` used for user-controlled strings embedded in HTML context
