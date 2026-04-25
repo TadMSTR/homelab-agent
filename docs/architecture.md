@@ -267,6 +267,8 @@ Active Claude Code session
 
 **11 rooms:** one per agent (`#claudebox`, `#dev`, `#homelab-ops`, `#research`, `#security`, `#helm-build`, `#pr`, `#writer`, `#memory-sync`) plus `#announcements` and `#general`. Each agent's `CLAUDE.md` specifies its room and uses `send_matrix_message` for activity updates and `post_artifact` for logs and build output.
 
+**Agent account lifecycle:** agent Matrix accounts are provisioned and managed via `@matrix-admin-bot` (`!create-account`, `!join-room`, `!rotate-token`, `!audit-memberships`) rather than manual admin API calls. See [matrix-admin-bot](components/matrix.md#matrix-admin-bot).
+
 **Dispatcher routing:** `task-dispatcher.py` routes state transitions (submit, approve, reject, complete, handoff) to Matrix rooms. ntfy is retained only for dead-letter events and pending-approval notifications where the operator needs to act before the pipeline can continue.
 
 **matrix-channel** is a Claude Code Channel plugin that polls a Matrix room and injects operator replies back into an interactive session — enabling permission relay without a separate chat window.

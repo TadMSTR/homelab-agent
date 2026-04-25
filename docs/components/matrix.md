@@ -70,6 +70,8 @@ This enables permission relay — when an agent needs approval for a destructive
 
 All three run on `claudebox-net`. Only Synapse's client API (`/_matrix/`) is exposed externally via SWAG. The admin API (`/_synapse/admin/`) is restricted to LAN CIDRs (`192.168.0.0/16`, `10.10.0.0/16`) at the proxy — external requests return 403. LAN access still requires a valid Synapse admin token (enforced natively by Synapse).
 
+**PM2 service:** `matrix-admin-bot` — Python asyncio bot running as `@matrix-admin-bot:yourdomain`. Provisions and manages agent Matrix accounts via admin commands gated by an `allowed_senders` allowlist. See [matrix-admin-bot](#matrix-admin-bot) below.
+
 ## Room Structure
 
 11 rooms, one per agent plus shared coordination rooms:
@@ -102,6 +104,29 @@ Each agent's `CLAUDE.md` includes a `## Communications` section specifying its a
 **post_artifact path allowlist:** `~/repos/`, `~/.claude/comms/`, `~/.claude/memory/`. Files outside these trees cannot be posted — prevents agents from inadvertently exfiltrating appdata configs, Docker secrets, or compose files.
 
 **Markdown rendering:** Message bodies run through `bleach.clean()` with a Matrix-spec allowlist before being sent as `formatted_body`. Permitted tags include standard inline/block formatting plus Matrix-specific attributes (`data-mx-color`, `mxc://` URLs). Disallowed tags are stripped, not escaped — raw HTML cannot pass through.
+
+## matrix-admin-bot
+
+`matrix-admin-bot` is a PM2-managed Python asyncio bot that provisions and manages agent Matrix accounts on the Synapse homeserver. It runs as `@matrix-admin-bot:yourdomain`, listens in the `#matrix-admin` room and DMs from the operator, and executes account management commands via the Synapse admin API.
+
+**Commands:**
+
+| Command | What It Does |
+|---------|-------------|
+| `!create-account @agent:yourdomain [displayname]` | Creates account via admin API; captures initial `device_id` |
+| `!join-room @agent:yourdomain !room_id:yourdomain` | Force-joins agent to room via admin API |
+| `!list-rooms @agent:yourdomain` | Lists all rooms the agent is currently in |
+| `!audit-memberships` | Compares all agents' joined rooms against their `allowed_rooms` config |
+| `!revoke-token @agent:yourdomain` | Suspends account (`locked: true` — reversible, does not destroy room associations) |
+| `!restore-token @agent:yourdomain` | Re-enables suspended account (`locked: false`) |
+| `!rotate-token @agent:yourdomain` | Rotates access token; writes new token atomically to the agent's scoped-mcp config file |
+| `!status` | Reports bot uptime, homeserver URL, agents in config, bot MXID |
+
+**Token rotation flow:** delete old device → request admin login token → exchange for `access_token` + `device_id` → atomic write to `~/.claude-secrets/scoped-mcp-<agent>.yml` → update bot config. Rotation is SIGTERM-safe: in-flight command tasks are tracked in `_command_tasks` and excluded from the async cancel loop, giving multi-step commands until PM2's `kill_timeout` (5000 ms) to finish.
+
+**Deployment:** PM2 service `matrix-admin-bot` on claudebox, virtualenv at `~/repos/personal/matrix-admin-bot/venv/`. Config at `~/.claude-secrets/matrix-admin-bot.yml` (chmod 600). Source: [`TadMSTR/matrix-admin-bot`](https://github.com/TadMSTR/matrix-admin-bot).
+
+**Security posture:** MXID input validated against `^@[\w.=-]+:yourdomain$` before any API call. `room_id` validated with `_ROOM_ID_RE` regex before URL interpolation. `!join-room` enforces the target agent's `allowed_rooms` — full `!room_id:yourdomain` form required, no substring resolution or bypass. All secrets file writes use `.tmp` + `os.replace()` (atomic), with explicit `os.open(..., 0o600)` so mode survives the rename. Authorization gates all messages by sender identity — never by room membership.
 
 ## Task Dispatcher Integration
 
@@ -145,6 +170,8 @@ Three PM2 cron jobs post completion summaries via `matrix-notify.py` (`~/scripts
 - **post_artifact allowlist:** High-risk paths (`/opt/appdata/`, Docker compose trees) excluded; agents needing to post from those trees copy files into `~/.claude/comms/artifacts/` first
 - **HTML sanitization:** All markdown content passes through `bleach.clean()` with explicit tag/attr/protocol allowlists; `html.escape()` used for user-controlled strings embedded in HTML context
 - **Docker hardening:** `no-new-privileges:true`, `cap_drop: ALL` with minimal per-service `cap_add`, memory limits per container (Synapse 2 GB, PostgreSQL 1 GB, Element Web 256 MB)
+- **matrix-admin-bot atomic writes:** secrets files use `.tmp` + `os.replace()` with `os.open(..., 0o600)` — a crash or SIGTERM mid-write leaves the old file intact rather than producing an empty or partial file
+- **matrix-admin-bot SIGTERM safety:** `!rotate-token` tracks the in-flight coroutine in `_command_tasks`; the signal handler skips that set when cancelling tasks, so a PM2 restart during rotation doesn't leave the agent locked out with no valid token
 
 ## Related Docs
 
