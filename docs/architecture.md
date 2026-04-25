@@ -273,7 +273,9 @@ Active Claude Code session
 
 **matrix-channel** is a Claude Code Channel plugin that polls a Matrix room and injects operator replies back into an interactive session — enabling permission relay without a separate chat window.
 
-See [matrix.md](components/matrix.md) for the full component doc.
+**matrix-dispatcher** is a PM2 daemon (id 31) that adds a third agent invocation path: the operator sends a message to any agent's Matrix room, and the dispatcher spawns a `claude -p` session and posts the response back. Room-root messages spawn new sessions; thread replies resume prior sessions (v2+). Six per-agent Synapse accounts (`@agent.research`, `@agent.dev`, etc.) enable mid-session posting via scoped-mcp manifests, separate from the dispatcher's poll/post loop.
+
+See [matrix.md](components/matrix.md) and [matrix-dispatcher.md](components/matrix-dispatcher.md) for the full component docs.
 
 ### Memory Search Options
 
