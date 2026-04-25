@@ -124,7 +124,7 @@ Each agent's `CLAUDE.md` includes a `## Communications` section specifying its a
 
 **Token rotation flow:** delete old device → request admin login token → exchange for `access_token` + `device_id` → atomic write to `~/.claude-secrets/scoped-mcp-<agent>.yml` → update bot config. Rotation is SIGTERM-safe: in-flight command tasks are tracked in `_command_tasks` and excluded from the async cancel loop, giving multi-step commands until PM2's `kill_timeout` (5000 ms) to finish.
 
-**Deployment:** PM2 service `matrix-admin-bot` on claudebox, virtualenv at `~/repos/personal/matrix-admin-bot/venv/`. Config at `~/.claude-secrets/matrix-admin-bot.yml` (chmod 600). Source: [`TadMSTR/matrix-admin-bot`](https://github.com/TadMSTR/matrix-admin-bot).
+**Deployment:** PM2 service `matrix-admin-bot` on claudebox, virtualenv at `~/repos/personal/matrix-admin-bot/venv/`. Config at `~/.claude-secrets/matrix-admin-bot.yml` (chmod 600).
 
 **Security posture:** MXID input validated against `^@[\w.=-]+:yourdomain$` before any API call. `room_id` validated with `_ROOM_ID_RE` regex before URL interpolation. `!join-room` enforces the target agent's `allowed_rooms` — full `!room_id:yourdomain` form required, no substring resolution or bypass. All secrets file writes use `.tmp` + `os.replace()` (atomic), with explicit `os.open(..., 0o600)` so mode survives the rename. Authorization gates all messages by sender identity — never by room membership.
 
