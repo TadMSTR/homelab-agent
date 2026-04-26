@@ -56,6 +56,7 @@ homelab-agent/
 │       ├── task-dispatcher.md         # Task dispatcher — PM2 cron for agent task queue routing and approval gating
 │       ├── task-queue-mcp.md          # Task Queue MCP — FastMCP server, typed task queue tool access, schema enforcement
 │       ├── trigger-proxy.md           # Trigger Proxy — PM2 OAuth bridge for n8n Docker → claude.ai RemoteTrigger
+│       ├── memory-lifecycle.md        # Memory lifecycle — category field, SQLite metadata DB, OpenSearch, two MCP servers, NFS archive, design-records repo
 │       ├── memory-pipeline.md         # Memory pipeline — nightly consolidation orchestrator, tiered schedule
 │       ├── agent-bus.md               # Agent Bus — FastMCP inter-agent event log, NATS JetStream federation
 │       ├── backups.md                 # Backup strategy: Backrest/restic, Claude backup, Docker appdata
@@ -135,7 +136,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Matrix admin UI (Ketesa) | `docs/components/ketesa.md` | Docker, Claude Code |
 | Matrix Dispatcher (agent rooms) | `docs/components/matrix-dispatcher.md` | PM2, Claude Code |
 | PM2 services / cron | `pm2/ecosystem.config.js.example` | Docker compose, MCP config |
-| Memory system | `README.md` (§The Memory / Context System), `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `docs/components/graphiti.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
+| Memory system | `README.md` (§The Memory / Context System), `docs/components/memory-lifecycle.md`, `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `docs/components/graphiti.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
 | Documentation health | `docs/components/doc-health.md` | Docker, MCP |
 | Backups | `docs/components/backups.md`, `scripts/docker-stack-backup.sh`, `pm2/ecosystem.config.js.example` | Docker compose, MCP, Claude Code |
 | Docker stacks (general) | `docker/` subdirectories | Claude Code, MCP |
@@ -170,7 +171,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | "I want version control on my Docker configs" | `docs/components/config-version-control.md` |
 | "I want to set up Claude Code agents" | `claude-code/CLAUDE.md.example` — then `claude-code/projects/` for per-agent examples |
 | "I want to add PM2 background jobs" | `pm2/ecosystem.config.js.example` — self-contained |
-| "I want to replicate the memory system" | `README.md` (§Memory / Context System) → `docs/components/memsearch.md` → `docs/components/memory-sync.md` → `docs/components/graphiti.md` |
+| "I want to replicate the memory system" | `README.md` (§Memory / Context System) → `docs/components/memory-lifecycle.md` → `docs/components/memsearch.md` → `docs/components/memory-sync.md` → `docs/components/graphiti.md` |
 | "I want to build a custom reranker" | `docker/reranker/` — standalone Dockerfile + source |
 | "I want to set up the whole thing step by step" | `docs/getting-started.md` — dependency-ordered with stopping points |
 | "I want to understand data flows and topology" | `docs/architecture.md` — detailed system architecture |
@@ -236,6 +237,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/task-dispatcher.md` | ✅ Complete | 2026-03 |
 | `docs/components/task-queue-mcp.md` | ✅ Complete | 2026-04 |
 | `docs/components/trigger-proxy.md` | ✅ Complete | 2026-04 |
+| `docs/components/memory-lifecycle.md` | ✅ Complete | 2026-04 |
 | `docs/components/memory-pipeline.md` | ✅ Complete | 2026-03 |
 | `docs/components/agent-bus.md` | ✅ Complete | 2026-03 |
 | `docs/components/blog-preview.md` | ✅ Complete | 2026-04 |
