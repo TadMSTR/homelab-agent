@@ -69,7 +69,9 @@ homelab-agent/
 │       ├── hister.md                 # Hister browser history search — Docker stack, SWAG proxy, memsearch integration
 │       ├── ollama-queue-proxy.md     # Ollama smart pool manager — auth, priority queuing, model-aware routing, embedding cache
 │       ├── ollama-auth-sidecar.md    # Nginx auth sidecar — Bearer token injection for native Ollama clients
-│       └── matrix.md                 # Matrix agent communications — Synapse homeserver, matrix-mcp, operator notification layer
+│       ├── matrix.md                 # Matrix agent communications — Synapse homeserver, matrix-mcp, operator notification layer
+│       ├── ketesa.md                 # Ketesa Matrix admin UI — Synapse web admin interface, SWAG vhost, LAN-restricted admin API
+│       └── matrix-dispatcher.md     # Matrix Dispatcher — PM2 daemon, Element Web operator interface, SQLite session resume, bang-prefix commands
 ├── claude-code/
 │   ├── CLAUDE.md.example              # Root CLAUDE.md template
 │   └── projects/
@@ -130,6 +132,8 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Ollama proxy / queue management | `docs/components/ollama-queue-proxy.md` | Docker, MCP |
 | Ollama auth sidecar | `docs/components/ollama-auth-sidecar.md` | Docker, MCP |
 | Matrix agent communications | `docs/components/matrix.md` | Docker, Claude Code |
+| Matrix admin UI (Ketesa) | `docs/components/ketesa.md` | Docker, Claude Code |
+| Matrix Dispatcher (agent rooms) | `docs/components/matrix-dispatcher.md` | PM2, Claude Code |
 | PM2 services / cron | `pm2/ecosystem.config.js.example` | Docker compose, MCP config |
 | Memory system | `README.md` (§The Memory / Context System), `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `docs/components/graphiti.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
 | Documentation health | `docs/components/doc-health.md` | Docker, MCP |
@@ -240,6 +244,8 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/ollama-queue-proxy.md` | ✅ Complete | 2026-04 |
 | `docs/components/ollama-auth-sidecar.md` | ✅ Complete | 2026-04 |
 | `docs/components/matrix.md` | ✅ Complete | 2026-04 |
+| `docs/components/ketesa.md` | ✅ Complete | 2026-04 |
+| `docs/components/matrix-dispatcher.md` | ✅ Complete | 2026-04 |
 | `docs/architecture.md` | ✅ Complete | 2026-03 |
 | `docs/getting-started.md` | ✅ Complete | 2026-03 |
 | `scripts/` | ✅ Complete | 2026-03 |
@@ -300,6 +306,8 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | ollama-queue-proxy | [`docs/components/ollama-queue-proxy.md`](docs/components/ollama-queue-proxy.md) | `/opt/appdata/ollama-queue-proxy/config.yml` | `docker/ollama-queue-proxy/docker-compose.yml` |
 | ollama-auth-sidecar | [`docs/components/ollama-auth-sidecar.md`](docs/components/ollama-auth-sidecar.md) | — | (Docker sidecar) |
 | Matrix Agent Comms | [`docs/components/matrix.md`](docs/components/matrix.md) | — | (Docker stack + PM2) |
+| Ketesa | [`docs/components/ketesa.md`](docs/components/ketesa.md) | — | (Docker container, SWAG vhost) |
+| Matrix Dispatcher | [`docs/components/matrix-dispatcher.md`](docs/components/matrix-dispatcher.md) | — | (PM2 host service) |
 | Backups | [`docs/components/backups.md`](docs/components/backups.md) | [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) | (Backrest systemd + PM2 cron + user crontab) |
 | Blog Preview | [`docs/components/blog-preview.md`](docs/components/blog-preview.md) | — | (Docker container, claudebox-net) |
 | scoped-mcp | [`docs/components/scoped-mcp.md`](docs/components/scoped-mcp.md) | `manifests/<agent-type>.yml` | (stdio subprocess, one per agent) |
