@@ -2,7 +2,7 @@
 
 Per-agent scoped MCP tool proxy. One server process per agent — loads only the tools that agent is allowed to use, enforces resource boundaries between agents, holds credentials so agents never see them, and logs every tool call to a structured audit trail.
 
-**Version:** 0.5.0 | **PyPI:** [`scoped-mcp`](https://pypi.org/project/scoped-mcp/) | **Source:** [TadMSTR/scoped-mcp](https://github.com/TadMSTR/scoped-mcp)
+**Version:** 0.6.0 | **PyPI:** [`scoped-mcp`](https://pypi.org/project/scoped-mcp/) | **Source:** [TadMSTR/scoped-mcp](https://github.com/TadMSTR/scoped-mcp)
 
 ## The Problem
 
@@ -123,6 +123,9 @@ pip install scoped-mcp
 # With HTTP client modules (http_proxy, grafana, influxdb, ntfy, matrix, slack, discord)
 pip install "scoped-mcp[http]"
 
+# With OpenTelemetry tracing
+pip install "scoped-mcp[otel]"
+
 # Everything
 pip install "scoped-mcp[all]"
 ```
@@ -219,6 +222,34 @@ Every tool call is logged as a structured JSON entry:
 ```
 
 Emits to stdout and/or a log file. All entries include timing — useful for spotting slow backends or runaway tool loops.
+
+## Middleware
+
+Middleware intercepts every tool call after scoping is applied and before the handler executes. Useful for tracing, rate limiting, or custom logging beyond the built-in audit log.
+
+Pass a list of middleware instances to `build_server()`:
+
+```python
+from scoped_mcp.contrib.otel import OtelMiddleware
+
+server = build_server(agent_ctx, manifest, middleware=[OtelMiddleware()])
+```
+
+Middleware runs in list order; each receives `agent_ctx`, `tool_name`, `kwargs` (a copy — mutations don't propagate), and `call_next`. Call `await call_next()` exactly once to continue the chain.
+
+### OpenTelemetry
+
+`OtelMiddleware` emits one OTel span per tool call with `scoped_mcp.*` attributes (`agent.id`, `agent.type`, `tool.name`, `call.status`). Tool arguments are excluded from spans to prevent credential leakage. Exception messages are redacted before reaching the OTLP collector.
+
+**Auto-enable via environment variable** — no code changes needed:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo-host:4317
+export OTEL_SERVICE_NAME=scoped-mcp
+pip install "scoped-mcp[otel]"
+```
+
+Compatible with SigNoz, Grafana Tempo, Jaeger, and Langfuse OTLP ingest. If `OTEL_EXPORTER_OTLP_ENDPOINT` is set but `[otel]` is not installed, the server starts normally — the dependency is silently skipped.
 
 ## Writing a Custom Module
 
