@@ -2,7 +2,7 @@
 
 Per-agent scoped MCP tool proxy. One server process per agent — loads only the tools that agent is allowed to use, enforces resource boundaries between agents, holds credentials so agents never see them, and logs every tool call to a structured audit trail.
 
-**Version:** 0.2.1 | **PyPI:** [`scoped-mcp`](https://pypi.org/project/scoped-mcp/) | **Source:** [TadMSTR/scoped-mcp](https://github.com/TadMSTR/scoped-mcp)
+**Version:** 0.4.0 | **PyPI:** [`scoped-mcp`](https://pypi.org/project/scoped-mcp/) | **Source:** [TadMSTR/scoped-mcp](https://github.com/TadMSTR/scoped-mcp)
 
 ## The Problem
 
@@ -75,6 +75,25 @@ The `mode` field controls which tools register:
 - `mode: read` — read-decorated tools only (e.g. `filesystem_read_file`, `filesystem_list_dir`)
 - `mode: write` — both read and write tools
 - Notification modules are write-only by design — no `mode` field needed
+- **`mcp_proxy` ignores `mode` entirely** — use `tool_allowlist`/`tool_denylist` in config instead
+
+The `type` field enables multiple instances of the same module class under different manifest keys. Required when proxying more than one upstream MCP server:
+
+```yaml
+modules:
+  task-queue:
+    type: mcp_proxy
+    config:
+      url: http://127.0.0.1:8485/mcp
+
+  memory-search:
+    type: mcp_proxy
+    config:
+      url: http://127.0.0.1:8486/mcp
+      tool_allowlist: [search_memory]
+```
+
+Without `type:`, the manifest key is used as the class name (existing behaviour — all manifests without `type:` are unchanged).
 
 ### Claude Code `settings.json`
 
@@ -136,6 +155,37 @@ Notification modules are write-only by design — every agent needs to send aler
 | `http_proxy` | Service allowlist + SSRF prevention | `get` | `post`, `put`, `delete` |
 | `grafana` | Folder-based (`agent-{agent_id}/`) | `list_dashboards`, `get_dashboard`, `query_datasource`, `list_datasources` | `create_dashboard`, `update_dashboard`, `create_alert_rule`, `delete_dashboard` |
 | `influxdb` | Bucket allowlist + `NamespaceScope` | `query`, `list_measurements`, `get_schema` | `write_points`, `create_bucket`, `delete_points` |
+
+### MCP Proxy
+
+`mcp_proxy` is a built-in module that proxies any existing MCP server through scoped-mcp without writing custom Python. Tools are discovered at startup via `tools/list` and forwarded per-call. Supports HTTP (streamable-http) and stdio transports.
+
+```yaml
+modules:
+  task-queue:
+    type: mcp_proxy
+    config:
+      url: http://127.0.0.1:8485/mcp   # streamable-http upstream
+
+  # stdio example — stateless, lightweight servers only
+  # Each tool call spawns a fresh subprocess; avoid for persistent servers
+  some-local-tool:
+    type: mcp_proxy
+    config:
+      command: /usr/local/bin/python3
+      args: [/path/to/stateless_server.py]
+```
+
+| Config key | Type | Default | Description |
+|------------|------|---------|-------------|
+| `url` | string | — | HTTP streamable-http endpoint (mutually exclusive with `command`) |
+| `command` | string | — | Executable for a stdio server (mutually exclusive with `url`) |
+| `args` | list[str] | `[]` | Arguments passed to `command` |
+| `tool_allowlist` | list[str] | `[]` | If non-empty, only these upstream tools are exposed |
+| `tool_denylist` | list[str] | `[]` | These tools are always hidden (applied after allowlist) |
+| `discovery_timeout_seconds` | float | `10.0` | Timeout for connecting to the upstream server at startup |
+
+No additional install extras required — `mcp_proxy` ships with the base `scoped-mcp` package.
 
 ## Scope Strategies
 
