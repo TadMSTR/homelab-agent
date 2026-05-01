@@ -70,15 +70,21 @@ The foundation is a dedicated machine running Claude Desktop with MCP (Model Con
 | Desktop Commander | Filesystem operations, terminal commands, process management (Claude Desktop) | Anthropic |
 | GitHub | Repo management, issues, PRs, code search across multiple accounts | Anthropic |
 | Grafana | Dashboard management, alert rules, Loki log queries, InfluxDB metrics | Grafana |
+| graphiti-mcp | Knowledge graph access — add episodes, search nodes and facts, query relationships in the Neo4j-backed Graphiti store (Claude Code) | community |
+| helm-ops-mcp | Shell, file, and process operations on a remote build host over SSH — same tool surface as homelab-ops, different transport (Claude Code) | me |
 | homelab-ops | Shell, file, and process operations over HTTP (Claude Code + LibreChat) | me |
 | pm2-mcp | PM2 process manager — list services, tail logs, restart/stop/start via structured `pm2 jlist` output (Claude Code) | me |
 | InfluxDB | Time-series queries and writes for Telegraf-shipped metrics | community |
 | jobsearch-mcp | Multi-board job search, resume scoring, application tracking (LibreChat) | me |
+| matrix-mcp | Send messages, post artifacts, and read history in per-agent Matrix rooms — the agent communications layer (Claude Code) | me |
 | memsearch | Memory recall from past Claude Code sessions (plugin, not MCP) | community |
 | Netdata | Real-time metrics from any monitored host (CPU, RAM, disk, containers, alerts) | Netdata |
+| ntfy-mcp | Push notifications via ntfy as a typed tool call — replaces inline curl in agent workflows (Claude Code) | me |
 | Playwright | Browser automation — navigate, click, fill forms, take screenshots | Anthropic |
 | qmd | Semantic search over repos, docs, and agent memory — stdio and HTTP modes | community |
+| scoped-mcp | Per-agent MCP tool proxy — manifest-driven scoping, credential isolation, structured audit log; one server process per agent (Claude Code) | me |
 | searxng-mcp | Private web search via SearXNG with ML reranking, Valkey result caching, domain filtering/boosting, Ollama query expansion, and LLM summarization | me |
+| task-queue-mcp | Schema-validated access to the agent task queue — submit, list, get, and update tasks (Claude Code + LibreChat) | me |
 | TrueNAS | Datasets, pools, snapshots, users, SMB/NFS/iSCSI via REST API | community |
 | Unraid | Array status, disk health, Docker containers, shares via GraphQL API | me |
 
