@@ -101,7 +101,6 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 | **Grafana + InfluxDB + Loki** | Local agent observability stack | Dashboards for Claude Code session metrics, token usage, estimated costs, and LibreChat activity. Loki for self-healing system logs. Separate from atlas infrastructure monitoring — see [grafana-claudebox](docs/components/grafana-claudebox.md) and [grafana-observability](docs/components/grafana-observability.md). |
 | **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
 | **CloudCLI** | Claude Code browser UI _(PM2 host service, not Docker)_ | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Runs as a PM2-managed Node.js process on the host, proxied through SWAG. Primary day-to-day interface for infrastructure work. |
-| **Open Notebook** | AI research/notebook tool | Document analysis and research with SurrealDB backend. |
 | **NATS + JetStream** | Agent event bus | NATS 2.10 with JetStream persistence. Task lifecycle events flow here from the dispatcher; inter-agent events (handoffs, audit requests, task failures) federate here from agent-bus. Three streams: TASKS (30d), AGENT_EVENTS (7d), AGENT_BUS (30d, 2-min dedup). Additive to the file queue — source of truth stays in the filesystem. Monitoring dashboard proxied via SWAG. See [nats-jetstream](docs/components/nats-jetstream.md). |
 | **Graphiti + Neo4j** | Temporal knowledge graph | Neo4j 5.26.0 graph database with Graphiti MCP for entity extraction and relationship mapping. Captures infrastructure topology — services, hosts, networks, agents — with temporal validity. Fed by memory-flush (real-time) and memory-sync (nightly). See [graphiti](docs/components/graphiti.md). |
 | **Temporal** | Durable workflow engine | Five-container stack (server, UI, PostgreSQL, two init containers for schema migration). Provides fault-tolerant multi-phase workflow execution — if a phase fails or the system restarts mid-build, it resumes from the last checkpoint rather than starting over. See [temporal](docs/components/temporal.md). |
@@ -126,6 +125,7 @@ This is where it gets opinionated. Claude Code (the CLI tool) supports project-s
 ~/.claude/projects/homelab-ops/CLAUDE.md     ← Infrastructure management agent
 ~/.claude/projects/dev/CLAUDE.md             ← Code development agent
 ~/.claude/projects/research/CLAUDE.md        ← Technical research agent
+~/.claude/projects/security/CLAUDE.md        ← Security audit agent
 ~/.claude/projects/memory-sync/CLAUDE.md     ← Automated knowledge distillation
 ```
 
@@ -190,7 +190,7 @@ The job search agent is what my situation needed. Someone else might build a hom
 
 ## The Memory / Context System
 
-This is the connective tissue that makes the whole thing more than the sum of its parts. Most people's experience with AI assistants is stateless — every conversation starts from zero. This system has five layers of persistent context:
+This is the connective tissue that makes the whole thing more than the sum of its parts. Most people's experience with AI assistants is stateless — every conversation starts from zero. This system has six layers of persistent context:
 
 1. **Prime directive repo** — Stable configuration: infrastructure docs, project instructions, profile/preferences, deployment scripts. Loaded at session start via CLAUDE.md references and qmd search. This is the source of truth.
 
@@ -200,7 +200,7 @@ This is the connective tissue that makes the whole thing more than the sum of it
 
 4. **Knowledge graph** — A Neo4j-backed temporal knowledge graph (via [Graphiti](docs/components/graphiti.md)) that captures relationships between infrastructure entities — services, hosts, networks, agents, configurations. File-based memory handles narrative knowledge well; the graph handles "what connects to what" queries. Fed automatically by memory-flush (real-time) and memory-sync (nightly batch).
 
-5. **Documentation cache** — A local library of official service documentation (42 services: Grafana, Loki, SWAG, Authentik, Compose, and more), fetched nightly, chunked by heading, and indexed in memsearch alongside session memory. Agents query cached docs during task execution instead of fetching live URLs — no network dependency, no stale training data. Managed by `doc-sync-daily` (PM2, 3 AM). See [`docs/components/doc-sync.md`](docs/components/doc-sync.md).
+5. **Documentation cache** — A local library of official service documentation (50+ services: Grafana, Loki, SWAG, Authentik, Compose, and more), fetched nightly, chunked by heading, and indexed in memsearch alongside session memory. Agents query cached docs during task execution instead of fetching live URLs — no network dependency, no stale training data. Managed by `doc-sync-daily` (PM2, 3 AM). See [`docs/components/doc-sync.md`](docs/components/doc-sync.md).
 
 6. **Automated memory pipeline** — Three scheduled jobs handle different parts of the promotion cycle. **memory-promote-daily** (11 PM) promotes same-day session transcripts to working-tier notes using a faster model — context from the day's work is searchable the next morning. **memory-pipeline** (4 AM) runs memsearch compaction and qmd reindex after promotions settle. **memory-sync-weekly** (Mondays 7 AM) promotes 14-day-old working notes to the distilled tier, expires 90-day notes, and runs graph entity dedup. Knowledge accumulates and connects without manual curation. See [`docs/components/memory-pipeline.md`](docs/components/memory-pipeline.md).
 
@@ -274,95 +274,7 @@ To run the full stack, you need:
 
 You don't need all of this to get value. See [`docs/getting-started.md`](docs/getting-started.md) for clear stopping points where each layer is independently useful.
 
-## Repo Structure
-
-```
-homelab-agent/
-├── README.md                        ← You are here
-├── index.md                         ← Machine-readable nav index for AI agents
-├── docs/
-│   ├── architecture.md              ← Detailed system architecture and data flows
-│   ├── getting-started.md           ← Setup guide with stopping points per layer
-│   └── components/                  ← Per-component deep dives
-│       ├── swag.md                  ← Reverse proxy, Cloudflare DNS, proxy conf pattern
-│       ├── authelia.md              ← SSO config, file-based user backend, SWAG integration
-│       ├── librechat.md             ← Setup, web search pipeline, reranker wrapper, gotchas
-│       ├── crawl4ai.md              ← Crawl4AI second-tier fetch fallback for searxng-mcp
-│       ├── searxng.md               ← SearXNG + Valkey, shared search backend
-│       ├── dockhand.md              ← Docker socket access, multi-host stack visibility
-│       ├── open-notebook.md         ← SurrealDB, dual-port proxy config
-│       ├── cloudcli.md              ← Claude Code web UI — file explorer, git, shell, MCP management
-│       ├── auto-mode.md             ← Walk-away Claude Code config — approval skip, session limits, cost guardrails
-│       ├── helm-dashboard.md        ← CloudCLI monitoring plugin — agent sessions, handoff queue, live updates
-│       ├── agent-panel.md           ← Homelab operations panel — PM2, Docker, diagnostics, files
-│       ├── diag-check.md            ← Scheduled diagnostics via agent panel API, failure alerts
-│       ├── grafana-claudebox.md     ← Local Grafana + InfluxDB for agent observability
-│       ├── grafana-observability.md ← Loki, image renderer, Alloy dual-destination log shipping
-│       ├── graphiti.md              ← Temporal knowledge graph — Neo4j, entity ontology, data flow
-│       ├── nats-jetstream.md        ← Agent event bus — JetStream streams, task lifecycle events, federation
-│       ├── temporal.md              ← Durable workflow engine — 5-container stack, fault-tolerant build phases
-│       ├── helm-temporal-worker.md  ← Helm build worker — async activity completion, phase orchestration
-│       ├── n8n.md                   ← Workflow automation — webhook triggers, agent manifest routing
-│       ├── plane.md                 ← Project management integration — work items, cycles, agent dispatch
-│       ├── qmd.md                   ← Semantic search, dual transport, GPU acceleration
-│       ├── memsearch.md             ← Memory recall for Claude Code, plugin integration
-│       ├── hister.md                ← Browser-based memory search — semantic + keyword, preview shim
-│       ├── ollama-queue-proxy.md    ← Ollama smart pool manager — auth, queuing, routing, embedding cache
-│       ├── memory-sync.md           ← Knowledge distillation pipeline, PM2 cron
-│       ├── memory-pipeline.md       ← 3-job memory schedule — real-time indexing, distillation, graph sync
-│       ├── doc-sync.md              ← Local docs cache — service reference docs fetched, chunked, memsearch-indexed
-│       ├── helm-ops-mcp.md          ← SSH-based MCP for remote Helm host — same tools as homelab-ops, remote transport
-│       ├── librarian-weekly.md      ← Monday cron: syncs prime-directive repo against memory and skill files
-│       ├── repo-sync-nightly.md     ← 23:30 cron: auto-commits doc repos, alerts on code repos with pending changes
-│       ├── agent-workspace-scan.md  ← Hourly workspace marker validation, drift heal, CIA event emission
-│       ├── agent-workspace-check.md ← Pre-edit resolver skill — two-party permission enforcement
-│       ├── scoped-mcp.md            ← Per-agent MCP tool proxy — manifest-driven scoping, credential isolation, audit log
-│       ├── agent-orchestration.md   ← Multi-agent coordination — handoff protocol, session sequencing
-│       ├── task-dispatcher.md       ← Agent task queue — NATS-backed dispatch, 3-phase pipeline
-│       ├── agent-bus.md             ← Inter-agent event bus — FastMCP server, NATS federation, event types
-│       ├── inter-agent-communication.md ← Communication patterns — handoff protocol, CIA events
-│       ├── security-agent.md        ← Security audit agent — automated scanning, severity gates
-│       ├── doc-health.md            ← Weekly doc audit — drift, coverage, staleness, sanitization
-│       ├── ai-cost-tracking.md      ← Claude Code JSONL parser, cost metrics, Telegraf pipeline
-│       ├── homelab-ops-mcp.md       ← FastMCP HTTP tool server — shell, files, processes
-│       ├── pm2-mcp.md               ← PM2 process manager MCP — list, log, restart/stop/start services
-│       ├── claudebox-deploy.md      ← Provisioning script — full machine rebuild from NFS backup
-│       ├── multi-host.md            ← Multi-host architecture — claudebox and remote build target coordination
-│       ├── config-version-control.md ← Git tracking for docker/ and appdata configs
-│       ├── jobsearch-mcp.md         ← Job search agent — multi-board scraping, resume scoring, tracking
-│       ├── backups.md               ← Backrest/restic, Claude backup, Docker appdata backup
-│       └── searxng-mcp.md           ← searxng-mcp v3.0.0 — tools, Valkey caching, domain filtering, Ollama expand/summarize
-├── claude-code/
-│   ├── CLAUDE.md.example            ← Root CLAUDE.md template
-│   └── projects/                    ← Per-agent CLAUDE.md examples
-│       ├── homelab-ops.md           ← Infrastructure management agent
-│       ├── dev.md                   ← Development agent
-│       ├── research.md              ← Research agent
-│       └── memory-sync.md           ← Memory distillation agent
-├── docker/
-│   ├── swag/docker-compose.yml      ← Reverse proxy + wildcard SSL
-│   ├── authelia/docker-compose.yml  ← SSO authentication gateway
-│   ├── librechat/
-│   │   ├── docker-compose.yml       ← Multi-provider chat + MongoDB + Meilisearch
-│   │   └── librechat.yaml.example   ← LibreChat config with web search and MCP
-│   ├── firecrawl-simple/docker-compose.yml  ← Web scraper for LibreChat search pipeline
-│   ├── reranker/
-│   │   ├── docker-compose.yml       ← Jina-compatible reranker wrapper
-│   │   ├── Dockerfile               ← FlashRank + FastAPI build
-│   │   └── main.py                  ← Reranker API source (~115 lines)
-│   ├── dockhand/docker-compose.yml  ← Docker stack manager UI
-│   └── open-notebook/docker-compose.yml  ← AI notebook + SurrealDB
-├── pm2/
-│   └── ecosystem.config.js.example  ← PM2 service definitions
-├── scripts/
-│   ├── docker-stack-backup.sh       ← Container-safe appdata backup with notifications
-│   ├── qmd-reindex.sh               ← Semantic search re-indexing
-│   ├── memory-sync.sh               ← Automated knowledge distillation
-│   ├── check-resources.sh           ← Health monitoring with ntfy alerts
-│   └── check-dep-updates.sh         ← Dependency update checker
-└── mcp-servers/
-    └── README.md                    ← MCP servers in use, config patterns, adoption path
-```
+For a full file-by-file breakdown — every component doc, Docker stack, script, and PM2 entry — see [`index.md`](index.md). It's the machine-readable navigation index used by AI agents, but it works as a sitemap for humans too.
 
 ## Related Repos
 
