@@ -171,6 +171,38 @@ infrastructure work. The HTTP transport means multiple clients can share it
 without fighting over a stdio subprocess.
 ---
 
+### helm-ops-mcp
+
+**Purpose:** Same tool surface as homelab-ops (`run_command`, `read_file`, `write_file`, `edit_file`, `read_directory`, `upload_file`) — but targeted at a remote build host over SSH instead of the local machine.
+
+**Built by:** me — FastMCP (Python) server, runs on claudebox and tunnels operations to the second build machine via SSH.
+
+**Why it's here:** Building a second platform (in my case, the Helm forge) on a separate mini PC means the build agent on claudebox needs to operate on a remote host as if it were local. helm-ops makes that transparent — the agent calls the same tool names regardless of which host it's targeting. A small set of `local_*` read-only tools also gives the build agent access to build plans, design docs, and memory on claudebox without a second connection.
+
+**Tools (remote, via SSH):** `run_command`, `read_file`, `write_file`, `edit_file`, `read_directory`, `upload_file` (SCP from claudebox to remote).
+
+**Tools (local, claudebox, read-only):** `local_read_file`, `local_read_directory`. Restricted to an allowlist: build plans, design docs, memory, and the prime-directive repo.
+
+**Transport:** Streamable-HTTP on `127.0.0.1:8283`, managed by PM2. SSH backend uses key-based auth from claudebox to the remote host.
+
+**Config pattern (`~/.claude.json`):**
+```json
+{
+  "helm-ops": {
+    "type": "http",
+    "url": "http://localhost:8283/mcp"
+  }
+}
+```
+
+Environment variables on the PM2 service: `HELM_SSH_HOST` (required), `HELM_SSH_USER` (default `ted`), `HELM_SSH_KEY` (default `~/.ssh/id_ed25519`), `HELM_SSH_PORT` (default 22), `HELM_SSH_TIMEOUT` (default 60s).
+
+**Security:** Unrestricted shell access on the remote host. Designed for trusted internal use — do not expose port 8283 externally.
+
+**Standalone value:** Niche. Only relevant if you have a second machine you want a Claude Code agent to operate on as if it were local. For single-host setups, homelab-ops alone is sufficient.
+
+---
+
 ### pm2-mcp
 
 **Purpose:** Structured read and limited write access to PM2 services — list processes, get details, tail logs, restart, stop, start.
@@ -287,6 +319,34 @@ back to CPU if no GPU available. GPU gives ~3.5x speedup on embedding generation
 
 **Standalone value:** Medium-high. Requires some content to index, but once you
 have a context repo and some memory files, it's very powerful.
+
+---
+
+### graphiti-mcp
+
+**Purpose:** Tool access to a temporal knowledge graph — add episodes, search nodes and facts, query relationships between infrastructure entities (services, hosts, networks, agents) stored in Neo4j via [Graphiti](https://github.com/getzep/graphiti).
+
+**Package:** community — runs the upstream Graphiti library as a Streamable HTTP MCP server in a custom Docker image (`graphiti-mcp:local`).
+
+**Why it's here:** File-based memory (qmd, memsearch) is good at narrative recall — "what did we decide about X?" The knowledge graph is good at relational recall — "what runs on atlas?", "what depends on SWAG?", "which services moved network in the last 30 days?" Both layers complement each other; agents query whichever fits the question.
+
+**Tools:** `add_memory`, `search_memory_facts`, `search_nodes`, `get_episodes`, `get_entity_edge`, `delete_entity_edge`, `delete_episode`, `get_status`, `clear_graph`.
+
+**Transport:** Streamable HTTP on `localhost:8000`. The container runs on a dedicated `graphiti-internal` Docker network (not on the shared agent network); agents connect via host loopback rather than Docker DNS.
+
+**Config pattern (`~/.claude.json`):**
+```json
+{
+  "graphiti": {
+    "type": "http",
+    "url": "http://localhost:8000/mcp"
+  }
+}
+```
+
+**How the graph is populated:** Most ingestion is automatic — `memory-flush` writes real-time events, and the nightly `memory-pipeline` batch ingests durable notes. Direct `add_memory` calls are reserved for infrastructure state changes (deploys, network topology, port remaps) that aren't already captured by the pipeline. See [graphiti.md](../docs/components/graphiti.md) for the full ingestion model and entity ontology.
+
+**Standalone value:** Medium. The Neo4j + Graphiti stack is more involved to set up than a flat-file memory system, and the graph only earns its keep once you have a non-trivial number of entities and want to ask relational questions across them. For single-agent or small setups, qmd + a context repo is usually enough.
 
 ---
 
@@ -474,6 +534,45 @@ session private web search with zero API costs.
 
 ---
 
+### matrix-mcp
+
+**Purpose:** Send and receive Matrix messages, post artifacts, and enumerate joined rooms. Pairs with a self-hosted Synapse homeserver and per-agent Matrix accounts to create a persistent, threaded communications layer between operator and agents.
+
+**Built by:** me — FastMCP (Python) server bundled with [`matrix-channel`](https://github.com/TadMSTR/matrix-channel), a Claude Code Channel plugin that injects operator replies as user input into the active session.
+
+**GitHub:** https://github.com/TadMSTR/matrix-mcp
+
+**Why it's here:** ntfy is fire-and-forget — no threading, no history, no two-way interaction. Matrix gives every agent a persistent room with full message history, the ability to post files and reports inline, and a way for the operator to reply back into a running session for permission relay. Element Web becomes a unified inbox for all agent activity, accessible from any device. ntfy is retained only for pending-approval and dead-letter notifications; everything else routes through Matrix.
+
+**Tools:**
+
+| Tool | Description |
+|------|-------------|
+| `send_matrix_message` | Send a text or markdown message to a room by short name (`dev`, `writer`, `claudebox`, etc.) |
+| `post_artifact` | Upload a file from an allowlisted path and post a formatted link to the room |
+| `get_matrix_messages` | Fetch recent messages from a room (used for reply polling and thread context) |
+| `list_matrix_rooms` | Enumerate all rooms the bot account has joined |
+
+**Transport:** Streamable-HTTP on `127.0.0.1:8487`, managed by PM2. Localhost only — Synapse handles all federation.
+
+**Config pattern (`~/.claude.json`):**
+```json
+{
+  "matrix": {
+    "type": "http",
+    "url": "http://127.0.0.1:8487/mcp"
+  }
+}
+```
+
+**Security:** Markdown bodies run through `bleach.clean()` with a Matrix-spec allowlist before being sent as `formatted_body` — disallowed tags are stripped, raw HTML cannot pass through. `post_artifact` is restricted to `~/repos/`, `~/.claude/comms/`, and `~/.claude/memory/` to prevent agents from posting Docker secrets or compose files. Per-agent accounts are provisioned by a companion `matrix-admin-bot` PM2 service via the Synapse admin API.
+
+**Prerequisites:** A self-hosted Synapse homeserver (with PostgreSQL backend and Element Web for the operator UI) on the same Docker network. See [matrix.md](../docs/components/matrix.md) for the full stack — Synapse + PostgreSQL + Element Web + matrix-admin-bot.
+
+**Standalone value:** High *if* you already run a Synapse homeserver or are willing to deploy one. The MCP tool itself is small, but it requires the full Matrix stack to be useful. For a single-agent setup, ntfy is simpler. For multi-agent setups where you want history and two-way interaction, this is the upgrade path.
+
+---
+
 ### ntfy-mcp
 
 **Purpose:** Send push notifications via ntfy from any Claude agent — no shell access required.
@@ -570,6 +669,88 @@ enable in Claude Code settings.
 
 ---
 
+### scoped-mcp
+
+**Purpose:** Per-agent MCP tool proxy. One server process per agent loads only the tool modules its manifest allows, enforces resource boundaries between agents, holds credentials so agents never see token values, and writes a structured audit log entry for every tool call.
+
+**Built by:** me — Python, manifest-driven, middleware-based.
+
+**Source:** [TadMSTR/scoped-mcp](https://github.com/TadMSTR/scoped-mcp) | **PyPI:** [`scoped-mcp`](https://pypi.org/project/scoped-mcp/)
+
+**Why it's here:** Multi-agent setups that share MCP servers are dangerous by default. Every agent sees every tool. Agent A can read Agent B's files, write to Agent B's database, send alerts from Agent B's ntfy topic. Credentials are exposed to all agents. Audit logs are fragmented across servers. scoped-mcp solves this with a proxy layer in front of every backend MCP — each agent gets its own server process configured by a YAML manifest that declares which modules load, what scope (filesystem path, ntfy topic, SQL prefix) is in bounds, and which credentials inject. Agents never receive tokens; they receive tool results.
+
+**Manifest example:**
+```yaml
+agent_type: research
+modules:
+  filesystem:
+    mode: read
+    config:
+      base_path: /data/agents
+  ntfy:
+    config:
+      topic: "research-{agent_id}"
+      max_priority: high
+credentials:
+  source: env  # or file, or vault
+rate_limits:
+  global: 60/minute
+  per_tool:
+    filesystem_write_file: 10/minute
+hitl:
+  approval_required: ["filesystem_delete_*", "sqlite_execute"]
+  timeout_seconds: 300
+```
+
+**Hardening features (v1.0):** sliding-window rate limits with optional Dragonfly state backend, Vault credential source, regex/JSON-decoded argument filtering on inbound tool args, and human-in-the-loop approval for destructive operations.
+
+**Transport:** stdio per agent process. The agent launches its scoped-mcp instance with `AGENT_ID` and `AGENT_TYPE` set; scoped-mcp loads the manifest matching the agent type.
+
+**Standalone value:** High for any setup with two or more agents that share infrastructure. For a single-agent setup, the indirection isn't worth it — connect agents directly to backend MCPs.
+
+See [scoped-mcp.md](../docs/components/scoped-mcp.md) for the full module surface, middleware protocol, and integration patterns.
+
+---
+
+### task-queue-mcp
+
+**Purpose:** Schema-validated MCP access to the agent task queue. Replaces raw YAML file writes against `~/.claude/task-queue/` with type-checked tools (`submit_task`, `list_tasks`, `get_task`, `update_task`) that enforce the schema and transition rules the dispatcher expects.
+
+**Built by:** me — FastMCP (Python), runs as a Docker container.
+
+**Why it's here:** Agents that interact with the task queue via raw file I/O are fragile. The YAML schema has constraints — UUID4 format for IDs, enumerated status values, absolute paths in `context_refs`, append-only history — that are easy to violate when writing directly. A malformed task file silently fails or triggers spurious dispatcher errors. task-queue-mcp centralizes validation and transition rules at the tool boundary so the dispatcher reads files it can trust.
+
+**Tools:**
+
+| Tool | Description |
+|------|-------------|
+| `submit_task` | Create a new task YAML in `~/.claude/task-queue/` with `status: submitted`. Generates UUID4 and `created` timestamp automatically. |
+| `list_tasks` | List tasks, optionally filtered by status or target agent. TTL-expired terminal tasks are excluded from results (but not deleted). |
+| `get_task` | Retrieve a single task by full UUID. |
+| `update_task` | Transition a task's status and append a history entry. Rejects illegal transitions without modifying the file. |
+
+`pending-approval → approved` is intentionally not exposed — approval is a human action handled by the `task-approve` CLI.
+
+**Transport:** Streamable-HTTP on `127.0.0.1:8485`, runs as a Docker container managed by PM2. The container is read-only with `cap_drop: ALL`, `no-new-privileges`, and a tmpfs `/tmp`. The task-queue directory is the only read-write mount.
+
+**Config pattern (`~/.claude.json`, global):**
+```json
+{
+  "task-queue": {
+    "type": "http",
+    "url": "http://127.0.0.1:8485/mcp"
+  }
+}
+```
+
+**Security:** No authentication — LAN-only, not proxied externally. Same accepted-risk pattern as homelab-ops. Container hardening (cap_drop, read-only filesystem, UID 1000) prevents privilege escalation.
+
+**Standalone value:** High for multi-agent setups using a file-based task queue. Pairs with the task-dispatcher PM2 cron and the Matrix/ntfy approval gates. For single-agent setups, you can write task files directly without the indirection.
+
+See [task-queue-mcp.md](../docs/components/task-queue-mcp.md) for the schema, transition rules, and dispatcher integration.
+
+---
+
 ## Choosing Your MCP Stack
 
 You don't need all of these. Here's a prioritized adoption path:
@@ -594,14 +775,21 @@ You don't need all of these. Here's a prioritized adoption path:
 9. memsearch — memory recall from past Claude Code sessions
 10. GitHub — repo management from within Claude
 
+**Add for multi-agent setups:**
+11. scoped-mcp — per-agent tool proxy with manifest-based scoping, credential isolation, and audit logging (essential once you have two or more agents sharing infrastructure)
+12. task-queue-mcp — schema-validated access to the agent task queue (pairs with a dispatcher and approval gates)
+13. matrix-mcp — persistent, threaded agent communications via a self-hosted Synapse homeserver
+14. graphiti-mcp — temporal knowledge graph for relational queries about infrastructure topology
+
 **Add as needed:**
-11. Playwright — browser automation
-12. pm2-mcp — PM2 process inspection and management (if you use PM2)
-13. ntfy-mcp — push notifications from agents (if you run ntfy)
-14. Backrest — backup management (if you use Backrest/restic)
-15. Fluxer — chat bot for Fluxer platform (shelved, community use case)
-16. jobsearch-mcp — job search and application tracking
-17. Bluesky — social media (niche use case)
+15. Playwright — browser automation
+16. pm2-mcp — PM2 process inspection and management (if you use PM2)
+17. ntfy-mcp — push notifications from agents (if you run ntfy)
+18. Backrest — backup management (if you use Backrest/restic)
+19. helm-ops-mcp — remote-host shell and file ops over SSH (only if you build on a second machine)
+20. Fluxer — chat bot for Fluxer platform (shelved, community use case)
+21. jobsearch-mcp — job search and application tracking
+22. Bluesky — social media (niche use case)
 
 ## Notes on MCP Transport
 
@@ -615,10 +803,14 @@ which is useful when:
 - The server needs to run as a long-lived service (managed by PM2)
 - You want to expose the server on the network
 
-homelab-ops, pm2-mcp, SearXNG MCP, and qmd (in HTTP mode) all run as PM2 services
-with HTTP transport. ntfy-mcp runs as a Docker container with HTTP transport. LibreChat containers reach them via `host.docker.internal`;
-Claude Code connects directly to `localhost`. See the `pm2/` directory for
-ecosystem config examples.
+homelab-ops, helm-ops-mcp, pm2-mcp, matrix-mcp, SearXNG MCP, and qmd (in HTTP mode)
+all run as PM2 services with HTTP transport. ntfy-mcp, task-queue-mcp, and
+graphiti-mcp run as Docker containers with HTTP transport. LibreChat containers
+reach them via `host.docker.internal`; Claude Code connects directly to
+`localhost`. scoped-mcp is the exception in this stack — it uses stdio transport
+because each agent process launches its own scoped instance.
+
+See the `pm2/` directory for ecosystem config examples.
 
 ---
 
