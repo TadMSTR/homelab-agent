@@ -96,22 +96,39 @@ For config patterns, standalone value ratings, and a prioritized adoption path, 
 
 ### Layer 2 — Self-Hosted Service Stack
 
-Docker containers on the same host, fronted by a reverse proxy with SSO. These provide web-accessible AI tools for the whole household or team, not just whoever is sitting at the Claude Desktop session.
+Docker containers on the same host, fronted by a reverse proxy with SSO. The stack splits into three groups: a foundation (proxy, auth, observability) that any homelab benefits from, a multi-user platform for serving AI agents to the household, and the agent infrastructure that powers the Claude Code engine in Layer 3.
+
+#### Foundation
+
+The plumbing — useful on its own, prerequisite for everything else.
 
 | Service | What It Does | Why It's Here |
 |---------|-------------|---------------|
-| **LibreChat** | Multi-provider chat UI (Anthropic, OpenAI, Ollama, etc.) | The multi-user AI platform. Hosts specialized agents with their own tools and context. Built-in memory, RAG, MCP integration, and web search pipeline. See [Purpose-Built Agents](#purpose-built-agents) below. |
-| **SearXNG** | Private meta-search | Self-hosted search backend. Aggregates results from multiple engines with no API keys or per-query costs. Powers LibreChat's web search pipeline. |
 | **SWAG** | Nginx reverse proxy with Let's Encrypt wildcard SSL | Single entry point for all `*.yourdomain` services. DNS validation via Cloudflare — internal-only domain, no ports exposed to the internet. |
 | **Authelia** | SSO authentication gateway | One login for all services. SWAG has first-class Authelia support — two lines uncommented per proxy conf. |
 | **Grafana + InfluxDB + Loki** | Local agent observability stack | Dashboards for Claude Code session metrics, token usage, estimated costs, and LibreChat activity. Loki for self-healing system logs. Separate from atlas infrastructure monitoring — see [grafana-claudebox](docs/components/grafana-claudebox.md) and [grafana-observability](docs/components/grafana-observability.md). |
 | **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
+
+#### Multi-User Platform
+
+Self-hosted, locked-down AI platform for anyone in the house with an account. I use this less day-to-day (CloudCLI is my interface), but it's where purpose-built agents go for shared use.
+
+| Service | What It Does | Why It's Here |
+|---------|-------------|---------------|
+| **LibreChat** | Multi-provider chat UI (Anthropic, OpenAI, Ollama, etc.) | The multi-user surface. Hosts specialized agents with their own tools and context. Built-in memory, RAG, MCP integration, and a web search pipeline. See [Purpose-Built Agents](#purpose-built-agents) below. |
+| **SearXNG** | Private meta-search | Self-hosted search backend. Aggregates results from multiple engines with no API keys or per-query costs. Powers LibreChat's web search pipeline. |
+
+#### Agent Infrastructure
+
+Everything that supports the Claude Code agent engine — interface, communications, workflow, memory, and model serving.
+
+| Service | What It Does | Why It's Here |
+|---------|-------------|---------------|
 | **CloudCLI** | Claude Code browser UI _(PM2 host service, not Docker)_ | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Runs as a PM2-managed Node.js process on the host, proxied through SWAG. Primary day-to-day interface for infrastructure work. |
 | **Matrix (Synapse + Element Web)** | Agent communications layer | Self-hosted Synapse v1.151 + PostgreSQL 16 + Element Web. Primary notification and conversation channel for all agents — replaced ntfy for most events. 11 rooms (one per agent + shared coordination), persistent history, threaded conversations. Two-way operator interaction via the matrix-channel plugin enables permission relay back into a running session. Admin API restricted to LAN at the proxy; bot-managed account provisioning via the matrix-admin-bot PM2 service. See [matrix](docs/components/matrix.md). |
 | **Ketesa** | Synapse admin UI | Browser-based admin interface for the Matrix homeserver — user management, room admin, federation controls. Pure client-side app: static UI loaded from `ketesa.yourdomain`, admin API calls go directly from the browser to Synapse. SWAG vhost is LAN-restricted at the proxy. See [ketesa](docs/components/ketesa.md). |
 | **ntfy** | Push notifications | Self-hosted push notification server. Retained alongside Matrix for two specific cases: pending-approval prompts (where the operator must act before an agent can continue) and dead-letter events (task queue failures, stale handoffs). Everything else routes through Matrix. ntfy-mcp gives agents a typed `send_notification` tool. |
 | **NATS + JetStream** | Agent event bus | NATS 2.10 with JetStream persistence. Task lifecycle events flow here from the dispatcher; inter-agent events (handoffs, audit requests, task failures) federate here from agent-bus. Three streams: TASKS (30d), AGENT_EVENTS (7d), AGENT_BUS (30d, 2-min dedup). Additive to the file queue — source of truth stays in the filesystem. Monitoring dashboard proxied via SWAG. See [nats-jetstream](docs/components/nats-jetstream.md). |
-| **Graphiti + Neo4j** | Temporal knowledge graph | Neo4j 5.26.0 graph database with Graphiti MCP for entity extraction and relationship mapping. Captures infrastructure topology — services, hosts, networks, agents — with temporal validity. Fed by memory-flush (real-time) and memory-sync (nightly). See [graphiti](docs/components/graphiti.md). |
 | **Temporal** | Durable workflow engine | Five-container stack (server, UI, PostgreSQL, two init containers for schema migration). Provides fault-tolerant multi-phase workflow execution — if a phase fails or the system restarts mid-build, it resumes from the last checkpoint rather than starting over. See [temporal](docs/components/temporal.md). |
 | **n8n** | Workflow automation | n8n with Postgres backend. Handles webhook-triggered workflows and event routing between the AI platform and external systems. Task queue and agent manifests mounted read-only for agent-triggered workflows. See [n8n](docs/components/n8n.md). |
 | **Plane** | Self-hosted project management | 11-container Docker stack tracking large architecture builds — modules, cycles, Gantt timeline, dependency-aware issues. plane-mcp-server exposes 55+ tools so agents can read and write workspace state without UI interaction. Behind SWAG with Authelia SSO, isolated on its own Docker network for blast-radius containment. See [plane](docs/components/plane.md). |
@@ -119,11 +136,14 @@ Docker containers on the same host, fronted by a reverse proxy with SSO. These p
 | **qmd** | Semantic search MCP server | Hybrid search (BM25 + vector + LLM reranking) over all repos, docs, and agent memory. Local embeddings via GGUF models, GPU-accelerated on AMD iGPU via Vulkan. |
 | **OpenSearch** | Memory full-text search backend | OpenSearch 2.19.1 single-node, isolated on a dedicated `memory-search-net` Docker network for blast-radius containment. Indexes the first 2KB of every memory note (~2800+ notes) for keyword and phrase search. Fed by `memory-os-sync` (PM2, 30s batches, cursor-based incremental). Personal-agent only via `memory-search-mcp`; SearXNG and LibreChat search are deliberately untouched. See [memory-lifecycle](docs/components/memory-lifecycle.md). |
 | **Hister** | Browser-based memory search | Self-hosted semantic + keyword search over the Claude memory corpus (~500 files: agent memory, prime-directive, build plans, platform docs). Independent of live Claude sessions — search past decisions from any browser. Semantic search via `nomic-embed-text` on the forge GPU; Bleve full-text keyword index; SearXNG fallback on zero results. Web UI behind Authelia SSO; MCP endpoint at `/mcp` for programmatic access. See [hister](docs/components/hister.md). |
+| **Graphiti + Neo4j** | Temporal knowledge graph | Neo4j 5.26.0 graph database with Graphiti MCP for entity extraction and relationship mapping. Captures infrastructure topology — services, hosts, networks, agents — with temporal validity. Fed by memory-flush (real-time) and memory-sync (nightly). See [graphiti](docs/components/graphiti.md). |
 | **ollama-queue-proxy** | Ollama pool manager | Smart pool manager for the Ollama fleet — per-client API key auth with priority ceilings and concurrency caps, three-tier priority queue (high/normal/low), model-aware routing to whichever host has the model already loaded, Valkey embedding cache for repeated RAG requests (skips queue and upstream on hit), injection ports for clients without Bearer support, and keep_alive injection to prevent cold-load latency. All active Ollama consumers (graphiti, jobsearch-mcp, searxng-mcp, memsearch-watch) route through it. See [ollama-queue-proxy](docs/components/ollama-queue-proxy.md). |
 
-All containers share a single Docker network. SWAG handles SSL termination and routes `chat.yourdomain`, `auth.yourdomain`, `cloudcli.yourdomain`, etc. to the appropriate container.
+#### Networking
 
-**Standalone value:** The SWAG + Authelia + LibreChat stack is useful even without Claude Desktop or the agent engine. LibreChat gives you a self-hosted ChatGPT-like interface that works with multiple AI providers, and Authelia keeps it locked down.
+Most containers sit on a shared `claudebox-net` Docker network, with SWAG handling SSL termination and routing `chat.yourdomain`, `auth.yourdomain`, `cloudcli.yourdomain`, etc. to the appropriate backend. Security-sensitive services run on dedicated networks for blast-radius containment — OpenSearch on `memory-search-net`, Plane on its own `plane`/`plane-swag` pair, Graphiti on `graphiti-internal`, ollama-queue-proxy's Valkey on `oqp-internal`. Only SWAG and the specific dependents reach into those isolated networks. With this many containers, "one big network" stops being a reasonable default; isolation where it matters is cheap insurance.
+
+**Standalone value:** The Foundation row earns its keep on any homelab — SWAG, Authelia, Grafana, and Dockhand are useful long before AI enters the picture. Add the Multi-User Platform on top and you have a self-hosted, SSO-locked AI platform anyone in the house can use, even without Claude Desktop or the agent engine. The Agent Infrastructure layer is opinionated — it only matters if you're running Claude Code or similar agentic workflows, and most rows can be added piecemeal as you build out.
 
 ### Layer 3 — Multi-Agent Claude Code Engine
 
