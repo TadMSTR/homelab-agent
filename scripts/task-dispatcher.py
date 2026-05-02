@@ -238,9 +238,8 @@ def move_to_dead_letter(path: Path, task: dict, reason: str) -> None:
     path.unlink(missing_ok=True)
     matrix_notify(
         "task-queue",
-        f"[DEAD LETTER] {task.get('summary', path.stem)}",
-        f"Task {task.get('id', path.stem)} permanently failed after max retries.\n"
-        f"Reason: {reason}\nCheck ~/.claude/task-queue/dead-letters/",
+        f"[dead-letter] {task.get('summary', path.stem)}",
+        f"Task {task.get('id', path.stem)} failed after max retries.\nReason: {reason}",
     )
     log.warning(f"{path.name}: moved to dead-letters (reason={reason})")
 
@@ -370,9 +369,14 @@ def process_submitted(manifests: dict) -> None:
             log.info(f"{path.name}: → pending-approval (risk={risk}, max_auto={max_auto})")
             matrix_notify(
                 "approvals",
-                f"[APPROVAL] {task.get('summary', path.stem)}",
+                f"[APPROVAL NEEDED] {task.get('summary', path.stem)}",
                 f"Source: {task.get('source_agent')} | Type: {task.get('task_type')} | Risk: {risk} | Agent: {target_agent}\n"
-                f"Approve: task-approve {task.get('id', path.stem)}\nReject:  task-approve {task.get('id', path.stem)} --reject \"reason\"",
+                f"`task-approve {task.get('id', path.stem)}`",
+            )
+            matrix_notify(
+                "task-queue",
+                f"[pending-approval] {task.get('summary', path.stem)}",
+                f"Agent: {target_agent} | Risk: {risk}",
             )
         else:
             task["status"] = "approved"
@@ -380,11 +384,31 @@ def process_submitted(manifests: dict) -> None:
                            f"Auto-approved: {approval_reason}")
             atomic_write(path, task)
             publish_nats("tasks.approved", {"task_id": task.get("id"), "target_agent": target_agent, "summary": task.get("summary")})
-            post_n8n_approved_webhook(task)
+            if task.get("task_type") == "audit" and target_agent == "security":
+                request_path_str = task.get("payload", {}).get("request", "")
+                build_name = Path(request_path_str).parent.name if request_path_str else "unknown"
+                request_path = Path(request_path_str).expanduser() if request_path_str else (
+                    Path.home() / ".claude/comms/artifacts/audit-requests" / build_name / "request.md"
+                )
+                subprocess.Popen(
+                    ["claude", "--project", "security", "-p",
+                     f"Run security audit for build: {build_name}. "
+                     f"Request at: {request_path}"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                log.info(f"{path.name}: headless audit launched for {build_name}")
+            else:
+                post_n8n_approved_webhook(task)
             bus_log("task.approved", source="dispatcher",
                     summary=task.get("summary", path.stem),
                     target=target_agent, artifact_path=str(path))
             log.info(f"{path.name}: → approved (auto)")
+            matrix_notify(
+                "task-queue",
+                f"[auto-approved] {task.get('summary', path.stem)}",
+                f"Agent: {target_agent} | Risk: {risk}",
+            )
 
 
 # --- Phase 2: Alert on stale approved tasks ---
@@ -431,8 +455,8 @@ def alert_stale_approved() -> None:
             log.info(f"{path.name}: stale approved task ({age_hours}h unclaimed), sending alert")
             matrix_notify(
                 "task-queue",
-                f"[STALE] {task.get('summary', path.stem)}",
-                f"Approved {age_hours}h ago, not yet claimed | Agent: {task.get('target_agent')} | ID: {task.get('id', path.stem)}",
+                f"[stale] {task.get('summary', path.stem)}",
+                f"Approved {age_hours}h ago, unclaimed | Agent: {task.get('target_agent')}",
             )
 
             # Update alert state
@@ -464,6 +488,9 @@ def archive_expired() -> None:
         created_str = task.get("created", "")
         try:
             created = datetime.fromisoformat(str(created_str))
+            # Date-only strings (e.g. "2026-04-23") parse as naive — localize to UTC
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
         except (ValueError, TypeError):
             continue
 

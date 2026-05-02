@@ -212,6 +212,32 @@ module.exports = {
       watch: false,
     },
 
+    {
+      // Drift detector — checks for build close-out notes written in the last
+      // 15 minutes and verifies that expected audit reports exist. Lightweight
+      // structural check; sends no notification unless drift is found (logged only).
+      // See: scripts/drift-detector-scan.sh
+      name: "drift-detector-scan",
+      script: "/home/YOUR_USER/scripts/drift-detector-scan.sh",
+      interpreter: "bash",
+      cron_restart: "*/15 * * * *",  // Every 15 minutes
+      autorestart: false,
+      watch: false,
+    },
+
+    {
+      // Build-unblock scanner — reads build-plans/index.md and sends a Matrix
+      // notification to #claudebox when a blocked plan's dependency is complete.
+      // Prevents build plans from sitting unnoticed when their blocker resolves.
+      // See: scripts/build-unblock-scan.sh
+      name: "build-unblock-scan",
+      script: "/home/YOUR_USER/scripts/build-unblock-scan.sh",
+      interpreter: "bash",
+      cron_restart: "*/30 * * * *",  // Every 30 minutes
+      autorestart: false,
+      watch: false,
+    },
+
     // =========================================================================
     // OPTIONAL: Issue/bug watchers
     // =========================================================================
