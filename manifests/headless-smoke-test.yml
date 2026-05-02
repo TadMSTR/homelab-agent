@@ -9,6 +9,8 @@ modules:
       tool_allowlist:
         - run_command
         - read_file
+        - write_file
+        - edit_file
         - list_processes
 
   matrix:
