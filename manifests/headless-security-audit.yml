@@ -1,0 +1,38 @@
+agent_type: headless-security-audit
+description: "Security audit agent — reads audit request, runs findings, writes report"
+
+modules:
+  homelab-ops:
+    type: mcp_proxy
+    config:
+      url: <FILL_AT_DEPLOY>    # http://localhost:8282/mcp
+      tool_allowlist:
+        - read_file
+        - write_file
+        - edit_file
+        - read_directory
+        - run_command
+
+  matrix:
+    type: mcp_proxy
+    config:
+      url: <FILL_AT_DEPLOY>    # http://127.0.0.1:8487/mcp
+      tool_allowlist:
+        - send_matrix_message
+
+  task-queue:
+    type: mcp_proxy
+    config:
+      url: <FILL_AT_DEPLOY>    # http://127.0.0.1:8485/mcp
+      tool_allowlist:
+        - update_task
+        - get_task
+        - submit_task
+
+  agent-bus:
+    type: mcp_proxy
+    config:
+      command: <FILL_AT_DEPLOY>    # /path/to/agent-bus/venv/bin/python3
+      args: [<FILL_AT_DEPLOY>]     # [/path/to/agent-bus/server.py]
+      tool_allowlist:
+        - log_event

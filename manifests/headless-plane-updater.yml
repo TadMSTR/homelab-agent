@@ -1,0 +1,49 @@
+agent_type: headless-plane-updater
+description: "Plane work item updater — marks build items done after build-finalize"
+
+modules:
+  homelab-ops:
+    type: mcp_proxy
+    config:
+      url: <FILL_AT_DEPLOY>    # http://localhost:8282/mcp
+      tool_allowlist:
+        - read_file
+        - write_file
+        - edit_file
+
+  plane:
+    type: mcp_proxy
+    config:
+      command: <FILL_AT_DEPLOY>    # /opt/appdata/plane-mcp-venv/bin/plane-mcp-server
+      args: [stdio]
+      tool_allowlist:
+        - update_work_item
+        - create_work_item_comment
+        - retrieve_work_item
+        - search_work_items
+        - list_work_items
+        - list_states
+        - retrieve_state
+
+  matrix:
+    type: mcp_proxy
+    config:
+      url: <FILL_AT_DEPLOY>    # http://127.0.0.1:8487/mcp
+      tool_allowlist:
+        - send_matrix_message
+
+  task-queue:
+    type: mcp_proxy
+    config:
+      url: <FILL_AT_DEPLOY>    # http://127.0.0.1:8485/mcp
+      tool_allowlist:
+        - update_task
+        - get_task
+
+  agent-bus:
+    type: mcp_proxy
+    config:
+      command: <FILL_AT_DEPLOY>    # /path/to/agent-bus/venv/bin/python3
+      args: [<FILL_AT_DEPLOY>]     # [/path/to/agent-bus/server.py]
+      tool_allowlist:
+        - log_event

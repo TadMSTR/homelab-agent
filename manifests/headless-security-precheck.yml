@@ -1,0 +1,20 @@
+agent_type: headless-security-precheck
+description: "Security KB pre-check — reads audit request and checks known vulnerability patterns"
+
+modules:
+  homelab-ops:
+    type: mcp_proxy
+    config:
+      url: <FILL_AT_DEPLOY>    # http://localhost:8282/mcp
+      tool_allowlist:
+        - read_file
+        - read_directory
+        - run_command
+
+  task-queue:
+    type: mcp_proxy
+    config:
+      url: <FILL_AT_DEPLOY>    # http://127.0.0.1:8485/mcp
+      tool_allowlist:
+        - update_task
+        - get_task
