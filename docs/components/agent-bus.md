@@ -146,7 +146,39 @@ The client intentionally omits ntfy emission — `task-dispatcher.py` retains it
 
 ## Federation
 
-![Agent Bus Federation Topology](assets/agent-bus-federation.drawio.png)
+```mermaid
+graph LR
+    subgraph Sources["Event sources"]
+        A1["Agent A"]
+        A2["Agent B"]
+        TD["task-dispatcher"]
+    end
+
+    subgraph Bus["agent-bus (FastMCP, PM2 always-on)"]
+        Log["log_event tool"]
+        JSONL[("JSONL ledger<br/>~/.claude/comms/agent-bus/")]
+        Inline["emit_nats()<br/>(real-time, best-effort)"]
+        Loop["federation loop<br/>(30s tick, cursor-based)"]
+    end
+
+    subgraph NATS["NATS JetStream"]
+        Subj["agent-bus.{hostname}.events"]
+        Stream["AGENT_BUS stream<br/>retention 30d · dedup 2min"]
+    end
+
+    Consumers["Consumers<br/>(Helm Dashboard, ad-hoc tools)"]
+
+    A1 --> Log
+    A2 --> Log
+    TD --> Log
+    Log --> JSONL
+    Log --> Inline
+    JSONL --> Loop
+    Inline --> Subj
+    Loop --> Subj
+    Subj --> Stream
+    Stream --> Consumers
+```
 
 Events are published to `agent-bus.{hostname}.events` on `nats://localhost:4222`.
 

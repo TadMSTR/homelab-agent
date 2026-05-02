@@ -4,7 +4,41 @@ The inter-agent handoff system described in [inter-agent-communication.md](inter
 
 Once you have several agents that can all hand work to each other, you need something in the middle. Agent orchestration adds a structured task queue, a dispatcher that routes and gates tasks automatically, and a CLI for approving anything that needs a human look before it proceeds. The handoff pattern doesn't go away — it's still how build plans and security audit requests flow. The task queue is the layer on top that adds lifecycle tracking, approval gates, and routing for cases where the source agent doesn't know or care who handles the work.
 
-![Agent Orchestration & Inter-Agent Handoff System](../assets/agent-orchestration-handoff.drawio.svg)
+```mermaid
+graph TD
+    subgraph Direct["Direct handoff — known source → known target"]
+        R["Research agent"]
+        B["Builder agent"]
+        S["Security agent"]
+        H[("~/.claude/comms/<br/>handoff files")]
+        R -->|build plan + handoff.md| H
+        B -->|audit request| H
+        S -->|action plan| H
+        H -.->|session-start scan| B
+        H -.->|session-start scan| S
+    end
+
+    subgraph Queue["Task queue — any source → routed target"]
+        A["Any agent"]
+        Q[("~/.claude/task-queue/<br/>YAML files")]
+        M[("~/.claude/agent-manifests/<br/>capability · risk · permissions")]
+        D["task-dispatcher<br/>(PM2, every 2 min)"]
+        AP["task-approve CLI<br/>(operator)"]
+        IH["inject-task-queue.sh<br/>(SessionStart hook)"]
+        T["Target agent"]
+
+        A -->|submit_task| Q
+        Q --> D
+        M --> D
+        D -->|pending-approval| AP
+        AP -->|approve| Q
+        D -->|approved| IH
+        IH --> T
+        T -->|update_task| Q
+    end
+```
+
+Two complementary lanes. Direct handoff is for known relationships — a research agent that knows the builder will pick up its plan, a security agent writing an action plan back to the agent that requested an audit. The task queue is the routing layer for everything else: any agent can `submit_task`, the dispatcher routes by capability and approval rules, and the target agent picks it up at session start without the source agent needing to know who that target is.
 
 ## How It Fits In
 

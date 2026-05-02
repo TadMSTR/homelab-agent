@@ -2,18 +2,9 @@
 
 Static assets for the homelab-agent documentation.
 
-## Diagrams
+Architecture and component diagrams are written inline as [Mermaid](https://mermaid.js.org/) fenced code blocks in the markdown that uses them — no binary files, no separate tooling, edits diff cleanly. See [architecture.md](../architecture.md), [agent-orchestration.md](../components/agent-orchestration.md), and [agent-bus.md](../components/agent-bus.md) for the diagrams currently in use.
 
-Diagram files use the `.drawio.svg` format: SVG with embedded draw.io XML. They render inline in GitHub and any browser, and are fully editable in [draw.io](https://app.diagrams.net) — drag-and-drop the file or use File → Open from → This device.
-
-| File | Used in | Description |
-|------|---------|-------------|
-| `architecture-layers.drawio.svg` | [architecture.md](../architecture.md#system-overview) | Three-layer system overview: host tooling, Docker services, agent engine |
-| `memory-flow.drawio.svg` | [architecture.md](../architecture.md#memory-flow-knowledge-accumulation) | Memory tier pipeline: session → working → distilled → knowledge graph |
-| `network-topology.drawio.svg` | [architecture.md](../architecture.md#network-topology) | Docker network routing: SWAG → Authelia → containers |
-| `agent-orchestration-handoff.drawio.svg` | [agent-orchestration.md](../components/agent-orchestration.md) | Agent orchestration system: task queue, dispatcher, manifests, inter-agent handoff flows |
-
-## Other assets
+## Files
 
 | File | Description |
 |------|-------------|
