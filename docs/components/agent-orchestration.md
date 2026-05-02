@@ -56,7 +56,7 @@ The dispatcher handles the mechanical work: routing submitted tasks, applying ap
 
 - Layer 3 baseline: Claude Code CLI with per-project CLAUDE.md files
 - PM2 for running the dispatcher as a cron job
-- ntfy for approval and stale-task push notifications
+- Matrix homeserver + matrix-mcp for approval and stale-task notifications (see [matrix.md](matrix.md))
 - Agent manifests written for each agent you want to route tasks to
 - The inter-agent handoff pattern set up if you want the full bidirectional workflow — though the task queue works standalone for unidirectional dispatch
 

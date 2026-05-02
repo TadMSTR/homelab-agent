@@ -2,7 +2,7 @@
 
 ntfy-mcp is a Docker-hosted MCP server that gives Claude Code sessions a native tool call for sending push notifications via [ntfy](https://ntfy.sh). It's a thin HTTP proxy between an agent and an ntfy instance — stateless, no database, one tool.
 
-Every automated workflow on claudebox already uses ntfy: memory pipeline completions, backup results, resource alerts, build completions. Before ntfy-mcp, agents had to send notifications either through homelab-ops-mcp's `run_command` (raw curl) or by writing shell commands inline. ntfy-mcp replaces both with a typed, auditable `send_notification` tool call.
+All cron jobs and scheduled scripts on claudebox have migrated to Matrix for notifications — `send-matrix.sh` handles cron-context sends, and `task-dispatcher.py` uses `matrix_notify()` for task lifecycle events. ntfy-mcp remains available as optional MCP infrastructure if you want to add push notification capability to agent sessions that don't have a Matrix homeserver configured.
 
 It sits in [Layer 1](../../README.md#layer-1--host--core-tooling) alongside the other MCP servers that extend agent capability.
 
@@ -103,21 +103,21 @@ The container is **not** registered with LibreChat — it's Claude Code only. Li
 
 ## Integration Points
 
-**Claude Code sessions.** Every writer, build, and homelab agent has `ntfy` in its MCP server list. Agents use it to signal completions, request operator input, and report errors — see the escalation protocol in each project's CLAUDE.md.
+**Claude Code sessions.** ntfy-mcp is available as an optional MCP server. If you configure it, agents can call `send_notification` for push alerts. In the reference implementation, agents use `mcp__matrix__send_matrix_message` instead — but ntfy-mcp remains useful if you want SMS/email delivery via ntfy's notification gateway, or if you haven't set up a Matrix homeserver.
 
 ```mermaid
 flowchart LR
     A["Claude Code agent"] -->|"MCP tool call"| B["ntfy-mcp\nclaudebox:8484"]
-    B -->|"HTTP POST"| C["ntfy server\natlas"]
-    C --> D["claudebox\ncompletions"]
-    C --> E["claudebox-alerts\nsecurity · health"]
+    B -->|"HTTP POST"| C["ntfy server\nyour-host"]
+    C --> D["your-topic\ncompletions"]
+    C --> E["your-alerts-topic\nsecurity · health"]
     D --> F["subscribers\nmobile · web · desktop"]
     E --> F
 ```
 
-**ntfy on atlas.** The ntfy server itself runs on atlas (not claudebox). ntfy-mcp is purely a client — it forwards `send_notification` calls as HTTP POST requests to the atlas instance. There is no local ntfy server on claudebox.
+**ntfy server location.** The ntfy server runs on a separate host — ntfy-mcp is purely a client that forwards `send_notification` calls as HTTP POST requests. Point `NTFY_URL` at your ntfy instance.
 
-**Topic routing.** Default topic is `claudebox`. Agents can override with the `topic` parameter — some use project-specific topics for filtering (e.g., `claudebox-alerts` for security and health events vs. `claudebox` for general completions).
+**Topic routing.** Default topic is set by `NTFY_DEFAULT_TOPIC`. Agents can override with the `topic` parameter for filtering between completion events and alerts.
 
 ## CI
 

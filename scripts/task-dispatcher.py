@@ -39,7 +39,7 @@ ARCHIVE_DIR = TASK_QUEUE_DIR / "archive"
 DEAD_LETTER_DIR = TASK_QUEUE_DIR / "dead-letters"
 MANIFEST_DIR = Path.home() / ".claude" / "agent-manifests"
 LOG_FILE = TASK_QUEUE_DIR / "dispatcher.log"
-NTFY_URL = "https://ntfy.glitch42.com/claudebox"
+MATRIX_MCP_URL = "http://127.0.0.1:8487/mcp"
 N8N_WEBHOOK_URL = os.environ.get("N8N_WEBHOOK_URL", "")  # task-submitted webhook
 N8N_APPROVED_WEBHOOK_URL = "http://localhost:5678/webhook/task-approved"
 
@@ -135,22 +135,32 @@ def handle_routing_failure(path: Path, task: dict, reason: str) -> None:
         move_to_dead_letter(path, task, reason)
 
 
-# --- ntfy notification ---
-def notify(title: str, body: str, tags: str = "task-queue", priority: str = "default") -> None:
+# --- Matrix notification (via matrix-mcp HTTP endpoint) ---
+def matrix_notify(room: str, title: str, body: str) -> None:
+    """Post a notification to a named Matrix room via matrix-mcp."""
     try:
+        payload = json.dumps({
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "params": {
+                "name": "send_matrix_message",
+                "arguments": {
+                    "room_name": room,
+                    "message": f"**{title}**\n{body}"
+                }
+            },
+            "id": 1
+        })
         subprocess.run(
-            ["curl", "-s",
-             "-H", f"Title: {title}",
-             "-H", f"Tags: {tags}",
-             "-H", f"Priority: {priority}",
-             "-d", body,
-             NTFY_URL],
+            ["curl", "-s", "-X", "POST", MATRIX_MCP_URL,
+             "-H", "Content-Type: application/json",
+             "-d", payload],
             timeout=10,
             capture_output=True,
         )
-        log.info(f"ntfy sent: {title}")
+        log.info(f"matrix_notify sent to #{room}: {title}")
     except Exception as e:
-        log.warning(f"ntfy failed: {e}")
+        log.warning(f"matrix_notify failed: {e}")
 
 
 # --- NATS publish (fire-and-forget) ---
@@ -226,12 +236,11 @@ def move_to_dead_letter(path: Path, task: dict, reason: str) -> None:
     # Write updated task to dead-letter location, then remove original
     atomic_write(dest, task)
     path.unlink(missing_ok=True)
-    notify(
+    matrix_notify(
+        "task-queue",
         f"[DEAD LETTER] {task.get('summary', path.stem)}",
         f"Task {task.get('id', path.stem)} permanently failed after max retries.\n"
         f"Reason: {reason}\nCheck ~/.claude/task-queue/dead-letters/",
-        tags="task-queue,warning",
-        priority="high",
     )
     log.warning(f"{path.name}: moved to dead-letters (reason={reason})")
 
@@ -359,12 +368,11 @@ def process_submitted(manifests: dict) -> None:
                     summary=f"Dispatched for approval: {task.get('summary', path.stem)}",
                     target=target_agent, artifact_path=str(path))
             log.info(f"{path.name}: → pending-approval (risk={risk}, max_auto={max_auto})")
-            notify(
+            matrix_notify(
+                "approvals",
                 f"[APPROVAL] {task.get('summary', path.stem)}",
                 f"Source: {task.get('source_agent')} | Type: {task.get('task_type')} | Risk: {risk} | Agent: {target_agent}\n"
                 f"Approve: task-approve {task.get('id', path.stem)}\nReject:  task-approve {task.get('id', path.stem)} --reject \"reason\"",
-                tags="task-queue",
-                priority="default",
             )
         else:
             task["status"] = "approved"
@@ -421,11 +429,10 @@ def alert_stale_approved() -> None:
                 continue
 
             log.info(f"{path.name}: stale approved task ({age_hours}h unclaimed), sending alert")
-            notify(
+            matrix_notify(
+                "task-queue",
                 f"[STALE] {task.get('summary', path.stem)}",
                 f"Approved {age_hours}h ago, not yet claimed | Agent: {task.get('target_agent')} | ID: {task.get('id', path.stem)}",
-                tags="task-queue,warning",
-                priority="default",
             )
 
             # Update alert state

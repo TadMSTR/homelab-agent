@@ -11,7 +11,7 @@ Before Matrix, agents sent ntfy push notifications for status updates and blocke
 - **Structured artifact posting** — agents post files, logs, and reports directly to Matrix rooms
 - **Unified inbox** — all agent activity visible in Element Web without a separate app
 
-ntfy is retained for two cases: pending-approval notifications (where the operator needs to act before the agent can continue) and dead-letter events (task queue failures, stale handoffs). Everything else routes to Matrix.
+Matrix is the sole notification layer for all agent activity — cron jobs, task lifecycle events, approvals, and failures. Shell scripts use `send-matrix.sh` (a curl-based helper that sources credentials from `~/.claude-secrets/matrix.env`) rather than MCP, since cron jobs run outside any Claude Code session.
 
 ## Architecture
 
@@ -78,15 +78,18 @@ All three run on `claudebox-net`. Only Synapse's client API (`/_matrix/`) is exp
 
 | Room | Purpose |
 |------|---------|
-| `#claudebox` | Homelab ops agent |
+| `#claudebox` | Homelab ops agent; also receives cron failures and warnings |
 | `#dev` | Development agent |
 | `#homelab-ops` | Multi-host infrastructure agent |
 | `#research` | Research agent |
-| `#security` | Security audit agent |
+| `#security` | Security audit agent; also receives workspace-scan security alerts |
 | `#helm-build` | Helm/forge build agent |
 | `#outreach` | Outreach agent |
 | `#writer` | Documentation agent |
-| `#memory-sync` | Memory-pipeline and doc-sync completion summaries |
+| `#events` | Cron success/info: backup OK, dep updates, repo-sync auto-commits, qmd repo adds |
+| `#memory-sync` | Memory pipeline: memory-sync, memory-promote, memory-pipeline results |
+| `#approvals` | Task approval requests from task-dispatcher |
+| `#task-queue` | Task lifecycle: dead-letters, auto-approved, stale tasks |
 | `#announcements` | Cross-agent broadcasts |
 | `#general` | Operator + system channel |
 
@@ -130,7 +133,7 @@ Each agent's `CLAUDE.md` includes a `## Communications` section specifying its a
 
 ## Task Dispatcher Integration
 
-`task-dispatcher.py` routes state transition notifications to Matrix via a `matrix_notify()` helper. The routing table:
+`task-dispatcher.py` routes all state transition notifications to Matrix via a `matrix_notify()` helper that calls matrix-mcp over HTTP. The routing table:
 
 | Event | Destination |
 |-------|------------|
@@ -139,21 +142,22 @@ Each agent's `CLAUDE.md` includes a `## Communications` section specifying its a
 | Task completed | Agent's room |
 | Build handoff created | Target agent's room |
 | Security audit requested | `#security` |
-| Dead-letter / TTL expired | ntfy (pending-approval channel) |
+| Pending-approval gate | `#approvals` |
+| Dead-letter / routing exhausted | `#task-queue` (high-priority) |
+| Stale approved task (>24h) | `#task-queue` (deduplicated to once/24h) |
 
-ntfy retains only the dead-letter and pending-approval paths. All other dispatcher events route to Matrix.
+## Cron Job Integration
 
-## Nightly Cron Integration
+All PM2 cron jobs send notifications via `send-matrix.sh` (`~/scripts/send-matrix.sh`), a curl-based shell helper that sources credentials from `~/.claude-secrets/matrix.env`, resolves short room names to Matrix room IDs, and POSTs via the Synapse client API. This runs without MCP — cron jobs have no Claude Code session context.
 
-Three PM2 cron jobs post completion summaries via `matrix-notify.py` (`~/scripts/matrix-notify.py`), a lightweight Python helper that resolves short room names to room IDs from `MATRIX_ROOM_<NAME>` env vars and sends a single message via the Synapse client API. Credentials from `~/.claude-secrets/matrix.env`; room names are validated against an explicit allowlist before sending.
+Room routing for cron notifications:
 
-| Cron job | Posts on success | Posts on failure |
-|----------|-----------------|-----------------|
-| `memory-pipeline` | `#memory-sync` | `#memory-sync` |
-| `doc-sync` | `#memory-sync` | `#memory-sync` |
-| `repo-sync-nightly` | `#announcements` | silent |
-
-`memory-pipeline` and `doc-sync` post regardless of outcome so failures are visible in `#memory-sync` rather than disappearing into PM2 logs. `repo-sync-nightly` only posts on successful syncs — failures go to the PM2 log without a Matrix notification.
+| Category | Room | Examples |
+|----------|------|---------|
+| Success / info | `#events` | Backup OK, dep update report, repo-sync auto-commit, qmd repo add |
+| Failure / warning | `#claudebox` | Resource alerts, backup failures, qmd reindex failure, workspace scan |
+| Memory pipeline | `#memory-sync` | memory-sync, memory-promote-daily, memory-pipeline results |
+| Task lifecycle | `#approvals` / `#task-queue` | Approval requests, dead-letters, stale tasks |
 
 ## matrix-channel
 
@@ -177,5 +181,5 @@ Three PM2 cron jobs post completion summaries via `matrix-notify.py` (`~/scripts
 
 - [inter-agent-communication.md](inter-agent-communication.md) — agent handoff patterns and queue mechanics
 - [task-dispatcher.md](task-dispatcher.md) — full routing table and dispatcher lifecycle
-- [ntfy-mcp.md](ntfy-mcp.md) — ntfy (retained for dead-letter and pending-approval)
+- [ntfy-mcp.md](ntfy-mcp.md) — ntfy-mcp (MCP infrastructure; cron scripts use send-matrix.sh instead)
 - [agent-bus.md](agent-bus.md) — NATS-backed event log for structured agent activity

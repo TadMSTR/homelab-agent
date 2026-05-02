@@ -47,13 +47,11 @@ POST /webhook/task-submitted
   ├── Parse Task (extract task_id, summary, risk_level, target_agent, ...)
   │
   └── Risk Gate
-        ├── high risk OR requires_approval → ntfy alert → respond 200
+        ├── high risk OR requires_approval → respond 200 (approval notification sent by task-dispatcher.py via Matrix)
         └── low risk → no-op → respond 200
 ```
 
-The dispatcher posts task submissions to this webhook endpoint. The workflow parses the task payload, checks the risk level, and routes accordingly:
-- **High-risk tasks** trigger an ntfy push notification with the task summary, risk level, source agent, and task ID
-- **Low-risk tasks** pass through silently (the file queue handles actual task delivery to agents)
+The dispatcher posts task submissions to this webhook endpoint. The workflow parses the task payload and checks the risk level. High-risk tasks are gated on operator approval — the notification is sent by `task-dispatcher.py` via Matrix (`#approvals` room), not by n8n. Both paths return HTTP 200 to the caller — the webhook is fire-and-forget from the dispatcher's perspective.
 
 Both paths return HTTP 200 to the caller — the webhook is fire-and-forget from the dispatcher's perspective.
 
@@ -104,7 +102,7 @@ Exported workflow JSON files are stored in `~/docker/n8n/workflows/` and version
 
 **NATS JetStream:** n8n and NATS serve complementary roles. NATS provides pub/sub event streaming for task lifecycle transitions (observability); n8n provides webhook-triggered workflow execution (routing and automation). They don't depend on each other — either can be removed without affecting the other or the core task queue.
 
-**ntfy:** The task dispatcher workflow sends push notifications for high-risk tasks via ntfy. The notification includes the task summary, risk level, target agent, and task ID — enough context to approve or investigate from a phone.
+**Matrix:** High-risk task notifications are sent by `task-dispatcher.py` directly to Matrix (`#approvals`), not through n8n. The n8n workflow handles routing and webhook relay only — notification responsibility stays with the dispatcher.
 
 **Backup and restore:** The `N8N_ENCRYPTION_KEY` is backed up to NFS secrets storage and restored by `deploy-claudebox.sh`. Without the original encryption key, any credentials stored in n8n's database become unreadable after restore. The deploy script has explicit handling for this — see [claudebox-deploy.md](claudebox-deploy.md).
 

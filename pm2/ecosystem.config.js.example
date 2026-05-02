@@ -109,9 +109,9 @@ module.exports = {
       // Agent task dispatcher — processes the task queue every 2 minutes.
       // Routes submitted tasks to the appropriate agent based on manifests
       // in ~/.claude/agent-manifests/. Auto-approves low-risk tasks, sends
-      // ntfy for tasks requiring approval. Fires n8n webhook on approval
-      // to trigger RemoteTrigger → agent session. Moves exhausted-retry
-      // tasks to dead-letters/ with ntfy alert.
+      // Matrix notification (#approvals) for tasks requiring approval. Fires
+      // n8n webhook on approval to trigger RemoteTrigger → agent session.
+      // Moves exhausted-retry tasks to dead-letters/ with Matrix alert (#task-queue).
       // See: scripts/task-dispatcher.py
       name: "task-dispatcher",
       script: "/home/YOUR_USER/scripts/task-dispatcher.py",
@@ -178,7 +178,7 @@ module.exports = {
 
     {
       // Check for updates to pinned dependencies (qmd, memsearch, Authelia,
-      // Claude Code, etc). Alerts via ntfy if updates are available.
+      // Claude Code, etc). Posts report to Matrix #events if updates are available.
       name: "dep-update-check",
       script: "/home/YOUR_USER/scripts/check-dep-updates.sh",
       interpreter: "bash",
@@ -189,7 +189,7 @@ module.exports = {
 
     {
       // Health check — RAM, disk, Docker containers, PM2 services, NFS mounts.
-      // Sends alerts via ntfy if anything is unhealthy.
+      // Sends alerts to Matrix #claudebox if anything is unhealthy.
       name: "resource-monitor",
       script: "/home/YOUR_USER/scripts/check-resources.sh",
       interpreter: "bash",
@@ -223,7 +223,7 @@ module.exports = {
     {
       // Check whether a tracked upstream GitHub issue is resolved.
       // Useful for issues that affect your stack and require a config
-      // change or workaround once fixed. Alerts via ntfy.
+      // change or workaround once fixed. Posts to Matrix #claudebox on resolution.
       // Rename and update the script path to match the issue you're tracking.
       name: "qmd-issue-check",
       script: "/home/YOUR_USER/scripts/check-qmd-issue.sh",

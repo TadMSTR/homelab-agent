@@ -36,7 +36,7 @@ graph TD
     F -->|not set| G{source in\nauto_approved?}
     G -->|yes| AUTO
     G -->|no| H{source in\nneeds_approval?}
-    H -->|yes| GATE[status: pending-approval\nntfy + NATS tasks.approval-requested]
+    H -->|yes| GATE[status: pending-approval\nMatrix #approvals + NATS tasks.approval-requested]
     H -->|no| I{risk_level ≤\nmax_auto_risk?}
     I -->|yes| AUTO
     I -->|no| GATE
@@ -71,7 +71,7 @@ When routing fails (no manifest match, unknown agent, etc.), the dispatcher retr
 | 1st retry | 5 minutes |
 | 2nd retry | 10 minutes |
 | 3rd retry | 20 minutes |
-| Exhausted | moved to `dead-letters/`, ntfy high-priority alert |
+| Exhausted | moved to `dead-letters/`, Matrix `#task-queue` high-priority alert |
 
 The retry state is stored on the task YAML itself:
 
@@ -83,13 +83,13 @@ retry_policy:
   last_failure_reason: "No agent found for task_type=build_phase"
 ```
 
-This means retries survive dispatcher restarts — the task file carries its own retry schedule. On failure exhaustion, `move_to_dead_letter()` is called, NATS `tasks.failed` is published, and a high-priority ntfy notification fires.
+This means retries survive dispatcher restarts — the task file carries its own retry schedule. On failure exhaustion, `move_to_dead_letter()` is called, NATS `tasks.failed` is published, and a high-priority Matrix notification fires to `#task-queue`.
 
 ### Dead-Letter Queue
 
 When a task exhausts all retry attempts, it is moved to `~/.claude/task-queue/dead-letters/` rather than left in the main queue or deleted. The move is atomic (`Path.rename()`). Dead-lettered tasks are retained indefinitely for audit purposes.
 
-A high-priority ntfy notification fires on dead-letter with the task summary and last failure reason. To recover a dead-lettered task, move the YAML file back to `~/.claude/task-queue/`, reset `status` to `submitted`, and clear the `retry_policy` block — the dispatcher will pick it up on the next run.
+A high-priority Matrix notification fires to `#task-queue` on dead-letter with the task summary and last failure reason. To recover a dead-lettered task, move the YAML file back to `~/.claude/task-queue/`, reset `status` to `submitted`, and clear the `retry_policy` block — the dispatcher will pick it up on the next run.
 
 ### Phase 2: Alert Deduplication
 
@@ -197,16 +197,16 @@ All NATS publishes are fire-and-forget (`timeout=5`). If NATS is down, the dispa
 
 **n8n:** Posts task metadata to `N8N_WEBHOOK_URL` at two points in the lifecycle: on submission (routing and risk-based logic in the n8n task dispatcher workflow) and on approval (`post_n8n_approved_webhook()` — drives the n8n → trigger-proxy → RemoteTrigger agent session chain). Both are fire-and-forget. If `N8N_WEBHOOK_URL` is not set, both no-op silently.
 
-**ntfy:** Sends notifications to `https://ntfy.example.com/your-channel` for:
-- Pending-approval tasks (default priority)
-- Stale approved tasks >24h unclaimed (default priority, deduplicated)
-- Routing exhausted / task failed (high priority)
+**Matrix:** Sends notifications via `matrix_notify()` (calls matrix-mcp at `http://127.0.0.1:8487/mcp`) for:
+- Pending-approval tasks → `#approvals`
+- Stale approved tasks >24h unclaimed → `#task-queue` (deduplicated, once per 24h)
+- Routing exhausted / task failed → `#task-queue` (high priority)
 
 **inject-task-queue.sh (SessionStart hook):** Reads tasks with `status: approved` or `status: input-required` at Claude Code session start, injects summaries as `additionalContext`. The dispatcher sets status; the hook delivers tasks to agents.
 
 ## Gotchas and Lessons Learned
 
-**Notification storm before alert dedup.** Prior to the `alert_state` implementation, a single stale task would fire a ntfy notification every 2 minutes indefinitely. On a 24h-unclaimed task, that's 720 notifications. The `alert_state` block on the task YAML is the fix — check `last_alerted_at` before alerting.
+**Notification storm before alert dedup.** Prior to the `alert_state` implementation, a single stale task would fire a Matrix notification every 2 minutes indefinitely. On a 24h-unclaimed task, that's 720 notifications. The `alert_state` block on the task YAML is the fix — check `last_alerted_at` before alerting.
 
 **Retry state survives restarts.** Because `retry_policy` is stored on the task file (not in memory), the backoff schedule persists across PM2 restarts, system reboots, and dispatcher crashes. A task will not be re-routed until `next_retry_at` has elapsed regardless of how many times the dispatcher has restarted.
 
