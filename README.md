@@ -213,15 +213,23 @@ See [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) for ful
 
 ## Purpose-Built Agents
 
-LibreChat isn't just a chat interface — it's the platform that hosts specialized agents, each configured with their own MCP servers, system prompt, and domain context. The difference from a generic AI chat: these agents know their job, have the right tools wired up, and keep state across sessions.
+The platform hosts two distinct agent surfaces, each for a different use case.
 
-**Job Search Agent** — the first purpose-built agent in the stack. Backed by its own FastMCP server with tools for multi-board job scraping, resume scoring against job descriptions, and application tracking in Postgres. A user can ask "find senior DevOps roles remote in the US, score them against my resume, and add the top five to the tracker" and get back structured results — not a list of links.
+### Claude Code agents
 
-The agent/platform model means adding a new agent is a matter of writing a FastMCP server and configuring it in LibreChat. The infrastructure (reverse proxy, SSO, memory, search) is already there. More agents are being added as new use cases emerge.
+The infrastructure agents — single-operator, project-scoped, where the day-to-day work happens. Each agent is a Claude Code project with its own CLAUDE.md, MCP tool surface, and scoped memory directory. The example set in this repo covers `homelab-ops`, `dev`, `research`, `security`, and `memory-sync`, but the pattern scales — I run more on my own setup. Each agent loads only the context relevant to its domain, so the dev agent doesn't carry monitoring history and the homelab-ops agent doesn't carry git workflow conventions.
 
-See [`docs/components/jobsearch-mcp.md`](docs/components/jobsearch-mcp.md) for the job search agent's architecture and the pattern for building additional agents.
+The interaction surface is Matrix. Every agent has its own room (`#dev`, `#research`, `#writer`, etc.) plus `#announcements` for cross-agent broadcasts. A message I send in a room is picked up by the **matrix-dispatcher** PM2 service, which spawns a `claude -p` session in that agent's project directory and streams the response back as a threaded reply. Sessions resume across PM2 restarts via SQLite-backed thread tracking; bang-prefix commands (`!sessions`, `!recap`, `!cancel`) cover the common operations without leaving the chat. The result: I can hand work to the right agent from a phone on the couch, a laptop at a coffee shop, any device with Element Web. Persistent history, threaded conversations, two-way operator interaction during long sessions — it feels like a chat with co-workers rather than a series of disposable subprocess invocations.
 
-The job search agent is what my situation needed. Someone else might build a home energy monitoring agent, a media request agent, something for tracking a health condition, or an agent scoped entirely to their homelab infrastructure. The platform doesn't prescribe what agents you build — it provides the infrastructure (auth, reverse proxy, memory, search) and gets out of the way. The useful thing isn't the job search agent specifically; it's that the slot exists and you can fill it with whatever fits your life.
+For unattended runs, the **task-dispatcher** (PM2, every 2 minutes) routes submitted YAML tasks between agents — auto-approving low-risk work, gating medium/high through Matrix or ntfy for operator confirmation. Multi-phase builds run through **Temporal** so a system restart or transient failure resumes from the last checkpoint rather than starting over. **agent-bus** logs every cross-agent event (handoff, audit request, completion, failure) to a JSONL ledger federated to NATS JetStream — a permanent, queryable record of what each agent did and when.
+
+### LibreChat agents
+
+The multi-user surface. Each LibreChat agent is a FastMCP server plus a system prompt — specific tools, specific context, specific job. Anyone with an Authelia account can talk to them, which is the point: this is the slot for AI agents anyone in the household uses, distinct from the Claude Code agents I drive directly.
+
+**Job Search Agent** — the first one in the stack. Backed by its own FastMCP server with tools for multi-board job scraping, resume scoring against job descriptions, and application tracking in Postgres. A user can ask "find senior DevOps roles remote in the US, score them against my resume, and add the top five to the tracker" and get back structured results, not a list of links. See [`docs/components/jobsearch-mcp.md`](docs/components/jobsearch-mcp.md).
+
+The Job Search Agent is what my situation needed. Someone else might build a home energy monitoring agent, a media request agent, something for tracking a health condition, or an agent scoped entirely to their homelab infrastructure. The platform doesn't prescribe what agents you build — it provides the infrastructure (auth, reverse proxy, memory, search) and gets out of the way. The useful thing isn't the job search agent specifically; it's that the slot exists and you can fill it with whatever fits your life.
 
 ## The Memory / Context System
 
