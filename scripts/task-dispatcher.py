@@ -15,6 +15,7 @@ import glob
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -387,17 +388,26 @@ def process_submitted(manifests: dict) -> None:
             if task.get("task_type") == "audit" and target_agent == "security":
                 request_path_str = task.get("payload", {}).get("request", "")
                 build_name = Path(request_path_str).parent.name if request_path_str else "unknown"
-                request_path = Path(request_path_str).expanduser() if request_path_str else (
-                    Path.home() / ".claude/comms/artifacts/audit-requests" / build_name / "request.md"
+                if not re.fullmatch(r'[a-zA-Z0-9_\-]+', build_name):
+                    handle_routing_failure(path, task, f"Invalid build_name in payload: {build_name!r}")
+                    continue
+                audit_root = (Path.home() / ".claude/comms/artifacts/audit-requests").resolve()
+                request_path = Path(request_path_str).expanduser().resolve() if request_path_str else (
+                    audit_root / build_name / "request.md"
                 )
-                subprocess.Popen(
+                try:
+                    request_path.relative_to(audit_root)
+                except ValueError:
+                    handle_routing_failure(path, task, f"request_path outside audit-requests: {request_path}")
+                    continue
+                proc = subprocess.Popen(
                     ["claude", "--project", "security", "-p",
                      f"Run security audit for build: {build_name}. "
                      f"Request at: {request_path}"],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-                log.info(f"{path.name}: headless audit launched for {build_name}")
+                log.info(f"{path.name}: headless audit launched for {build_name} (pid={proc.pid})")
             else:
                 post_n8n_approved_webhook(task)
             bus_log("task.approved", source="dispatcher",
