@@ -9,7 +9,7 @@ modules:
       tool_allowlist:
         - read_file
         - read_directory
-        - run_command
+        - run_command    # accepted risk: needed for multi-file grep/find scans; revisit if command-level filtering becomes available
 
   task-queue:
     type: mcp_proxy
