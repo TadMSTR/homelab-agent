@@ -21,7 +21,6 @@ homelab-agent/
 │       ├── searxng-mcp.md             # SearXNG MCP server — FastMCP, ML reranking, Valkey cache, Crawl4AI integration
 │       ├── crawl4ai.md                # Crawl4AI web scraper — JS-heavy page fetch fallback for searxng-mcp
 │       ├── dockhand.md                # Dockhand Docker stack manager, socket access
-│       ├── open-notebook.md           # Open Notebook AI research, SurrealDB, dual-port proxy
 │       ├── cloudcli.md                # CloudCLI web UI — file explorer, git, shell, MCP management
 │       ├── agent-panel.md             # Homelab operations panel — PM2, Docker, diagnostics, files
 │       ├── agent-workspace-check.md   # Pre-edit workspace access resolver
@@ -88,8 +87,7 @@ homelab-agent/
 │   ├── firecrawl-simple/              # Web scraper for LibreChat search pipeline
 │   ├── reranker/                      # Jina-compatible FlashRank reranker
 │   ├── dockhand/                      # Dockhand Docker stack manager compose
-│   ├── jobsearch/                     # jobsearch-mcp stack (MCP server + Postgres + Qdrant)
-│   └── open-notebook/                 # Open Notebook + SurrealDB compose
+│   └── jobsearch/                     # jobsearch-mcp stack (MCP server + Postgres + Qdrant)
 ├── mcp-servers/
 │   └── README.md                      # MCP server reference, config patterns, adoption path
 ├── pm2/
@@ -119,7 +117,6 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | SSO / authentication | `docs/components/authelia.md`, `docker/authelia/` | Claude Code, MCP |
 | AI search (SearXNG) | `docs/components/searxng.md` | Claude Code, MCP |
 | Docker management (Dockhand) | `docs/components/dockhand.md`, `docker/dockhand/` | Claude Code, MCP |
-| AI notebook (Open Notebook) | `docs/components/open-notebook.md`, `docker/open-notebook/` | Claude Code, MCP |
 | Claude Code browser UI (CloudCLI) | `docs/components/cloudcli.md` | Docker, MCP |
 | Homelab operations panel | `docs/components/agent-panel.md` | Docker compose, MCP |
 | Scheduled diagnostics | `docs/components/diag-check.md`, `docs/components/agent-panel.md` | Docker compose, MCP |
@@ -194,7 +191,6 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/searxng-mcp.md` | ✅ Complete | 2026-04 |
 | `docs/components/crawl4ai.md` | ✅ Complete | 2026-04 |
 | `docs/components/dockhand.md` | ✅ Complete | 2026-03 |
-| `docs/components/open-notebook.md` | ✅ Complete | 2026-03 |
 | `docs/components/cloudcli.md` | ✅ Complete | 2026-03 |
 | `docs/components/agent-panel.md` | ✅ Complete | 2026-03 |
 | `docs/components/agent-workspace-check.md` | ✅ Complete | 2026-03 |
@@ -224,7 +220,6 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docker/swag/` | ✅ Complete | 2026-03 |
 | `docker/authelia/` | ✅ Complete | 2026-03 |
 | `docker/dockhand/` | ✅ Complete | 2026-03 |
-| `docker/open-notebook/` | ✅ Complete | 2026-03 |
 | `docker/librechat/` | ✅ Complete | 2026-03 |
 | `docker/firecrawl-simple/` | ✅ Complete | 2026-03 |
 | `docker/reranker/` | ✅ Complete | 2026-03 |
@@ -265,7 +260,6 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | SearXNG MCP | [`docs/components/searxng-mcp.md`](docs/components/searxng-mcp.md) | — | (PM2 host service) |
 | Crawl4AI | [`docs/components/crawl4ai.md`](docs/components/crawl4ai.md) | — | (Docker container) |
 | Dockhand | [`docs/components/dockhand.md`](docs/components/dockhand.md) | — | `docker/dockhand/docker-compose.yml` |
-| Open Notebook | [`docs/components/open-notebook.md`](docs/components/open-notebook.md) | — | `docker/open-notebook/docker-compose.yml` |
 | CloudCLI | [`docs/components/cloudcli.md`](docs/components/cloudcli.md) | — | (PM2 host service) |
 | Agent Panel | [`docs/components/agent-panel.md`](docs/components/agent-panel.md) | — | (PM2 host service) |
 | Agent Workspace Check | [`docs/components/agent-workspace-check.md`](docs/components/agent-workspace-check.md) | — | (Skill / pre-edit hook) |

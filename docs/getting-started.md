@@ -94,8 +94,6 @@ The remaining Layer 2 services are independent of each other. Deploy whichever o
 
 **Dockhand** — if you want a visual Docker stack manager. Lightweight, single container. See [`docs/components/dockhand.md`](components/dockhand.md).
 
-**Open Notebook** — if you want an AI research and document analysis tool. See [`docs/components/open-notebook.md`](components/open-notebook.md).
-
 **qmd (HTTP mode)** — if you want semantic search available to LibreChat and other web clients. qmd runs as a PM2 service on the host (not a Docker container). See [`docs/components/qmd.md`](components/qmd.md).
 
 ### Stopping Point #3

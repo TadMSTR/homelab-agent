@@ -23,7 +23,6 @@ All services share a single Docker network. SWAG routes traffic based on subdoma
 | `chat.*` | LibreChat | 3080 |
 | `dashboard.*` | SWAG Dashboard | 81 (internal) |
 | `dockhand.*` | Dockhand | 3000 |
-| `notebook.*` | Open Notebook | 8502 / 5055 |
 | `searxng.*` | SearXNG | 8080 |
 
 ## Prerequisites
@@ -105,7 +104,7 @@ SWAG also handles SSL for all inter-service communication from the browser's per
 
 **Proxy conf naming convention.** SWAG auto-detects proxy confs based on filename pattern: `servicename.subdomain.conf` or `servicename.subfolder.conf`. The file must not end in `.sample` to be active. If your proxy conf isn't loading, check the filename.
 
-**WebSocket support isn't automatic.** Services that use WebSockets (Dockhand, Open Notebook's Streamlit UI, LibreChat) need the `Upgrade` and `Connection` headers set in their proxy conf. Without these, the connection drops or falls back to polling.
+**WebSocket support isn't automatic.** Services that use WebSockets (Dockhand, LibreChat, CloudCLI) need the `Upgrade` and `Connection` headers set in their proxy conf. Without these, the connection drops or falls back to polling.
 
 **The `resolver.conf` include is important.** It tells nginx to use Docker's embedded DNS for container name resolution. Without it, nginx resolves container names at startup and caches the IP — if a container restarts and gets a new IP, nginx routes to a dead address until it's reloaded.
 
