@@ -58,9 +58,48 @@ For each task with `status: submitted`:
    - Fallback: compare `risk_level` against manifest's `max_auto_risk`
 
 4. **Status transition:**
-   - Auto-approved → `status: approved`, NATS `tasks.approved` published, n8n approved webhook posted (`post_n8n_approved_webhook()` — triggers the n8n → trigger-proxy → RemoteTrigger session chain; fire-and-forget, no-op if `N8N_WEBHOOK_URL` unset)
-   - Needs approval → `status: pending-approval`, ntfy notification sent, NATS `tasks.approval-requested` published
+   - Auto-approved → `status: approved`, NATS `tasks.approved` published, then dispatched based on task type:
+     - `task_type: audit` with `target_agent: security` — bypasses n8n; launches a headless `claude -p` session directly (see [Headless Audit Dispatch](#headless-audit-dispatch) below)
+     - All other types — n8n approved webhook posted (`post_n8n_approved_webhook()` — triggers the n8n → trigger-proxy → RemoteTrigger session chain; fire-and-forget, no-op if `N8N_WEBHOOK_URL` unset)
+   - Needs approval → `status: pending-approval`, Matrix notification sent to `#approvals`, NATS `tasks.approval-requested` published
    - n8n submission webhook posted for every submitted task regardless of approval outcome (fire-and-forget, no-op if `N8N_WEBHOOK_URL` unset)
+
+### Headless Audit Dispatch
+
+When a `task_type: audit` task targeting `security` is auto-approved, the dispatcher skips n8n entirely and launches a headless `claude -p` session directly:
+
+```python
+build_name = task["payload"]["build_name"]
+request_path = Path.home() / ".claude/comms/artifacts/audit-requests" / build_name / "request.md"
+subprocess.Popen(
+    ["claude", "--project", "security", "-p",
+     f"Run security audit for build: {build_name}. Request at: {request_path}"],
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL,
+)
+```
+
+The session runs unattended. The security project CLAUDE.md instructs it to operate in audit-only mode: read the request file, run the `security-audit` skill, write findings, send a Matrix notification to `#claudebox`, and exit. No interactive loop — one pass.
+
+**Payload requirements for audit tasks:**
+
+```yaml
+task_type: audit
+target_agent: security
+payload:
+  build_name: <string>   # must match [a-zA-Z0-9_-]+; used to construct request path
+```
+
+`build_name` is used to derive the request path (`audit-requests/<build_name>/request.md`). The pattern restriction prevents path traversal — the dispatcher rejects names that don't match.
+
+**Matrix notification format (self-contained — no need to open the security chat):**
+
+```
+[AUDIT CLEAN] <build-name> — No findings. Build agent notified.
+[AUDIT] <build-name> — N critical/high — build agent has the handoff. Open claudebox to triage.
+```
+
+For the request file format written by `build-pre-audit`, see `~/.claude/templates/reports/audit-request.template.md`.
 
 ### Routing Failure: Exponential Backoff Retry
 
@@ -195,7 +234,7 @@ If the source agent isn't in either list, `max_auto_risk` applies.
 
 All NATS publishes are fire-and-forget (`timeout=5`). If NATS is down, the dispatcher continues normally.
 
-**n8n:** Posts task metadata to `N8N_WEBHOOK_URL` at two points in the lifecycle: on submission (routing and risk-based logic in the n8n task dispatcher workflow) and on approval (`post_n8n_approved_webhook()` — drives the n8n → trigger-proxy → RemoteTrigger agent session chain). Both are fire-and-forget. If `N8N_WEBHOOK_URL` is not set, both no-op silently.
+**n8n:** Posts task metadata to `N8N_WEBHOOK_URL` at two points in the lifecycle: on submission (routing and risk-based logic in the n8n task dispatcher workflow) and on approval (`post_n8n_approved_webhook()` — drives the n8n → trigger-proxy → RemoteTrigger agent session chain). Both are fire-and-forget. If `N8N_WEBHOOK_URL` is not set, both no-op silently. Exception: `task_type: audit` tasks targeting `security` bypass `post_n8n_approved_webhook()` entirely — the dispatcher launches a headless `claude -p` session directly instead.
 
 **Matrix:** Sends notifications via `matrix_notify()` (calls matrix-mcp at `http://127.0.0.1:8487/mcp`) for:
 - Pending-approval tasks → `#approvals`
