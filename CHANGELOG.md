@@ -4,6 +4,24 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-05-02
+
+**headless-agent-automation** — Moved security audits, drift detection, pre-checks, and build-unblock scanning out of interactive build sessions into independent headless processes and PM2 cron jobs. Five phases shipped in one session.
+
+**Phase 1 — Headless security audit dispatch:** `task-dispatcher.py` now bypasses n8n/RemoteTrigger for `task_type: audit` tasks targeting the security agent and instead launches `claude --project security -p` directly. `build_name` is validated against `[a-zA-Z0-9_-]+` before use; `request_path` is contained within `~/.claude/comms/artifacts/audit-requests/` via `.relative_to()`. Security project `settings.json` updated to allow `write_file` + `read_directory` — required for headless write path. Security `CLAUDE.md` updated with headless operating mode instructions.
+
+**Phase 2 — security-kb-precheck project:** New headless project (`~/.claude/projects/security-kb-precheck/`) for running scoped, mechanical security pattern checks before the full audit. Writes `pre-audit-findings.md` with auto-fixable and judgment-required items separated. Constrained by `settings.json` to read/write only — no commit access.
+
+**Phase 3 — drift-detector-scan PM2 cron:** `~/scripts/drift-detector-scan.sh` runs every 15 minutes, scans for recent build close-out memory notes, and verifies that expected audit reports exist. Lightweight structural check; logs only.
+
+**Phase 4 — build-unblock-scan PM2 cron:** `~/scripts/build-unblock-scan.sh` runs every 30 minutes, reads `build-plans/index.md` for plans with `depends-on` annotations, and sends a Matrix notification to `#claudebox` when a blocked plan's dependency is marked complete.
+
+**Phase 5 — `audit_per_phase` flag:** `build-pre-audit` SKILL.md updated with `audit_per_phase: true` support for high-risk builds (new auth, secrets handling, external services). Per-phase audit requests named `<build-name>-phase-N`. Non-Temporal path documented; Temporal integration deferred.
+
+**Security hardening (5 findings resolved):** M1 `build_name` regex validation; M2 `request_path` containment check; L1 subprocess PID logging; L2 exact dependency match in `build-unblock-scan.sh`; L3 `security-kb-precheck` settings.json constraint.
+
+---
+
 ## 2026-04-26
 
 **memory-lifecycle-overhaul** — Complete overhaul of agent memory lifecycle and searchability across 9 phases. Added `category:` frontmatter field to 2818 memory notes with six lifecycle policies (two expiring: `transient-finding` 90d, `session-summary` 30d; four durable: `decision-record`, `design-document`, `research-finding-permanent`, `competitive-snapshot`). Durable categories never expire and sync to NFS archive and Gitea automatically. Deployed single-node **OpenSearch 2.19.1** Docker stack (`127.0.0.1:9200`) as full-text search backend alongside a SQLite WAL-mode metadata index (`~/.claude/memory/.metadata.db`, 2819 notes). Built two new FastMCP MCP servers: **memory-metadata-mcp** (port 8490, all agents — filtered queries by category/tier/tag via `list_notes`/`count_by`) and **memory-search-mcp** (port 8491, personal-agent ONLY via scoped manifest — full-text `search_memory` over body excerpts). Existing SearXNG and LibreChat agent configs are untouched. Added **memory-os-sync** PM2 daemon to batch-sync notes to OpenSearch (30s interval, 50-doc batches), **memory-archive-mirror** PM2 cron (02:30 daily) for append-but-versioned NFS rsync to atlas, and pre-commit hook linting of staged memory files. Seeded `design-records` Gitea repo (`ted/design-records`) with durable notes and added it to nightly repo-sync. Updated global and research CLAUDE.md with category inference rules and memory-metadata documentation.
