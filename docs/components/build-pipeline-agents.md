@@ -42,6 +42,31 @@ The build agent calls each headless agent at the trigger point listed for its bu
 | config-only | swag-conf-validate | After writing conf, before reload (if SWAG conf changed) |
 | config-only | plane-updater | After build-finalize (triggered by PM2 cron) |
 
+```mermaid
+flowchart LR
+    P([Preflight])
+
+    P -->|docker-stack| DS1[context-preloader\nif 3+ services]
+    DS1 --> DS2["swag-conf-validate\nsync — waits"]
+    DS2 --> DS3[smoke-test\n+90s]
+    DS3 --> DS4[plane-updater\nPM2 cron]
+
+    P -->|script-pm2| SP1[smoke-test\n+90s]
+    SP1 --> SP2[plane-updater\nPM2 cron]
+
+    P -->|skill-template| SK1[skill-validator\nbefore commit]
+    SK1 --> SK2[plane-updater\nPM2 cron]
+
+    P -->|docs-memory| DM1[docs-build\nfully headless]
+
+    P -->|code-service| CS1[context-preloader\nalways]
+    CS1 --> CS2[smoke-test\n+90s]
+    CS2 --> CS3[plane-updater\nPM2 cron]
+
+    P -->|config-only| CO1["swag-conf-validate\nsync — if SWAG changed"]
+    CO1 --> CO2[plane-updater\nPM2 cron]
+```
+
 ## The Five Headless Agents
 
 ### swag-conf-validate
@@ -125,6 +150,30 @@ resolution: ~   # Ted sets this to unblock
 ```
 
 Ted fills in `resolution:` with the appropriate option (or `custom: <value>`) and saves. The next PM2-triggered invocation or manual re-dispatch picks it up.
+
+```mermaid
+sequenceDiagram
+    participant A as Headless Agent
+    participant FS as Filesystem
+    participant MX as Matrix
+    participant TQ as Task Queue
+    participant T as Ted
+
+    A->>A: Ambiguity — cannot continue
+    A->>FS: Write blocked.md (status: needs-input)
+    A->>MX: [BLOCKED] agent on build: question
+    A->>TQ: Update task to needs-input
+    A->>A: Exit cleanly
+
+    Note over A,T: Session paused — no retry, no guessing
+
+    T->>FS: Set resolution in blocked.md
+    Note over A,FS: PM2 cron re-triggers or manual dispatch
+
+    A->>FS: Read blocked.md — resolution present
+    A->>A: Apply resolution, continue
+    A->>FS: Write HEARTBEAT.md (result: pass/fail)
+```
 
 ## HEARTBEAT.md Liveness Protocol
 
