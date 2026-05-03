@@ -71,7 +71,14 @@ homelab-agent/
 │       ├── ollama-auth-sidecar.md    # Nginx auth sidecar — Bearer token injection for native Ollama clients
 │       ├── matrix.md                 # Matrix agent communications — Synapse homeserver, matrix-mcp, operator notification layer
 │       ├── ketesa.md                 # Ketesa Matrix admin UI — Synapse web admin interface, SWAG vhost, LAN-restricted admin API
-│       └── matrix-dispatcher.md     # Matrix Dispatcher — PM2 daemon, Element Web operator interface, SQLite session resume, bang-prefix commands
+│       ├── matrix-dispatcher.md     # Matrix Dispatcher — PM2 daemon, Element Web operator interface, SQLite session resume, bang-prefix commands
+│       ├── drift-detector-scan.md   # Drift Detector Scan — PM2 cron, manifest comparison, self-healing alerts
+│       ├── build-unblock-scan.md    # Build Unblock Scan — PM2 cron, dependency resolution, plan status transitions
+│       ├── build-pipeline-agents.md # Build Pipeline Agents — preflight, pre-audit, finalize skill chain
+│       ├── plane-updater.md         # Plane Updater — PM2 cron, close-out note pickup, work item sync
+│       └── security-kb-precheck.md  # Security KB Pre-Check — delegated agent, audit request validation
+├── manifests/
+│   └── README.md                    # Agent manifests — scoped-mcp tool sets per agent type
 ├── claude-code/
 │   ├── CLAUDE.md.example              # Root CLAUDE.md template
 │   └── projects/
@@ -243,6 +250,12 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/matrix.md` | ✅ Complete | 2026-04 |
 | `docs/components/ketesa.md` | ✅ Complete | 2026-04 |
 | `docs/components/matrix-dispatcher.md` | ✅ Complete | 2026-04 |
+| `docs/components/drift-detector-scan.md` | ✅ Complete | 2026-05 |
+| `docs/components/build-unblock-scan.md` | ✅ Complete | 2026-05 |
+| `docs/components/build-pipeline-agents.md` | ✅ Complete | 2026-05 |
+| `docs/components/plane-updater.md` | ✅ Complete | 2026-05 |
+| `docs/components/security-kb-precheck.md` | ✅ Complete | 2026-05 |
+| `manifests/README.md` | ✅ Complete | 2026-05 |
 | `docs/architecture.md` | ✅ Complete | 2026-03 |
 | `docs/getting-started.md` | ✅ Complete | 2026-03 |
 | `scripts/` | ✅ Complete | 2026-03 |
@@ -307,3 +320,9 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Backups | [`docs/components/backups.md`](docs/components/backups.md) | [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) | (Backrest systemd + PM2 cron + user crontab) |
 | Blog Preview | [`docs/components/blog-preview.md`](docs/components/blog-preview.md) | — | (Docker container, claudebox-net) |
 | scoped-mcp | [`docs/components/scoped-mcp.md`](docs/components/scoped-mcp.md) | `manifests/<agent-type>.yml` | (stdio subprocess, one per agent) |
+| Drift Detector Scan | [`docs/components/drift-detector-scan.md`](docs/components/drift-detector-scan.md) | — | (PM2 cron job) |
+| Build Unblock Scan | [`docs/components/build-unblock-scan.md`](docs/components/build-unblock-scan.md) | — | (PM2 cron job) |
+| Build Pipeline Agents | [`docs/components/build-pipeline-agents.md`](docs/components/build-pipeline-agents.md) | — | (PM2 + skills) |
+| Plane Updater | [`docs/components/plane-updater.md`](docs/components/plane-updater.md) | — | (PM2 cron job) |
+| Security KB Pre-Check | [`docs/components/security-kb-precheck.md`](docs/components/security-kb-precheck.md) | — | (Delegated agent) |
+| Agent Manifests | [`manifests/README.md`](manifests/README.md) | `manifests/*.yml` | — |
