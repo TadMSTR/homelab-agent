@@ -41,6 +41,8 @@ For the architecture overview and how these components relate, see the [main REA
 | n8n | [n8n.md](n8n.md) | Webhook workflow engine — visual task routing, risk-based approval gating, ntfy alerting, Postgres-backed |
 | Security Agent | [security-agent.md](security-agent.md) | Post-build security audits, three-category triage, action plan routing, stale queue monitoring |
 | Security KB Precheck | [security-kb-precheck.md](security-kb-precheck.md) | Headless pre-audit scan — pattern matching against security KB, auto-fixable findings, narrows full audit scope |
+| Build Pipeline Agents | [build-pipeline-agents.md](build-pipeline-agents.md) | Headless automation layer — SWAG conf validation, smoke testing, skill schema checks, context pre-loading; build-type taxonomy, blocked.md/HEARTBEAT.md protocol, scoped-mcp manifest framework |
+| Plane Updater | [plane-updater.md](plane-updater.md) | PM2 cron (5 min) — closes Plane work items after build-finalize via headless `claude -p` session |
 | drift-detector-scan | [drift-detector-scan.md](drift-detector-scan.md) | PM2 cron (15 min) — checks recent builds left expected audit artifacts; logs drift without blocking |
 | build-unblock-scan | [build-unblock-scan.md](build-unblock-scan.md) | PM2 cron (30 min) — scans build plan index for newly unblocked plans; Matrix notification when dependency clears |
 | Auto Mode | [auto-mode.md](auto-mode.md) | Claude Code permission classifier — settings.json environment rules, per-project SSH permissions, CloudCLI SDK patch |
