@@ -256,6 +256,11 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/plane-updater.md` | ✅ Complete | 2026-05 |
 | `docs/components/security-kb-precheck.md` | ✅ Complete | 2026-05 |
 | `manifests/README.md` | ✅ Complete | 2026-05 |
+| `docs/components/doc-sync.md` | ✅ Complete | 2026-04 |
+| `docs/components/helm-ops-mcp.md` | ✅ Complete | 2026-04 |
+| `docs/components/librarian-weekly.md` | ✅ Complete | 2026-04 |
+| `docs/components/multi-host.md` | ✅ Complete | 2026-04 |
+| `docs/components/repo-sync-nightly.md` | ✅ Complete | 2026-04 |
 | `docs/architecture.md` | ✅ Complete | 2026-03 |
 | `docs/getting-started.md` | ✅ Complete | 2026-03 |
 | `scripts/` | ✅ Complete | 2026-03 |
