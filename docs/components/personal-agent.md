@@ -45,15 +45,15 @@ The idle monitor wakes every 60 seconds and evaluates three OR'd conditions per 
 |---------|-----------|---------------|
 | `idle` | No message for `idle_threshold` seconds | Threshold shrinks as context fill rises (see table below) |
 | `token_budget` | Context fill ≥ 80% | Computed from latest transcript entry summing `input_tokens + cache_creation_input_tokens + cache_read_input_tokens` |
-| `age_cap` | Session age > 24h | Fires regardless of activity or fill level |
+| `nightly_cutoff` | Session created before the last `nightly_rollover_hour` boundary (default 4 AM) | Aligns rollovers with Ted's wake cycle so each day starts with a fresh session |
 
 **Idle threshold scaling** — the idle window shortens as context fills, so near-full sessions roll over sooner:
 
 | Fill range | Idle threshold |
 |------------|----------------|
-| < 5% | Idle trigger disabled (fill floor) |
-| 5–50% | 1800s (30 min) |
-| 50–80% | 1200s (20 min) |
+| < 40% | Idle trigger disabled (fill floor) |
+| 40–60% | 1800s (30 min) |
+| 60–80% | 1200s (20 min) |
 | ≥ 80% | 360s (6 min) |
 
 ```mermaid
@@ -63,14 +63,14 @@ flowchart TD
 
     EV -->|fill < 5%| SKIP[skip — below fill floor]
     EV -->|fill ≥ 80%| TB{last_message_at\ncheck under lock}
-    EV -->|age > 24h| AC{age recheck\nunder lock}
+    EV -->|before nightly cutoff| AC{nightly recheck\nunder lock}
     EV -->|idle window elapsed| ID{freshness check\nunder lock}
 
     TB -->|fill still ≥ 80%| RO[trigger_rollover]
     TB -->|fill dropped| SKIP
 
-    AC -->|age still > 24h| RO
-    AC -->|age ok| SKIP
+    AC -->|still before cutoff| RO
+    AC -->|cutoff passed| SKIP
 
     ID -->|still idle| RO
     ID -->|recent message| SKIP
@@ -134,9 +134,8 @@ Broader `~/.claude/memory/` access is excluded — security agent notes, build p
 | Key | Default | Description |
 |-----|---------|-------------|
 | `session_retention_days` | 30 | Sessions older than this are cleaned up hourly |
-| `idle_threshold_seconds` | 1800 | Base idle window; scaled dynamically by context fill |
 | `token_budget_fill_threshold` | 0.80 | Fill fraction that triggers `token_budget` rollover |
-| `age_cap_seconds` | 86400 | Maximum session age before `age_cap` rollover fires |
+| `nightly_rollover_hour` | 4 | Local-time hour for `nightly_cutoff` boundary (aligns with wake cycle) |
 | `context_window_tokens` | 200000 | Model context window size used for fill-pct calculation |
 
 ## Operations
@@ -165,7 +164,7 @@ v0.1–v0.3 complete and in production. See the [personal-agent README](https://
 |-------|------|
 | v0.1 | Matrix poll loop, per-thread sessions, scoped-mcp surface (11 modules), structured logging, security hardening |
 | v0.2 | Idle-based rollover (1800s threshold), handoff generation, continuity injection on post-rollover spawn |
-| v0.3 | Dynamic rollover triggers: `token_budget` (fill ≥ 80%), `age_cap` (24h), idle threshold scaling with fill floor |
+| v0.3 | Dynamic rollover triggers: `token_budget` (fill ≥ 80%), `nightly_cutoff` (4 AM boundary), idle threshold scaling with 40% fill floor |
 | v0.4 | Typing indicators, cold-start memory injection, persona refinement _(planned)_ |
 | v0.5 | task-queue-mcp delegation + agent-bus result synthesis _(planned)_ |
 | v0.6 | Gitea-backed self-modification with locked-section validation _(planned)_ |
