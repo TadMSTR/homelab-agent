@@ -71,12 +71,13 @@ When a `task_type: audit` task targeting `security` is auto-approved, the dispat
 ```python
 build_name = task["payload"]["build_name"]
 request_path = Path.home() / ".claude/comms/artifacts/audit-requests" / build_name / "request.md"
-subprocess.Popen(
+proc = subprocess.Popen(
     ["claude", "--project", "security", "-p",
      f"Run security audit for build: {build_name}. Request at: {request_path}"],
     stdout=subprocess.DEVNULL,
     stderr=subprocess.DEVNULL,
 )
+log.info("Security audit dispatched for %s (PID %d)", build_name, proc.pid)
 ```
 
 The session runs unattended. The security project CLAUDE.md instructs it to operate in audit-only mode: read the request file, run the `security-audit` skill, write findings, send a Matrix notification to `#claudebox`, and exit. No interactive loop — one pass.
