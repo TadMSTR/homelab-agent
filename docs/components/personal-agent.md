@@ -8,6 +8,8 @@ This is the proving ground for the resident-agent pattern before it generalises 
 
 `manager.py` runs as a PM2 service, polls the `#personal` Matrix room for `@ted` messages, and routes each thread to an independent `claude -p` session tracked in SQLite. One thread = one session. Sessions persist across manager restarts and roll over automatically when fill, age, or idle thresholds are exceeded — the rollover is transparent: the next message after a rollover opens a fresh session pre-loaded with a handoff summary and the last 10 transcript turns.
 
+Matrix typing indicators wrap every claude invocation (try/finally, so they clear on timeout or error). Brand-new sessions query `memsearch` with the user's first message and prepend relevant prior context (capped at 8KB) before spawning — resumes are unchanged. Room-root (non-threaded) messages resume the latest active session rather than spawning a new one.
+
 ```
 Ted → #personal (Matrix)
         ↓
@@ -61,7 +63,7 @@ flowchart TD
     IM([idle_monitor wakes])
     IM --> EV{evaluate session}
 
-    EV -->|fill < 5%| SKIP[skip — below fill floor]
+    EV -->|fill < 40%| SKIP[skip — below fill floor]
     EV -->|fill ≥ 80%| TB{last_message_at\ncheck under lock}
     EV -->|before nightly cutoff| AC{nightly recheck\nunder lock}
     EV -->|idle window elapsed| ID{freshness check\nunder lock}
@@ -158,13 +160,13 @@ ls -lt ~/.claude/projects/personal-agent/handoffs/
 
 ## Build Status
 
-v0.1–v0.3 complete and in production. See the [personal-agent README](https://github.com/TadMSTR/personal-agent) for the full build phase table.
+v0.1–v0.4 complete and in production. See the [personal-agent README](https://github.com/TadMSTR/personal-agent) for the full build phase table.
 
 | Phase | Adds |
 |-------|------|
 | v0.1 | Matrix poll loop, per-thread sessions, scoped-mcp surface (11 modules), structured logging, security hardening |
 | v0.2 | Idle-based rollover (1800s threshold), handoff generation, continuity injection on post-rollover spawn |
 | v0.3 | Dynamic rollover triggers: `token_budget` (fill ≥ 80%), `nightly_cutoff` (4 AM boundary), idle threshold scaling with 40% fill floor |
-| v0.4 | Typing indicators, cold-start memory injection, persona refinement _(planned)_ |
+| v0.4 | Typing indicators, cold-start memsearch injection (new sessions only), room-root resume of latest active session |
 | v0.5 | task-queue-mcp delegation + agent-bus result synthesis _(planned)_ |
 | v0.6 | Gitea-backed self-modification with locked-section validation _(planned)_ |
