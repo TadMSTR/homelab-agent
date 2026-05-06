@@ -72,6 +72,7 @@ homelab-agent/
 │       ├── matrix.md                 # Matrix agent communications — Synapse homeserver, matrix-mcp, operator notification layer
 │       ├── ketesa.md                 # Ketesa Matrix admin UI — Synapse web admin interface, SWAG vhost, LAN-restricted admin API
 │       ├── matrix-dispatcher.md     # Matrix Dispatcher — PM2 daemon, Element Web operator interface, SQLite session resume, bang-prefix commands
+│       ├── personal-agent.md        # personal-agent — Matrix-native personal agent, per-thread claude -p sessions, rollover, memsearch injection
 │       ├── drift-detector-scan.md   # Drift Detector Scan — PM2 cron, manifest comparison, self-healing alerts
 │       ├── build-unblock-scan.md    # Build Unblock Scan — PM2 cron, dependency resolution, plan status transitions
 │       ├── build-pipeline-agents.md # Build Pipeline Agents — preflight, pre-audit, finalize skill chain
@@ -139,6 +140,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Matrix agent communications | `docs/components/matrix.md` | Docker, Claude Code |
 | Matrix admin UI (Ketesa) | `docs/components/ketesa.md` | Docker, Claude Code |
 | Matrix Dispatcher (agent rooms) | `docs/components/matrix-dispatcher.md` | PM2, Claude Code |
+| Personal agent (Matrix-native) | `docs/components/personal-agent.md` | Docker, Claude Code |
 | PM2 services / cron | `pm2/ecosystem.config.js.example` | Docker compose, MCP config |
 | Memory system | `README.md` (§The Memory / Context System), `docs/components/memory-lifecycle.md`, `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `docs/components/graphiti.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
 | Documentation health | `docs/components/doc-health.md` | Docker, MCP |
@@ -250,6 +252,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/matrix.md` | ✅ Complete | 2026-04 |
 | `docs/components/ketesa.md` | ✅ Complete | 2026-04 |
 | `docs/components/matrix-dispatcher.md` | ✅ Complete | 2026-04 |
+| `docs/components/personal-agent.md` | ✅ Complete | 2026-05 |
 | `docs/components/drift-detector-scan.md` | ✅ Complete | 2026-05 |
 | `docs/components/build-unblock-scan.md` | ✅ Complete | 2026-05 |
 | `docs/components/build-pipeline-agents.md` | ✅ Complete | 2026-05 |
@@ -322,6 +325,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Matrix Agent Comms | [`docs/components/matrix.md`](docs/components/matrix.md) | — | (Docker stack + PM2) |
 | Ketesa | [`docs/components/ketesa.md`](docs/components/ketesa.md) | — | (Docker container, SWAG vhost) |
 | Matrix Dispatcher | [`docs/components/matrix-dispatcher.md`](docs/components/matrix-dispatcher.md) | — | (PM2 host service) |
+| personal-agent | [`docs/components/personal-agent.md`](docs/components/personal-agent.md) | `~/.claude/projects/personal-agent/config.yml` | (PM2 host service) |
 | Backups | [`docs/components/backups.md`](docs/components/backups.md) | [`scripts/docker-stack-backup.sh`](scripts/docker-stack-backup.sh) | (Backrest systemd + PM2 cron + user crontab) |
 | Blog Preview | [`docs/components/blog-preview.md`](docs/components/blog-preview.md) | — | (Docker container, claudebox-net) |
 | scoped-mcp | [`docs/components/scoped-mcp.md`](docs/components/scoped-mcp.md) | `manifests/<agent-type>.yml` | (stdio subprocess, one per agent) |
