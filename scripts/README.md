@@ -13,6 +13,7 @@ Utility scripts for backup, monitoring, reindexing, and maintenance. Most are ex
 | [check-qmd-repos.sh](check-qmd-repos.sh) | qmd-repo-check | Scans the personal repos directory for git repos not yet in the QMD index. Auto-adds each new repo to `~/.config/qmd/index.yml` with a default file pattern and triggers a reindex. Sends a push notification listing what was added. |
 | [check-resources.sh](check-resources.sh) | resource-monitor | Checks RAM, disk, Docker health, PM2 status, and NFS mount availability. Alerts via push notification if thresholds are exceeded. |
 | [check-dep-updates.sh](check-dep-updates.sh) | dep-update-check | Checks npm global packages, pip packages, Docker images, and Claude Code for available updates. |
+| claude-update.sh | updater *(4:30 AM daily)* | Full automated updater: soak-windowed Claude Code and Docker updates, apt check, parallel agent self-checks (7 agents), Matrix notification, and Gitea update log. Configured via `updater-config.yml`. See [updater component doc](../docs/components/updater.md). |
 
 ## Usage
 
@@ -32,9 +33,15 @@ All scripts are designed to run unattended but support manual execution:
 ./check-resources.sh
 ```
 
+```bash
+# Check what updates are pending without applying anything
+~/scripts/updater --check-only
+```
+
 ## Related Docs
 
 - [PM2 ecosystem config](../pm2/ecosystem.config.js.example) — Scheduling and service definitions
 - [Backups](../docs/components/backups.md) — Full backup strategy including these scripts
 - [memory-sync](../docs/components/memory-sync.md) — Knowledge distillation pipeline details
 - [qmd](../docs/components/qmd.md) — QMD index configuration and reindexing details
+- [updater](../docs/components/updater.md) — Soak-windowed update automation details
