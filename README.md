@@ -238,6 +238,8 @@ The Job Search Agent is what my situation needed. Someone else might build a hom
 
 This is the connective tissue that makes the whole thing more than the sum of its parts. Most people's experience with AI assistants is stateless — every conversation starts from zero. This system has six layers of persistent context:
 
+> **For the end-to-end overview of how the tiers, search backends, and promotion pipeline fit together, see [Memory System](docs/memory-system.md).**
+
 1. **Prime directive repo** — Stable configuration: infrastructure docs, project instructions, profile/preferences, deployment scripts. Loaded at session start via CLAUDE.md references and qmd search. This is the source of truth.
 
 2. **Core context** — An always-visible 40-line context block injected at every session start. Contains the user profile, active projects, key constraints, and recent decisions. Sits above the context window's compression threshold so critical facts never scroll out mid-session.
