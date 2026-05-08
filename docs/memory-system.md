@@ -171,6 +171,22 @@ graph LR
 
 The redundancy between memsearch and qmd is intentional. Both index `~/.claude/memory/`, but they serve different access patterns: memsearch is silent and automatic during sessions; qmd is explicit and broader. An agent in flow doesn't have to remember to query — memsearch already injected the context. When the agent does have a specific question, qmd is the right tool.
 
+## Same Infrastructure, Different Content: The Docs Cache
+
+The memory infrastructure isn't only used for agent-written notes. A separate but parallel use case rides on the same memsearch index: a local cache of official service documentation.
+
+[doc-sync](components/doc-sync.md) is a PM2 cron job (3 AM daily) that fetches official docs for every service in the stack — SWAG, Authelia, Authentik, Grafana, Loki, Compose, ~50 services in total — converts them to markdown, chunks them by heading, and writes them to `~/.claude/memory/docs/<service>/`. Each chunk lands as a standalone markdown file with `type: doc-cache` in its frontmatter. `memsearch-watch` picks up the new files and indexes them within seconds.
+
+From an agent's perspective, the docs cache is invisible — `memsearch search "swag authelia forward auth"` just returns the relevant chunks alongside any agent notes that match. The frontmatter (`type: doc-cache` vs. `tier: working`) tells the agent whether it's looking at vendor docs or its own prior notes. The CLAUDE.md hierarchy directs agents to check the cache *before* doing a live web fetch — the cache is the first source, not a fallback. Three things fall out of this design:
+
+- **No network dependency during work.** Agents can configure a SWAG conf or troubleshoot an Authelia setup without ever hitting the upstream docs site.
+- **No stale training data.** The cache is refreshed nightly against the canonical source, so agents see current docs rather than whatever was in the training set.
+- **Same query path as memory.** No new tool to learn — the docs cache rides on memsearch, which the agent is already querying automatically.
+
+The pattern generalizes: the memsearch index doesn't care what the markdown files contain. Drop chunked vendor docs in, drop agent notes in, drop transcripts in — they all get embedded the same way and surface in response to the same queries. The promotion pipeline (session → working → distilled) only applies to agent-written content; the docs cache lives outside that flow as a read-only reference layer.
+
+See [doc-sync](components/doc-sync.md) for the fetcher, chunker, and the YAML config that defines which services to mirror.
+
 ## The Knowledge Graph as a Parallel Surface
 
 Flat-file memory handles narrative knowledge well — decisions, rationale, session context. It's poor at relational queries. If you want to know which services depend on the SWAG reverse proxy, you'd have to grep across multiple docs and assemble the relationships in your head.
@@ -235,7 +251,7 @@ The two always-on services (`memsearch-watch`, `memory-os-sync`) keep the search
 When I start a Claude Code session on a Monday morning:
 
 1. The SessionStart hook injects core context (profile, active projects, recent decisions) into the prompt before any tool runs.
-2. The memsearch plugin queries Milvus for memories relevant to the project context and silently injects them.
+2. The memsearch plugin queries Milvus for memories relevant to the project context and silently injects them. The injected results are a mix of agent-written notes and chunks of cached vendor docs — agents see both interleaved.
 3. As I type, each new prompt triggers another memsearch query — relevant context surfaces without me asking.
 4. If I need to look something up explicitly, I either invoke `archival-search` (merged across tiers) or call qmd directly through MCP.
 5. As the session progresses, anything genuinely durable gets written to working memory via `memory-flush` (real-time, also fed to Graphiti).
@@ -268,3 +284,4 @@ Start small. The minimum viable version is a memory directory and memsearch — 
 - [qmd](components/qmd.md) — broader hybrid search (BM25 + vectors), dual transport
 - [graphiti](components/graphiti.md) — Neo4j temporal knowledge graph
 - [hister](components/hister.md) — browser-based memory search UI
+- [doc-sync](components/doc-sync.md) — local cache of official service documentation, indexed by memsearch
