@@ -77,7 +77,9 @@ homelab-agent/
 │       ├── build-unblock-scan.md    # Build Unblock Scan — PM2 cron, dependency resolution, plan status transitions
 │       ├── build-pipeline-agents.md # Build Pipeline Agents — preflight, pre-audit, finalize skill chain
 │       ├── plane-updater.md         # Plane Updater — PM2 cron, close-out note pickup, work item sync
-│       └── security-kb-precheck.md  # Security KB Pre-Check — delegated agent, audit request validation
+│       ├── security-kb-precheck.md  # Security KB Pre-Check — delegated agent, audit request validation
+│       ├── updater.md               # Claude Code + system updater — multi-phase update orchestration, soak windows, npm/pip globals
+│       └── manual-updates-skill.md  # Manual Updates skill — interactive apply/defer workflow for manually-flagged update queue items
 ├── manifests/
 │   └── README.md                    # Agent manifests — scoped-mcp tool sets per agent type
 ├── claude-code/
@@ -258,6 +260,8 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/build-pipeline-agents.md` | ✅ Complete | 2026-05 |
 | `docs/components/plane-updater.md` | ✅ Complete | 2026-05 |
 | `docs/components/security-kb-precheck.md` | ✅ Complete | 2026-05 |
+| `docs/components/updater.md` | ✅ Complete | 2026-05 |
+| `docs/components/manual-updates-skill.md` | ✅ Complete | 2026-05 |
 | `manifests/README.md` | ✅ Complete | 2026-05 |
 | `docs/components/doc-sync.md` | ✅ Complete | 2026-04 |
 | `docs/components/helm-ops-mcp.md` | ✅ Complete | 2026-04 |
@@ -335,3 +339,5 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Plane Updater | [`docs/components/plane-updater.md`](docs/components/plane-updater.md) | — | (PM2 cron job) |
 | Security KB Pre-Check | [`docs/components/security-kb-precheck.md`](docs/components/security-kb-precheck.md) | — | (Delegated agent) |
 | Agent Manifests | [`manifests/README.md`](manifests/README.md) | `manifests/*.yml` | — |
+| Updater | [`docs/components/updater.md`](docs/components/updater.md) | `~/scripts/updater-config.yml`, `~/.claude/updater-state.json` | — |
+| Manual Updates Skill | [`docs/components/manual-updates-skill.md`](docs/components/manual-updates-skill.md) | `~/scripts/updater-config.yml` | — |
