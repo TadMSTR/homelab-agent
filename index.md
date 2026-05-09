@@ -9,9 +9,11 @@ homelab-agent/
 ├── README.md                          # Architecture overview, origin story, component guide
 ├── index.md                           # THIS FILE — agent navigation index
 ├── docs/
+│   ├── README.md                      # Documentation index — where to start, component overview, examples
 │   ├── architecture.md                # Detailed system architecture, data flows, network topology
 │   ├── getting-started.md             # Setup order, prerequisites, stopping points
 │   ├── decisions.md                   # Architecture decisions — major choices and the reasoning behind them
+│   ├── memory-system.md               # End-to-end overview: four memory surfaces, promotion pipeline, search backends
 │   └── components/
 │       ├── README.md                      # Component docs overview — layer table, component inventory
 │       ├── swag.md                    # SWAG reverse proxy, Cloudflare DNS, proxy conf pattern
@@ -144,7 +146,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Matrix Dispatcher (agent rooms) | `docs/components/matrix-dispatcher.md` | PM2, Claude Code |
 | Personal agent (Matrix-native) | `docs/components/personal-agent.md` | Docker, Claude Code |
 | PM2 services / cron | `pm2/ecosystem.config.js.example` | Docker compose, MCP config |
-| Memory system | `README.md` (§The Memory / Context System), `docs/components/memory-lifecycle.md`, `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `docs/components/graphiti.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
+| Memory system | `docs/memory-system.md`, `README.md` (§The Memory / Context System), `docs/components/memory-lifecycle.md`, `docs/components/memsearch.md`, `docs/components/memory-sync.md`, `docs/components/graphiti.md`, `claude-code/projects/memory-sync.md` | Docker, MCP |
 | Documentation health | `docs/components/doc-health.md` | Docker, MCP |
 | Backups | `docs/components/backups.md`, `scripts/docker-stack-backup.sh`, `pm2/ecosystem.config.js.example` | Docker compose, MCP, Claude Code |
 | Docker stacks (general) | `docker/` subdirectories | Claude Code, MCP |
@@ -179,7 +181,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | "I want version control on my Docker configs" | `docs/components/config-version-control.md` |
 | "I want to set up Claude Code agents" | `claude-code/CLAUDE.md.example` — then `claude-code/projects/` for per-agent examples |
 | "I want to add PM2 background jobs" | `pm2/ecosystem.config.js.example` — self-contained |
-| "I want to replicate the memory system" | `README.md` (§Memory / Context System) → `docs/components/memory-lifecycle.md` → `docs/components/memsearch.md` → `docs/components/memory-sync.md` → `docs/components/graphiti.md` |
+| "I want to replicate the memory system" | `docs/memory-system.md` → `docs/components/memory-lifecycle.md` → `docs/components/memsearch.md` → `docs/components/memory-sync.md` → `docs/components/graphiti.md` |
 | "I want to build a custom reranker" | `docker/reranker/` — standalone Dockerfile + source |
 | "I want to set up the whole thing step by step" | `docs/getting-started.md` — dependency-ordered with stopping points |
 | "I want to understand data flows and topology" | `docs/architecture.md` — detailed system architecture |
@@ -270,6 +272,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/repo-sync-nightly.md` | ✅ Complete | 2026-04 |
 | `docs/architecture.md` | ✅ Complete | 2026-03 |
 | `docs/getting-started.md` | ✅ Complete | 2026-03 |
+| `docs/memory-system.md` | ✅ Complete | 2026-05 |
 | `scripts/` | ✅ Complete | 2026-03 |
 
 ## Cross-Reference: Components → Documents
