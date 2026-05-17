@@ -2,7 +2,7 @@
 
 MCP server providing web search via a self-hosted SearXNG instance, with ML reranking, Valkey result caching, and domain filtering. Agents use this instead of the built-in `WebSearch` tool — private, no per-query API costs, and results are shaped by configurable domain boost/block lists.
 
-**Version:** 3.2.1
+**Version:** 3.4.0
 
 ## Tools
 
@@ -10,7 +10,7 @@ MCP server providing web search via a self-hosted SearXNG instance, with ML rera
 |------|-------------|
 | `search` | Search via SearXNG + rerank. Optional query expansion via Ollama. Returns top N results. Cached 1 hour. |
 | `search_and_fetch` | Search, rerank, then fetch full content of top 1–3 results. Fetch cascade: Firecrawl → Crawl4AI → raw HTTP. Optional query expansion. |
-| `search_and_summarize` | Search, fetch top results, then summarize via Ollama qwen3:14b. Returns structured summary with citations. |
+| `search_and_summarize` | Search, fetch top results, then summarize via Ollama (`OLLAMA_SUMMARIZE_MODEL`). Returns structured summary with citations. |
 | `fetch_url` | Fetch and extract readable content from a URL. Cached 24 hours. |
 | `clear_cache` | Purge search cache, fetch cache, or both. |
 
@@ -25,7 +25,7 @@ search(query, num_results=5, category="general", time_range?, domain_profile?, e
 - `category`: `general` | `news` | `it` | `science`
 - `time_range`: `day` | `week` | `month` | `year` (omit for all time)
 - `num_results`: 1–20 (default 5)
-- `expand`: if `true`, rewrites the query via Ollama qwen3:4b before sending to SearXNG. Requires `OLLAMA_URL` to be set. Ignored silently if `OLLAMA_URL` is empty.
+- `expand`: if `true`, rewrites the query via Ollama (`OLLAMA_EXPAND_MODEL`, default `qwen3:4b`) before sending to SearXNG. Requires `OLLAMA_URL` to be set. Ignored silently if `OLLAMA_URL` is empty.
 
 ### search_and_fetch
 
@@ -41,7 +41,9 @@ Fetches up to 3 pages. Content budget is 8000 characters split evenly across fet
 search_and_summarize(query, category="general", time_range?, domain_profile?, expand?)
 ```
 
-Performs a search, fetches top results, then passes content to Ollama qwen3:14b for structured summarization. Returns a formatted markdown response with a summary paragraph and a citations list.
+Performs a search, fetches top results, then passes content to Ollama (`OLLAMA_SUMMARIZE_MODEL`, default `qwen3:14b`) for structured summarization. Returns a formatted markdown response with a summary paragraph and a citations list.
+
+On the Crawl4AI fetch path, `fit_markdown` is used for noise-filtered content. Other tools (`search_and_fetch`, `fetch_url`) use `raw_markdown`.
 
 **Response shape:**
 ```json
@@ -190,10 +192,27 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 | `CACHE_TTL_SECONDS` | `3600` | Search result cache TTL |
 | `FETCH_CACHE_TTL_SECONDS` | `86400` | Fetched page cache TTL |
 | `OLLAMA_URL` | `` (empty) | Ollama API base URL — required for `expand` and `search_and_summarize`. If empty, those features are disabled. |
+| `OLLAMA_API_KEY` | `` (empty) | Optional Bearer token for authenticated Ollama proxies — adds `Authorization: Bearer` header when set. |
+| `OLLAMA_EXPAND_MODEL` | `qwen3:4b` | Model used by query expansion. Override without rebuilding. |
+| `OLLAMA_SUMMARIZE_MODEL` | `qwen3:14b` | Model used by `search_and_summarize`. Override without rebuilding. |
 | `EXPAND_QUERIES` | `false` | Set to `true` to expand all queries by default (without passing `expand=true` per-call). |
 | `GITHUB_TOKEN` | — | Optional — increases GitHub API rate limit |
 
 ## Changelog
+
+**v3.4.0 (2026-05-17)**
+
+- `OLLAMA_EXPAND_MODEL` (default `qwen3:4b`) and `OLLAMA_SUMMARIZE_MODEL` (default `qwen3:14b`) env vars — override models without rebuilding
+- `OLLAMA_API_KEY` env var — Bearer token support for authenticated Ollama proxies
+- `@mozilla/readability` extraction in tier-3 raw fetch — clean article markdown instead of raw HTML slice; non-article pages fall back to raw HTML as before
+- Crawl4AI `fit_markdown` on `search_and_summarize` path — noise-filtered content for summarization; other callers continue to use `raw_markdown`
+- Tier-success logging to stderr — `tier1 miss`, `tier2 hit/miss`, `tier3 fallback` per `fetchPage` call
+- Fetch cache truncation fix: pages cached at 8000 chars, `maxChars` slice applied on read — prevents truncated cache hits
+- `cacheClear` uses `SCAN` instead of `KEYS` for non-blocking pattern invalidation
+
+**v3.3.0 (2026-04-19)**
+
+- npm publishing: `@tadmstr/searxng-mcp` (installable via `npx @tadmstr/searxng-mcp`)
 
 **v3.2.0 (2026-04-07)**
 
@@ -202,7 +221,7 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 
 **v3.1.0 (2026-04-07)**
 
-- Crawl4AI fetch adapter as second-tier fallback (`CRAWL4AI_URL` env var); uses `markdown.raw_markdown` for clean extraction on JS-heavy or Firecrawl-failing pages
+- Crawl4AI fetch adapter as second-tier fallback (`CRAWL4AI_URL` env var); uses `raw_markdown` for general fetch calls, `fit_markdown` on `search_and_summarize` path (added v3.4.0)
 - `CRAWL4AI_API_TOKEN` env var — optional Bearer token for Crawl4AI instances with API protection
 - Raw HTTP fetch as third-tier fallback — ensures fetch never fails silently
 - `expand` parameter coercion fixed to `z.coerce.boolean()` — prevents MCP serialization errors when `true` is passed as `"true"`
@@ -265,8 +284,8 @@ The server is organized as 9 focused modules (refactored from a single 973-line 
 | `domain-filter.ts` | Domain boost/block logic and `domains.json` hot-reload |
 | `cache.ts` | Valkey read/write with namespaced TTLs |
 | `fetch.ts` | Fetch cascade (Firecrawl → Crawl4AI → raw HTTP) |
-| `expand.ts` | Query expansion via Ollama qwen3:4b |
-| `summarize.ts` | Search summarization via Ollama qwen3:14b |
+| `expand.ts` | Query expansion via Ollama (`OLLAMA_EXPAND_MODEL`) |
+| `summarize.ts` | Search summarization via Ollama (`OLLAMA_SUMMARIZE_MODEL`) |
 | `security.ts` | URL validation including SSRF protection |
 
 ## Security
