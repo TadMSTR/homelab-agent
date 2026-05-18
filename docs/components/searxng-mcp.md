@@ -2,7 +2,7 @@
 
 MCP server providing web search via a self-hosted SearXNG instance, with ML reranking, Valkey result caching, and domain filtering. Agents use this instead of the built-in `WebSearch` tool — private, no per-query API costs, and results are shaped by configurable domain boost/block lists.
 
-**Version:** 3.6.0
+**Version:** 3.7.0
 
 ## Tools
 
@@ -203,6 +203,15 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 | `GITHUB_TOKEN` | — | Optional — increases GitHub API rate limit |
 
 ## Changelog
+
+**v3.7.0 (2026-05-18)**
+
+- `language` parameter on `search`, `search_and_fetch`, `search_and_summarize` — BCP-47 language code (e.g. `en`, `de`) or `all`; omitting preserves SearXNG instance default.
+- PDF routing: `.pdf` URLs bypass Firecrawl and route directly to Crawl4AI (tier 2); `rawFetch` throws a descriptive error on `application/pdf` content instead of returning binary noise.
+- Wayback Machine tier-4 (opt-in, `WAYBACK_ENABLED=true`): pages that fail all three tiers look up the most recent CDX snapshot. Results get an `[Archived]` title prefix. Off by default.
+- Adblock double-load guard in `puppeteer-adblock/init-adblock.js` — eliminates ~1.5s duplicate filter-list fetch on container start. **Requires container rebuild**: `docker compose up -d --build firecrawl-puppeteer`.
+- Test coverage: 57% → 80%+ by line; 211 tests across tier-specific test files.
+- Security: CDX response byte-capped via `readBoundedText` (L1); `redirect:manual` added to `fetchRawHtmlForMetadata` (L2).
 
 **v3.6.0 (2026-05-18)**
 

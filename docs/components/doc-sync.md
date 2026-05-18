@@ -105,18 +105,23 @@ State is tracked at `~/docs/doc-sync-state.json` — this is how doc-sync detect
 ## CLI Usage
 
 ```bash
-# Sync all services
+# Sync all services (skips topics synced within --max-age-days, default 1 day)
 python3 ~/scripts/doc-sync.py
 
 # Sync one service only
 python3 ~/scripts/doc-sync.py --service swag
 
-# Re-sync everything regardless of state
+# Re-sync everything regardless of age
 python3 ~/scripts/doc-sync.py --force
+
+# Extend the staleness window (skip if synced within 7 days)
+python3 ~/scripts/doc-sync.py --max-age-days 7
 
 # Preview what would run without writing
 python3 ~/scripts/doc-sync.py --dry-run
 ```
+
+**Staleness checking:** topics synced within `--max-age-days` (default: 1 day) are skipped on subsequent runs. Pass `--force` to override and re-sync everything. Both are fully functional end-to-end as of the 2026-05-18 update.
 
 ## How Agents Use It
 
@@ -140,7 +145,9 @@ No special agent configuration is needed. Any agent that has access to memsearch
 pip install requests html2text pyyaml
 ```
 
-Python 3.11+. No API keys, no GPU — doc-sync fetches from public URLs and runs entirely on CPU.
+Python 3.11+. No API keys needed for URL fetching.
+
+**Embedding / indexing:** doc-sync routes Ollama embedding calls through `ollama-queue-proxy` at `127.0.0.1:11435` rather than hitting Ollama directly. This respects the queue's priority system and avoids starving interactive sessions during a large re-index. Set `OLLAMA_HOST=http://127.0.0.1:11435` if running the re-index command manually.
 
 ## Gotchas
 
