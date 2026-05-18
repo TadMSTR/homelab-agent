@@ -2,7 +2,7 @@
 
 MCP server providing web search via a self-hosted SearXNG instance, with ML reranking, Valkey result caching, and domain filtering. Agents use this instead of the built-in `WebSearch` tool — private, no per-query API costs, and results are shaped by configurable domain boost/block lists.
 
-**Version:** 3.5.0
+**Version:** 3.6.0
 
 ## Tools
 
@@ -204,6 +204,13 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 
 ## Changelog
 
+**v3.6.0 (2026-05-18)**
+
+- NATS client migrated from `nats` v2 (deprecated) to `@nats-io/nats-core` + `@nats-io/transport-node` v3. No behavior change; lazy-import discipline preserved.
+- `tier_stats_30d` now implements a real 30-day rolling window via `window_start_ms` reset strategy. Schema bumped to v2; v1 records are discarded on read and rebuild from new fetches. `pnpm dump-domain` now shows per-tier success rate and days until window reset.
+- `src/fetch.ts` refactored from 601 to 296 lines — tier handlers extracted into `src/tiers/{firecrawl,crawl4ai,raw,github}.ts`, shared primitives into `src/fetch-utils.ts`. No behavior change.
+- Security: `fetchRawHtmlForMetadata` now calls `assertPublicUrl()` before fetching — parity with the existing SSRF guard on `rawFetch`.
+
 **v3.5.0 (2026-05-17)**
 
 - **llms.txt fast path** — `fetch_url` and `search_and_fetch` on whitelisted docs domains (`docs.anthropic.com`, `docs.openai.com`, `docs.stripe.com`, `docs.crawl4ai.com`, `docs.firecrawl.dev`, `docs.cursor.com`) probe `<origin>/llms-full.txt` first and return the matching page section before running puppeteer. Configurable via `llms_txt` array in `domains.json`.
@@ -291,7 +298,7 @@ Phase 5 — Domain filtering
 
 ## Architecture
 
-The server is organized as 9 focused modules (refactored from a single 973-line `index.ts`):
+The server is organized as focused modules:
 
 | Module | Responsibility |
 |--------|---------------|
@@ -300,7 +307,12 @@ The server is organized as 9 focused modules (refactored from a single 973-line 
 | `rerank.ts` | ML reranking with recency decay blending via local reranker endpoint |
 | `domain-filter.ts` | Domain boost/block logic and `domains.json` hot-reload |
 | `cache.ts` | Valkey read/write with namespaced TTLs |
-| `fetch.ts` | Fetch cascade (Firecrawl → Crawl4AI → raw HTTP) |
+| `fetch.ts` | Fetch cascade orchestration — dispatches to tier handlers |
+| `fetch-utils.ts` | Shared fetch primitives used by tier handlers |
+| `src/tiers/firecrawl.ts` | Tier-1 fetch via Firecrawl |
+| `src/tiers/crawl4ai.ts` | Tier-2 fetch via Crawl4AI |
+| `src/tiers/raw.ts` | Tier-3 raw HTTP fetch with Readability extraction |
+| `src/tiers/github.ts` | GitHub API / raw.githubusercontent fast path |
 | `expand.ts` | Query expansion via Ollama (`OLLAMA_EXPAND_MODEL`) |
 | `summarize.ts` | Search summarization via Ollama (`OLLAMA_SUMMARIZE_MODEL`) |
 | `security.ts` | URL validation including SSRF protection |
@@ -319,13 +331,13 @@ The IPv6 blocking was a pre-existing gap (prior versions only validated IPv4 pri
 
 ## Testing
 
-A Vitest test scaffold was added in the 2026-04-07 refactor — 37 tests covering the core modules. Run with:
+Vitest test suite — 149 tests across 16 files. Run with:
 
 ```bash
 pnpm test
 ```
 
-Tests live in `src/__tests__/`. Coverage includes: domain filtering, cache key generation, SSRF validation (IPv4 and IPv6), URL normalization, and `expand` parameter coercion.
+Tests live in `src/__tests__/`. Coverage includes: domain filtering, cache key generation, SSRF validation (IPv4 and IPv6), URL normalization, `expand` parameter coercion, and tier handler behaviour.
 
 ## Related Docs
 
