@@ -2,7 +2,7 @@
 
 MCP server providing web search via a self-hosted SearXNG instance, with ML reranking, Valkey result caching, and domain filtering. Agents use this instead of the built-in `WebSearch` tool — private, no per-query API costs, and results are shaped by configurable domain boost/block lists.
 
-**Version:** 3.4.0
+**Version:** 3.5.0
 
 ## Tools
 
@@ -196,9 +196,26 @@ Registered in `~/.claude/settings.json` under `mcpServers`:
 | `OLLAMA_EXPAND_MODEL` | `qwen3:4b` | Model used by query expansion. Override without rebuilding. |
 | `OLLAMA_SUMMARIZE_MODEL` | `qwen3:14b` | Model used by `search_and_summarize`. Override without rebuilding. |
 | `EXPAND_QUERIES` | `false` | Set to `true` to expand all queries by default (without passing `expand=true` per-call). |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `` (empty) | Optional — enables OpenTelemetry traces and metrics export. All OTel packages lazy-loaded; zero cost when unset. |
+| `NATS_URL` | `` (empty) | Optional — enables fire-and-forget core-NATS event publishing on `searxng.*` subjects. |
+| `NATS_SUBJECT_PREFIX` | `searxng` | NATS subject prefix when `NATS_URL` is set. |
+| `NATS_CREDS` | `` (empty) | Optional path to NATS credentials file — used via `credsAuthenticator` when set. |
 | `GITHUB_TOKEN` | — | Optional — increases GitHub API rate limit |
 
 ## Changelog
+
+**v3.5.0 (2026-05-17)**
+
+- **llms.txt fast path** — `fetch_url` and `search_and_fetch` on whitelisted docs domains (`docs.anthropic.com`, `docs.openai.com`, `docs.stripe.com`, `docs.crawl4ai.com`, `docs.firecrawl.dev`, `docs.cursor.com`) probe `<origin>/llms-full.txt` first and return the matching page section before running puppeteer. Configurable via `llms_txt` array in `domains.json`.
+- **Per-domain capability DB** — Valkey-backed (`domain:<hostname>`, 90-day TTL) records tier success counts, robots.txt status, llms-full.txt presence, JSON-LD/og:title sampling. New `pnpm dump-domain <hostname>` operator CLI for inspection.
+- **Data-driven tier routing** — skips any tier with <30% success over ≥10 attempts; operator override via `tier_skip` key in `domains.json` (e.g. `{"unihertz.com": ["tier1"]}`).
+- **Adblock sidecar** — custom `puppeteer-adblock` Docker image layers EasyList + EasyPrivacy on the firecrawl-puppeteer service. Configurable via `ADBLOCK_DISABLE`, `ADBLOCK_FILTERS_URL`, `ADBLOCK_REFRESH_HOURS`.
+- **Observability (opt-in)** — `OTEL_EXPORTER_OTLP_ENDPOINT` enables OpenTelemetry traces/metrics across tool, tier, and stage spans. `NATS_URL` enables fire-and-forget publishes on `searxng.search.*`, `searxng.fetch.*`, `searxng.cache.*`, `searxng.error` subjects with `request_id` and (when OTel is active) `trace_id` correlation.
+- **Request context** — AsyncLocalStorage-backed `request_id` propagation; all fetches, cache lookups, and events from one tool call share an id.
+- **Post-extraction pipeline** — JSON-LD `Article`/`NewsArticle`/`BlogPosting`/`TechArticle` extraction (`headline` + `articleBody` preferred over chrome text), title cascade (`og:title` → `twitter:title` → `<title>` → first `<h1>`), tier-2 Readability comparison over Crawl4AI's `result.html`.
+- **robots.txt compliance** — pre-fetch `robots-parser` check, per-origin cached 24 h; disallowed fetches throw `RobotsDisallowedError`.
+- **Honest User-Agent** — `searxng-mcp/3.5.0 (+https://github.com/TadMSTR/searxng-mcp; personal research)` on tier-3 and GitHub raw fetches.
+- Audit fixes: `rawFetch` enforces `assertPublicUrl()` internally; redirect-error message no longer echoes `Location` header; 2 MB streaming cap on raw HTML reads; `NATS_CREDS` now actually authenticates via `credsAuthenticator`.
 
 **v3.4.0 (2026-05-17)**
 
