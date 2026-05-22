@@ -4,6 +4,12 @@ Significant infrastructure additions and capability changes, in reverse chronolo
 
 ---
 
+## 2026-05-22
+
+**milvus-26-upgrade** — Upgraded Milvus standalone from v2.5.27 to v2.6.17. Added `DEPLOY_MODE: STANDALONE` environment variable required by v2.6+ mode-detection logic — embedded etcd is retained, no external etcd or MinIO needed. Extended healthcheck `start_period` to 90s for MixCoord consolidation startup overhead. All 13 memsearch collections intact after upgrade. Security audit: clean (0 findings).
+
+---
+
 ## 2026-05-02
 
 **build-pipeline-automation** — Added five headless pipeline agents to offload mechanical build steps from interactive sessions: SWAG conf validator, post-deploy smoke tester, skill schema validator, Plane work item updater, and build context pre-loader. New `manifests/` directory with six scoped-mcp template manifests documenting the security model per agent type. Supporting infrastructure: build-type taxonomy (`docker-stack`, `script-pm2`, `skill-template`, `docs-memory`, `code-service`, `config-only`), `blocked.md`/HEARTBEAT.md protocol for headless agent liveness, and `plane-updater` PM2 cron auto-closing work items after each build.
