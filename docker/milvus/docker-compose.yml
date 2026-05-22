@@ -1,11 +1,12 @@
 services:
   milvus:
-    image: milvusdb/milvus:v2.5.27
+    image: milvusdb/milvus:v2.6.17
     container_name: milvus
     command: milvus run standalone
     security_opt:
       - seccomp:unconfined  # Required: embedded etcd uses clone syscall flags blocked by default Docker seccomp profile
     environment:
+      DEPLOY_MODE: "standalone"       # required in v2.6+; absent var causes EtcdConfig.Init panic
       ETCD_USE_EMBED: "true"
       ETCD_DATA_DIR: /var/lib/milvus/etcd
       ETCD_CONFIG_PATH: /milvus/configs/embedEtcd.yaml
@@ -22,7 +23,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 90s
     mem_limit: 3g
     cpus: '2.0'
     restart: unless-stopped
