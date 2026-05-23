@@ -81,7 +81,8 @@ homelab-agent/
 │       ├── plane-updater.md         # Plane Updater — PM2 cron, close-out note pickup, work item sync
 │       ├── security-kb-precheck.md  # Security KB Pre-Check — delegated agent, audit request validation
 │       ├── updater.md               # Claude Code + system updater — multi-phase update orchestration, soak windows, npm/pip globals
-│       └── manual-updates-skill.md  # Manual Updates skill — interactive apply/defer workflow for manually-flagged update queue items
+│       ├── manual-updates-skill.md  # Manual Updates skill — interactive apply/defer workflow for manually-flagged update queue items
+│       └── milvus.md                # Milvus vector database — v2.6 standalone, DEPLOY_MODE, memsearch/qmd backend
 ├── manifests/
 │   └── README.md                    # Agent manifests — scoped-mcp tool sets per agent type
 ├── claude-code/
@@ -99,7 +100,8 @@ homelab-agent/
 │   ├── firecrawl-simple/              # Web scraper for LibreChat search pipeline
 │   ├── reranker/                      # Jina-compatible FlashRank reranker
 │   ├── dockhand/                      # Dockhand Docker stack manager compose
-│   └── jobsearch/                     # jobsearch-mcp stack (MCP server + Postgres + Qdrant)
+│   ├── jobsearch/                     # jobsearch-mcp stack (MCP server + Postgres + Qdrant)
+│   └── milvus/                        # Milvus vector database compose
 ├── mcp-servers/
 │   └── README.md                      # MCP server reference, config patterns, adoption path
 ├── pm2/
@@ -264,6 +266,8 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/security-kb-precheck.md` | ✅ Complete | 2026-05 |
 | `docs/components/updater.md` | ✅ Complete | 2026-05 |
 | `docs/components/manual-updates-skill.md` | ✅ Complete | 2026-05 |
+| `docs/components/milvus.md` | ✅ Complete | 2026-05 |
+| `docker/milvus/` | ✅ Complete | 2026-05 |
 | `manifests/README.md` | ✅ Complete | 2026-05 |
 | `docs/components/doc-sync.md` | ✅ Complete | 2026-04 |
 | `docs/components/helm-ops-mcp.md` | ✅ Complete | 2026-04 |
@@ -344,3 +348,4 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Agent Manifests | [`manifests/README.md`](manifests/README.md) | `manifests/*.yml` | — |
 | Updater | [`docs/components/updater.md`](docs/components/updater.md) | `~/scripts/updater-config.yml`, `~/.claude/updater-state.json` | — |
 | Manual Updates Skill | [`docs/components/manual-updates-skill.md`](docs/components/manual-updates-skill.md) | `~/scripts/updater-config.yml` | — |
+| Milvus | [`docs/components/milvus.md`](docs/components/milvus.md) | — | `docker/milvus/docker-compose.yml` |
