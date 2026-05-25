@@ -69,8 +69,9 @@ The `project_dir` paths map to the standard forge Claude Code project directorie
 ## Relationship to Forge-Agent-Setup
 
 The `project_dir` values require each forge agent's Claude Code project to exist at the
-configured path. These are provisioned by the `forge-agent-setup` build — if that build
-hasn't run for an agent, messages will be written to a path with no active session.
+configured path. These are provisioned by the `forge-agent-setup` build (completed
+2026-05-25) — all 5 agent project directories (`~/.claude/projects/sysadmin`, etc.) now
+exist on forge. The matrix-dispatcher can be wired with real project paths and restarted.
 
 ## Related Docs
 
