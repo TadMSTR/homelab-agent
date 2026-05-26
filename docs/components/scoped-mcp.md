@@ -2,7 +2,7 @@
 
 Per-agent scoped MCP tool proxy. One server process per agent — loads only the tools that agent is allowed to use, enforces resource boundaries between agents, holds credentials so agents never see them, and logs every tool call to a structured audit trail.
 
-**Version:** 1.0.1 | **PyPI:** [`scoped-mcp`](https://pypi.org/project/scoped-mcp/) | **Source:** [TadMSTR/scoped-mcp](https://github.com/TadMSTR/scoped-mcp)
+**Version:** 1.2.0 | **PyPI:** [`scoped-mcp`](https://pypi.org/project/scoped-mcp/) | **Source:** [TadMSTR/scoped-mcp](https://github.com/TadMSTR/scoped-mcp)
 
 ## The Problem
 
@@ -102,6 +102,8 @@ hitl:
     type: ntfy
     topic: homelab-hitl
 ```
+
+**Env var substitution (v1.2.0):** manifest values containing `${VAR_NAME}` placeholders are expanded from the process environment before the YAML is parsed. This lets credentials and URLs live in `.env` files rather than in the manifest itself. Useful when the manifest is version-controlled but the values it references must stay out of git.
 
 The `mode` field controls which tools register:
 - `mode: read` — read-decorated tools only (e.g. `filesystem_read_file`, `filesystem_list_dir`)
@@ -295,7 +297,7 @@ Middleware from the `rate_limits:` and `argument_filters:` manifest sections is 
 
 ### OpenTelemetry
 
-`OtelMiddleware` emits one OTel span per tool call with `scoped_mcp.*` attributes (`agent.id`, `agent.type`, `tool.name`, `call.status`). Tool arguments are excluded from spans to prevent credential leakage. Exception messages are redacted before reaching the OTLP collector (v1.0.1: `exception.message` span attribute explicitly overwritten with the redacted string after `span.record_exception()`).
+`OtelMiddleware` emits one OTel span per tool call with `scoped_mcp.*` attributes (`agent.id`, `agent.type`, `tool.name`, `call.status`). Tool arguments are excluded from spans to prevent credential leakage. Exception messages are redacted before reaching the OTLP collector. v1.1.1 replaced `span.record_exception(exc)` with `span.add_event("exception", attributes={...})` — the prior v1.0.1 approach set the span _attribute_ but left the OTel _event_ attribute unredacted (separate fields in the OTel data model). The v1.1.1 fix closes that gap: raw exception text no longer reaches SigNoz or Tempo.
 
 **Auto-enable via environment variable** — no code changes needed:
 
@@ -306,6 +308,26 @@ pip install "scoped-mcp[otel]"
 ```
 
 Compatible with SigNoz, Grafana Tempo, Jaeger, and Langfuse OTLP ingest. If `OTEL_EXPORTER_OTLP_ENDPOINT` is set but `[otel]` is not installed, the server starts normally — the dependency is silently skipped.
+
+## Hooks (v1.1.0)
+
+Hooks run at the Python level before and after the middleware chain, letting contrib extensions wire in without modifying core files. Two included hooks:
+
+**`scoped_mcp.contrib.signing_hook`** — ed25519-signs each agent-bus audit event before emission. The private key is loaded from a configured source (env var or Vault KV) at startup; the public key is registered in a shared key registry (`~/.claude/comms/agent-keys.json`) so `agent-bus verify_chain` can verify signatures across agents.
+
+```yaml
+# manifest section
+hooks:
+  pre_call:
+    - class: scoped_mcp.contrib.signing_hook.SigningHook
+      config:
+        key_source: env           # or: vault
+        private_key_env: SCOPED_MCP_SIGNING_KEY
+```
+
+**`scoped_mcp.contrib.response_filter`** — scans tool responses for credential patterns and prompt-injection markers before returning results to the agent. Operates as a post-call hook; findings are logged as `response_filter_warn` events.
+
+Hook instances receive `agent_ctx`, `tool_name`, and either `kwargs` (pre-call) or `result` (post-call). Pre-call hooks can short-circuit by raising — the call is blocked and the rejection is logged.
 
 ## Hardening (v0.7–v1.0)
 
