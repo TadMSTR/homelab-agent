@@ -83,11 +83,10 @@ homelab-agent/
 │       ├── updater.md               # Claude Code + system updater — multi-phase update orchestration, soak windows, npm/pip globals
 │       ├── manual-updates-skill.md  # Manual Updates skill — interactive apply/defer workflow for manually-flagged update queue items
 │       ├── milvus.md                # Milvus vector database — v2.6 standalone, DEPLOY_MODE, memsearch/qmd backend
-│       ├── synapse.md               # Synapse Matrix homeserver (forge) — Helm platform comms backbone
 │       ├── matrix-admin-bot.md      # matrix-admin-bot — Synapse admin chatbot, allowlisted commands, account/token management
-│       ├── matrix-admin-bot-forge.md # matrix-admin-bot (forge) — forge operator account provisioning
-│       ├── matrix-dispatcher-forge.md # matrix-dispatcher (forge) — routes operator messages to forge agent sessions
-│       └── matrix-mcp-forge.md      # matrix-mcp (forge) — Matrix messaging MCP for forge agents
+│       ├── patchmon-mcp.md          # patchmon-mcp — FastMCP Python MCP server wrapping PatchMon API for forge host patch management
+│       ├── dockhand-mcp.md          # dockhand-mcp — FastMCP Python MCP server wrapping Dockhand API for Docker container management
+│       └── langfuse-mcp.md          # langfuse-mcp — Read-only FastMCP MCP server wrapping Langfuse API for LLM observability data
 ├── manifests/
 │   └── README.md                    # Agent manifests — scoped-mcp tool sets per agent type
 ├── claude-code/
@@ -272,11 +271,10 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/updater.md` | ✅ Complete | 2026-05 |
 | `docs/components/manual-updates-skill.md` | ✅ Complete | 2026-05 |
 | `docs/components/milvus.md` | ✅ Complete | 2026-05 |
-| `docs/components/synapse.md` | ✅ Complete | 2026-05 |
 | `docs/components/matrix-admin-bot.md` | ✅ Complete | 2026-05 |
-| `docs/components/matrix-admin-bot-forge.md` | ✅ Complete | 2026-05 |
-| `docs/components/matrix-dispatcher-forge.md` | ✅ Complete | 2026-05 |
-| `docs/components/matrix-mcp-forge.md` | ✅ Complete | 2026-05 |
+| `docs/components/patchmon-mcp.md` | ✅ Complete | 2026-05 |
+| `docs/components/dockhand-mcp.md` | ✅ Complete | 2026-05 |
+| `docs/components/langfuse-mcp.md` | ✅ Complete | 2026-05 |
 | `docker/milvus/` | ✅ Complete | 2026-05 |
 | `manifests/README.md` | ✅ Complete | 2026-05 |
 | `docs/components/doc-sync.md` | ✅ Complete | 2026-04 |
@@ -359,8 +357,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Updater | [`docs/components/updater.md`](docs/components/updater.md) | `~/scripts/updater-config.yml`, `~/.claude/updater-state.json` | — |
 | Manual Updates Skill | [`docs/components/manual-updates-skill.md`](docs/components/manual-updates-skill.md) | `~/scripts/updater-config.yml` | — |
 | Milvus | [`docs/components/milvus.md`](docs/components/milvus.md) | — | `docker/milvus/docker-compose.yml` |
-| Synapse (forge) | [`docs/components/synapse.md`](docs/components/synapse.md) | — | `~/docker/matrix/docker-compose.yml` |
 | matrix-admin-bot | [`docs/components/matrix-admin-bot.md`](docs/components/matrix-admin-bot.md) | — | (PM2 host service) |
-| matrix-admin-bot (forge) | [`docs/components/matrix-admin-bot-forge.md`](docs/components/matrix-admin-bot-forge.md) | `~/.secrets/matrix-admin-bot-forge.yml` | (PM2 host service) |
-| matrix-dispatcher (forge) | [`docs/components/matrix-dispatcher-forge.md`](docs/components/matrix-dispatcher-forge.md) | — | (PM2 host service) |
-| matrix-mcp (forge) | [`docs/components/matrix-mcp-forge.md`](docs/components/matrix-mcp-forge.md) | — | (PM2 host service) |
+| patchmon-mcp | [`docs/components/patchmon-mcp.md`](docs/components/patchmon-mcp.md) | — | (PM2 host service, forge) |
+| dockhand-mcp | [`docs/components/dockhand-mcp.md`](docs/components/dockhand-mcp.md) | — | (PM2 host service, forge) |
+| langfuse-mcp | [`docs/components/langfuse-mcp.md`](docs/components/langfuse-mcp.md) | — | (Docker/PM2 host service) |
