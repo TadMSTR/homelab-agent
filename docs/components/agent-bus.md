@@ -52,6 +52,7 @@ graph TD
 | `AGENT_BUS_SESSION_RETENTION_DAYS` | `30` | Days to retain session log files |
 | `AGENT_BUS_WEBHOOK_URL` | — | URL to POST event JSON to (optional) |
 | `AGENT_BUS_WEBHOOK_EVENTS` | — | Comma-separated event types to fire on, or `*` for all (optional) |
+| `AGENT_BUS_VERIFY_SIGNATURES` | `false` | Enable ed25519 signature verification on `verify_chain` calls (warn mode — mismatches logged, not rejected) |
 
 `NATS_URL`, `NTFY_URL`, and the webhook vars are fully optional — the server operates on local JSONL alone without them.
 
@@ -108,7 +109,25 @@ Retrieve a specific event by UUID. Used when `artifact_path` in a log entry poin
 
 ### `get_status`
 
-Returns current server configuration and health: configured paths, which optional integrations are active (NATS, ntfy, webhook), date range of available logs, and today's event count. Useful for verifying setup after installation or after changing env vars.
+Returns current server configuration and health: configured paths, which optional integrations are active (NATS, ntfy, webhook), date range of available logs, and today's event count. Useful for verifying setup after installation or after changing env vars. Integration URLs are returned with query strings stripped (prevents embedded auth tokens from leaking to callers).
+
+### `verify_chain` _(v0.2.0)_
+
+Verifies the SHA-256 hash chain and (optionally) ed25519 signatures across a day's event log:
+
+```python
+verify_chain(date="2026-05-26")
+# Returns:
+# {
+#   "total": 142,
+#   "verified": 142,
+#   "chain_breaks": 0,
+#   "sig_failures": 0,
+#   "unsigned_events": 12   # events before signing was enabled
+# }
+```
+
+Each event written since v0.2.0 includes a `prev_hash` field (SHA-256 of the previous event's JSON) and an `ed25519_sig` field. `verify_chain` walks the chain and flags any event where the hash doesn't match its predecessor. Signature failures are counted separately and logged as warnings — they don't block normal operation (`AGENT_BUS_VERIFY_SIGNATURES=true` required for sig verification to run). The `date` parameter is validated against `YYYY-MM-DD` format before use.
 
 ## Event Vocabulary
 
@@ -222,6 +241,19 @@ The reconciler (`reconcile.py`) runs every 5 minutes and scans `~/.claude/comms/
 ...gets an `artifact.untracked` event logged. This catches artifacts written by agents that haven't fully adopted `log_event` calls, or files written directly to the artifacts directory by tools or scripts.
 
 After scanning, the cursor file is `touch()`ed to the current time. On the next run, only newly-modified files are re-examined.
+
+## Event Integrity (v0.2.0)
+
+Each event appended since v0.2.0 carries two integrity fields:
+
+- **`prev_hash`** — SHA-256 of the preceding event's raw JSON line. Forms a tamper-evident chain: modifying or deleting any event invalidates every subsequent `prev_hash`. The first event in a log file has `prev_hash: null`.
+- **`ed25519_sig`** — base64-encoded ed25519 signature over the event JSON (excluding the `ed25519_sig` field itself). Signed using the server's private key.
+
+**Key registry:** Public keys for signature verification live at `~/.claude/comms/agent-keys.json`. The registry maps source agent names to base64-encoded ed25519 public keys. Add a key here to enable verification for events from that agent.
+
+**Verification is warn-mode only.** `verify_chain` reports failures but doesn't reject events. This is intentional — the log is append-only; rejecting a malformed event would lose it. The chain and signatures are audit evidence, not an access gate.
+
+**Thread safety:** the `append_event()` path uses a `threading.Lock` covering both the `_last_line()` read (to obtain `prev_hash`) and the write+fsync, preventing concurrent writes from producing the same `prev_hash`.
 
 ## Gotchas and Lessons Learned
 
