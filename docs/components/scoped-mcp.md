@@ -2,7 +2,7 @@
 
 Per-agent scoped MCP tool proxy. One server process per agent — loads only the tools that agent is allowed to use, enforces resource boundaries between agents, holds credentials so agents never see them, and logs every tool call to a structured audit trail.
 
-**Version:** 1.0.0 | **PyPI:** [`scoped-mcp`](https://pypi.org/project/scoped-mcp/) | **Source:** [TadMSTR/scoped-mcp](https://github.com/TadMSTR/scoped-mcp)
+**Version:** 1.0.1 | **PyPI:** [`scoped-mcp`](https://pypi.org/project/scoped-mcp/) | **Source:** [TadMSTR/scoped-mcp](https://github.com/TadMSTR/scoped-mcp)
 
 ## The Problem
 
@@ -295,7 +295,7 @@ Middleware from the `rate_limits:` and `argument_filters:` manifest sections is 
 
 ### OpenTelemetry
 
-`OtelMiddleware` emits one OTel span per tool call with `scoped_mcp.*` attributes (`agent.id`, `agent.type`, `tool.name`, `call.status`). Tool arguments are excluded from spans to prevent credential leakage. Exception messages are redacted before reaching the OTLP collector.
+`OtelMiddleware` emits one OTel span per tool call with `scoped_mcp.*` attributes (`agent.id`, `agent.type`, `tool.name`, `call.status`). Tool arguments are excluded from spans to prevent credential leakage. Exception messages are redacted before reaching the OTLP collector (v1.0.1: `exception.message` span attribute explicitly overwritten with the redacted string after `span.record_exception()`).
 
 **Auto-enable via environment variable** — no code changes needed:
 
