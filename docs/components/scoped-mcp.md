@@ -2,7 +2,7 @@
 
 Per-agent scoped MCP tool proxy. One server process per agent — loads only the tools that agent is allowed to use, enforces resource boundaries between agents, holds credentials so agents never see them, and logs every tool call to a structured audit trail.
 
-**Version:** 1.2.0 | **PyPI:** [`scoped-mcp`](https://pypi.org/project/scoped-mcp/) | **Source:** [TadMSTR/scoped-mcp](https://github.com/TadMSTR/scoped-mcp)
+**Version:** 1.2.2 | **PyPI:** [`scoped-mcp`](https://pypi.org/project/scoped-mcp/) | **Source:** [TadMSTR/scoped-mcp](https://github.com/TadMSTR/scoped-mcp)
 
 ## The Problem
 
@@ -278,7 +278,9 @@ Every tool call is logged as a structured JSON entry:
 }
 ```
 
-Emits to stdout and/or a log file. All entries include timing — useful for spotting slow backends or runaway tool loops. Sensitive keys (`_TOKEN`, `_PASSWORD`, `_SECRET`, `_KEY`, credential fields from Vault) are redacted before the entry is written.
+Emits to stdout and/or a log file. All entries include timing — useful for spotting slow backends or runaway tool loops. Sensitive keys (`_TOKEN`, `_PASSWORD`, `_SECRET`, `_KEY`, credential fields from Vault) are redacted before the entry is written. Audit log paths using `~` are expanded to an absolute path at startup (v1.2.1 — prior versions wrote literal `~/...` paths that some log shippers couldn't resolve).
+
+**ManifestError secret suppression (v1.2.2):** `ManifestError` wraps both `YAMLError` and Pydantic `ValidationError`. Prior to v1.2.2, the underlying error detail — which may include post-substitution values from env vars — was included in the `ManifestError` message and surfaced to the agent. v1.2.2 suppresses the underlying message, logging it separately at debug level while returning a generic "manifest load failed" string to callers. This prevents expanded secret values from leaking through error paths if a manifest is malformed.
 
 ## Middleware
 
@@ -434,6 +436,8 @@ hitl:
 **Notifiers:** `LogNotifier` (default, no deps), `NtfyNotifier`, `WebhookNotifier`, `MatrixNotifier`. Transport failures are logged and swallowed — a notification outage cannot wedge the approval loop. Notifiers receive only a sanitised argument summary; raw values never reach the operator channel.
 
 **Fail-closed:** backend write failures produce `HitlRejectedError`, not a forwarded call.
+
+**Double-prefix fix (v1.2.1):** prior to v1.2.1, a bug in `registry.py` caused HITL `approval_required` and rate-limit `per_tool` patterns to never match — the internal tool name was being prefixed twice (e.g., `filesystem_filesystem_delete_file` instead of `filesystem_delete_file`). Both guardrails silently passed all calls. v1.2.1 fixes the prefix logic; any manifest that configured either feature will now correctly enforce it for the first time after upgrade.
 
 **Operator CLI:**
 ```bash
