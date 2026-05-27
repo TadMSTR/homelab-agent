@@ -38,6 +38,10 @@ For the architecture overview and how these components relate, see the [main REA
 | Inter-Agent Communication | [inter-agent-communication.md](inter-agent-communication.md) | File-based handoff pattern, queue directories, status lifecycle, security audit workflow, stale monitoring |
 | Agent Orchestration | [agent-orchestration.md](agent-orchestration.md) | Task queue, dispatcher, agent manifests, risk-based approval gates, task-approve CLI |
 | NATS JetStream | [nats-jetstream.md](nats-jetstream.md) | Agent event bus — task lifecycle subjects, JetStream streams, NATS CLI, fire-and-forget design |
+| loki-mcp | [loki-mcp.md](loki-mcp.md) | Read-only Loki LogQL MCP server — log queries, aggregates, label inspection, stream tailing |
+| signoz-mcp | [signoz-mcp.md](signoz-mcp.md) | Read-only SigNoz MCP server — services, traces, logs, metrics, alert rules via SigNoz HTTP API |
+| nats-mcp | [nats-mcp.md](nats-mcp.md) | Read-only NATS monitoring MCP server — server stats, connections, subscriptions, JetStream status |
+| langfuse-mcp | [langfuse-mcp.md](langfuse-mcp.md) | Read-only Langfuse MCP server — traces, generations, cost summary, sessions, scores |
 | n8n | [n8n.md](n8n.md) | Webhook workflow engine — visual task routing, risk-based approval gating, ntfy alerting, Postgres-backed |
 | Security Agent | [security-agent.md](security-agent.md) | Post-build security audits, three-category triage, action plan routing, stale queue monitoring |
 | Security KB Precheck | [security-kb-precheck.md](security-kb-precheck.md) | Headless pre-audit scan — pattern matching against security KB, auto-fixable findings, narrows full audit scope |
