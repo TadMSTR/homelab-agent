@@ -1,6 +1,6 @@
-# Helm Temporal Worker
+# Temporal Build Worker
 
-The Helm Temporal Worker is a Python PM2 service that bridges the Temporal durable execution stack to Claude Code agent sessions. It connects to the Temporal server, polls the `helm-build` task queue, and dispatches each workflow phase to the appropriate Claude Code agent by writing a task queue YAML file. The activity completes asynchronously — the worker exits immediately and waits for an external signal from the agent after it finishes the phase.
+The Temporal Build Worker is a Python PM2 service that bridges the Temporal durable execution stack to Claude Code agent sessions. It connects to the Temporal server, polls the `helm-build` task queue, and dispatches each workflow phase to the appropriate Claude Code agent by writing a task queue YAML file. The activity completes asynchronously — the worker exits immediately and waits for an external signal from the agent after it finishes the phase.
 
 This enables multi-phase Helm build automation with durable state tracking: if a phase fails or the worker restarts, Temporal retries from the last incomplete phase rather than from scratch.
 
@@ -13,7 +13,7 @@ Temporal Server
     │
     │  (schedule activity)
     ▼
-helm-temporal-worker (PM2)
+temporal-build-worker (PM2)
     │
     │  1. Write task YAML to ~/.claude/task-queue/
     │  2. raise_complete_async()  ← tells Temporal "I'm done, signal me later"
@@ -45,7 +45,7 @@ Temporal Server
 ```mermaid
 sequenceDiagram
     participant TS as Temporal Server
-    participant W as helm-temporal-worker
+    participant W as temporal-build-worker
     participant TQ as Task Queue
     participant Hook as inject-task-queue.sh
     participant Agent as Claude Code Agent
@@ -76,10 +76,10 @@ Each phase of the build plan becomes one Temporal activity. `BuildPlanWorkflow` 
 
 ### worker.py
 
-The PM2 entry point. Connects to Temporal at `localhost:7233`, registers `BuildPlanWorkflow` and the `execute_build_phase` activity on the `helm-build` task queue, and runs until SIGTERM/SIGINT.
+The PM2 entry point. Connects to Temporal (address from `TEMPORAL_ADDRESS` env var, default `localhost:7233`), registers `BuildPlanWorkflow` and the `execute_build_phase` activity on the `helm-build` task queue, and runs until SIGTERM/SIGINT.
 
 ```python
-TEMPORAL_ADDRESS = "localhost:7233"
+TEMPORAL_ADDRESS = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
 TEMPORAL_NAMESPACE = "default"
 TASK_QUEUE = "helm-build"
 ```
@@ -165,26 +165,34 @@ Shell wrapper around `complete_activity.py`. Not a symlink — system Python lac
 
 ```bash
 #!/bin/bash
-cd $HOME/repos/personal/helm-temporal-worker
+cd $HOME/repos/personal/temporal-build-worker
 venv/bin/python3 complete_activity.py "$@"
 ```
 
 ## Configuration
 
-**PM2:** `~/repos/personal/helm-temporal-worker/ecosystem.config.js`
+**PM2:** `~/repos/personal/temporal-build-worker/ecosystem.config.js`
 
 | Setting | Value |
 |---------|-------|
-| `interpreter` | `$HOME/repos/personal/helm-temporal-worker/venv/bin/python3` |
-| `cwd` | `$HOME/repos/personal/helm-temporal-worker` |
+| `interpreter` | `$HOME/repos/personal/temporal-build-worker/venv/bin/python3` |
+| `cwd` | `$HOME/repos/personal/temporal-build-worker` |
 | `autorestart` | `true` |
 | `max_restarts` | 10 |
 | `exp_backoff_restart_delay_ms` | 5000 |
 | `PYTHONUNBUFFERED` | `1` |
 
+**Environment variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TEMPORAL_ADDRESS` | `localhost:7233` | Temporal gRPC address |
+| `TEMPORAL_AUDIT_DIR` | `~/.claude/comms/artifacts` | Root for audit report paths used by `process_triage_output` |
+| `NTFY_URL` | `""` | ntfy topic URL for block notifications; silent no-op if unset |
+
 **Python dependencies:** `requirements.txt` — `temporalio`, `pyyaml`, `dataclasses-json`. Installed in `venv/` within the repo directory. Re-install with `pip install -r requirements.txt` if the venv is lost.
 
-**Network:** Worker connects outbound to `localhost:7233` — no inbound ports, no proxy, no auth layer.
+**Network:** Worker connects outbound to `TEMPORAL_ADDRESS` — no inbound ports, no proxy, no auth layer.
 
 ## Triggering a Build Plan
 
@@ -228,7 +236,7 @@ Once started, the worker picks up the workflow, dispatches Phase 1 as a task que
 
 **Activity timeout is 24 hours.** If an agent session takes longer than 24 hours to complete a phase (unlikely but possible for complex multi-step phases), Temporal will time out and retry the activity. The retry will re-dispatch the phase to the task queue — the agent will see it again. Design phases to complete well within this window.
 
-**venv must survive a claudebox rebuild.** `deploy-claudebox.sh` recreates the venv from `requirements.txt` as part of the helm-temporal-worker deploy section. If you add a dependency, update `requirements.txt` and the deploy script.
+**venv must survive a claudebox rebuild.** `deploy-claudebox.sh` recreates the venv from `requirements.txt` as part of the temporal-build-worker deploy section. If you add a dependency, update `requirements.txt` and the deploy script.
 
 ## Further Reading
 

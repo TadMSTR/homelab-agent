@@ -272,4 +272,4 @@ All NATS publishes are fire-and-forget (`timeout=5`). If NATS is down, the dispa
 - [Agent Orchestration](agent-orchestration.md) — higher-level overview of the queue and agent manifests
 - [NATS JetStream](nats-jetstream.md) — event streaming for task transitions
 - [n8n](n8n.md) — webhook routing layer on top of the dispatcher
-- [Helm Temporal Worker](helm-temporal-worker.md) — Temporal worker that produces tasks via `raise_complete_async`
+- [Temporal Build Worker](temporal-build-worker.md) — Temporal worker that produces tasks via `raise_complete_async`

@@ -221,7 +221,7 @@ sequenceDiagram
 - [Task Dispatcher](components/task-dispatcher.md) — routes approved tasks, posts n8n webhooks
 - [Trigger Proxy](components/trigger-proxy.md) — OAuth bridge for n8n → RemoteTrigger calls
 - [n8n](components/n8n.md) — workflow engine that sequences the trigger chain
-- [Helm Temporal Worker](components/helm-temporal-worker.md) — BuildPipelineWorkflow durable orchestration
+- [Temporal Build Worker](components/temporal-build-worker.md) — BuildPipelineWorkflow durable orchestration
 
 ### Agent Communications Layer
 

@@ -147,6 +147,13 @@ Each event written since v0.2.0 includes a `prev_hash` field (SHA-256 of the pre
 | `diagnose.started` | Diagnose skill session begun | |
 | `diagnose.completed` | Diagnose skill concluded | |
 | `artifact.untracked` | File in artifacts dir without log entry (reconciler) | |
+| `preflight.started` | Build preflight check begun | |
+| `preflight.completed` | Build preflight check finished | |
+| `build.started` | Build phase execution begun | |
+| `build.completed` | Build phase execution finished | |
+| `deploy.started` | Deployment begun | |
+| `deploy.completed` | Deployment finished | |
+| `security.finding` | Security agent logged a finding | |
 
 Session-scoped events (memory flushes, skill executions) use `scope="session"` and go to the session log — not federated to NATS.
 
