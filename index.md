@@ -86,7 +86,8 @@ homelab-agent/
 │       ├── matrix-admin-bot.md      # matrix-admin-bot — Synapse admin chatbot, allowlisted commands, account/token management
 │       ├── patchmon-mcp.md          # patchmon-mcp — FastMCP Python MCP server wrapping PatchMon API for forge host patch management
 │       ├── dockhand-mcp.md          # dockhand-mcp — FastMCP Python MCP server wrapping Dockhand API for Docker container management
-│       └── langfuse-mcp.md          # langfuse-mcp — Read-only FastMCP MCP server wrapping Langfuse API for LLM observability data
+│       ├── langfuse-mcp.md          # langfuse-mcp — Read-only FastMCP MCP server wrapping Langfuse API for LLM observability data
+│       └── loki-mcp.md              # loki-mcp — Read-only FastMCP MCP server for Loki LogQL log queries
 ├── manifests/
 │   └── README.md                    # Agent manifests — scoped-mcp tool sets per agent type
 ├── claude-code/
@@ -275,6 +276,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/patchmon-mcp.md` | ✅ Complete | 2026-05 |
 | `docs/components/dockhand-mcp.md` | ✅ Complete | 2026-05 |
 | `docs/components/langfuse-mcp.md` | ✅ Complete | 2026-05 |
+| `docs/components/loki-mcp.md` | ✅ Complete | 2026-05 |
 | `docker/milvus/` | ✅ Complete | 2026-05 |
 | `manifests/README.md` | ✅ Complete | 2026-05 |
 | `docs/components/doc-sync.md` | ✅ Complete | 2026-04 |
@@ -361,3 +363,4 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | patchmon-mcp | [`docs/components/patchmon-mcp.md`](docs/components/patchmon-mcp.md) | — | (PM2 host service, forge) |
 | dockhand-mcp | [`docs/components/dockhand-mcp.md`](docs/components/dockhand-mcp.md) | — | (PM2 host service, forge) |
 | langfuse-mcp | [`docs/components/langfuse-mcp.md`](docs/components/langfuse-mcp.md) | — | (Docker/PM2 host service) |
+| loki-mcp | [`docs/components/loki-mcp.md`](docs/components/loki-mcp.md) | — | (PM2 host service) |
