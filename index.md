@@ -53,7 +53,7 @@ homelab-agent/
 │       ├── helm-dashboard.md          # CloudCLI plugin — monitoring tab for walk-away builds
 │       ├── auto-mode.md               # Claude Code auto permission mode — settings.json rules, CloudCLI SDK patch
 │       ├── temporal.md                # Temporal durable workflow engine — multi-phase build automation, 5-container stack
-│       ├── helm-temporal-worker.md    # Helm Temporal Worker — PM2 bridge from Temporal to Claude Code agents
+│       ├── temporal-build-worker.md   # Temporal Build Worker — PM2 bridge from Temporal to Claude Code agents
 │       ├── task-dispatcher.md         # Task dispatcher — PM2 cron for agent task queue routing and approval gating
 │       ├── task-queue-mcp.md          # Task Queue MCP — FastMCP server, typed task queue tool access, schema enforcement
 │       ├── trigger-proxy.md           # Trigger Proxy — PM2 OAuth bridge for n8n Docker → claude.ai RemoteTrigger
@@ -247,7 +247,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | `docs/components/helm-dashboard.md` | ✅ Complete | 2026-03 |
 | `docs/components/auto-mode.md` | ✅ Complete | 2026-03 |
 | `docs/components/temporal.md` | ✅ Complete | 2026-03 |
-| `docs/components/helm-temporal-worker.md` | ✅ Complete | 2026-03 |
+| `docs/components/temporal-build-worker.md` | ✅ Complete | 2026-05 |
 | `docs/components/task-dispatcher.md` | ✅ Complete | 2026-03 |
 | `docs/components/task-queue-mcp.md` | ✅ Complete | 2026-04 |
 | `docs/components/trigger-proxy.md` | ✅ Complete | 2026-04 |
@@ -332,7 +332,7 @@ Use these mappings to load only the docs relevant to your task. Paths are relati
 | Helm Dashboard | [`docs/components/helm-dashboard.md`](docs/components/helm-dashboard.md) | `~/.claude-code-ui/plugins/cloudcli-plugin-helm-dashboard/config.json` | (CloudCLI plugin) |
 | Auto Mode | [`docs/components/auto-mode.md`](docs/components/auto-mode.md) | `~/.claude/settings.json`, `~/.claude/projects/<project>/settings.json` | — |
 | Temporal | [`docs/components/temporal.md`](docs/components/temporal.md) | `~/docker/temporal/.env` | `~/docker/temporal/docker-compose.yml` |
-| Helm Temporal Worker | [`docs/components/helm-temporal-worker.md`](docs/components/helm-temporal-worker.md) | — | (PM2 host service) |
+| Temporal Build Worker | [`docs/components/temporal-build-worker.md`](docs/components/temporal-build-worker.md) | — | (PM2 host service) |
 | Task Dispatcher | [`docs/components/task-dispatcher.md`](docs/components/task-dispatcher.md) | — | (PM2 cron job) |
 | Trigger Proxy | [`docs/components/trigger-proxy.md`](docs/components/trigger-proxy.md) | — | (PM2 host service) |
 | Task Queue MCP | [`docs/components/task-queue-mcp.md`](docs/components/task-queue-mcp.md) | — | (Docker container, PM2-managed) |
