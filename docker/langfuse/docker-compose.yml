@@ -1,0 +1,199 @@
+services:
+  langfuse-minio:
+    image: cgr.dev/chainguard/minio
+    container_name: langfuse-minio
+    restart: unless-stopped
+    entrypoint: sh
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - /opt/appdata/langfuse/minio:/data
+    ports:
+      - "127.0.0.1:9200:9000"    # S3 API (localhost only; worker/web reach via Docker DNS)
+      - "127.0.0.1:9201:9001"    # MinIO console (localhost only)
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - langfuse-internal
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server:24.12-alpine
+    container_name: langfuse-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-clickhouse}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - /opt/appdata/langfuse/clickhouse/data:/var/lib/clickhouse
+      - /opt/appdata/langfuse/clickhouse/logs:/var/log/clickhouse-server
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "0.0.0.0:8123/ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - langfuse-internal
+
+  langfuse-dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.37.2
+    container_name: langfuse-dragonfly
+    restart: unless-stopped
+    user: "999:999"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command: >
+      --maxmemory 512mb
+      --proactor_threads=2
+      --default_lua_flags=allow-undeclared-keys
+    environment:
+      DFLY_requirepass: ${LANGFUSE_DRAGONFLY_PASSWORD}
+    volumes:
+      - /opt/appdata/langfuse/dragonfly:/data
+    networks:
+      - langfuse-internal
+      - grafana-datasources
+
+  langfuse-db:
+    image: postgres:16-alpine
+    container_name: langfuse-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${LANGFUSE_DB_USER:-langfuse}
+      POSTGRES_PASSWORD: ${LANGFUSE_DB_PASSWORD}
+      POSTGRES_DB: langfuse
+    volumes:
+      - /opt/appdata/langfuse/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LANGFUSE_DB_USER:-langfuse}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - langfuse-internal
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3.167.4
+    container_name: langfuse-worker
+    restart: unless-stopped
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${LANGFUSE_DB_USER:-langfuse}:${LANGFUSE_DB_PASSWORD}@langfuse-db:5432/langfuse
+      SALT: ${LANGFUSE_SALT}
+      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY}
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
+      NEXTAUTH_URL: https://langfuse.${DOMAIN}
+      # ClickHouse — single-node (no cluster)
+      CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+      CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-clickhouse}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      # Redis (Dragonfly)
+      REDIS_HOST: langfuse-dragonfly
+      REDIS_PORT: 6379
+      REDIS_AUTH: ${LANGFUSE_DRAGONFLY_PASSWORD}
+      # S3 event storage (MinIO)
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      # Media uploads disabled
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+    networks:
+      - langfuse-internal
+
+  langfuse-web:
+    image: langfuse/langfuse:3.167.4
+    container_name: langfuse-web
+    restart: unless-stopped
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${LANGFUSE_DB_USER:-langfuse}:${LANGFUSE_DB_PASSWORD}@langfuse-db:5432/langfuse
+      SALT: ${LANGFUSE_SALT}
+      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY}
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
+      NEXTAUTH_URL: https://langfuse.${DOMAIN}
+      # ClickHouse — single-node (no cluster)
+      CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+      CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-clickhouse}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      # Redis (Dragonfly)
+      REDIS_HOST: langfuse-dragonfly
+      REDIS_PORT: 6379
+      REDIS_AUTH: ${LANGFUSE_DRAGONFLY_PASSWORD}
+      # S3 event storage (MinIO)
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      # Media uploads
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+      # Authentik SSO — uncomment and populate after creating admin account and project
+      AUTH_CUSTOM_CLIENT_ID: ${AUTHENTIK_LANGFUSE_CLIENT_ID}
+      AUTH_CUSTOM_CLIENT_SECRET: ${AUTHENTIK_LANGFUSE_CLIENT_SECRET}
+      AUTH_CUSTOM_ISSUER: https://auth.${DOMAIN}/application/o/lang-fuse
+      AUTH_CUSTOM_NAME: Authentik
+      AUTH_CUSTOM_SCOPE: "openid email profile"
+      AUTH_CUSTOM_ALLOW_ACCOUNT_LINKING: "true"
+      HOSTNAME: "0.0.0.0"
+    extra_hosts:
+      - "auth.helmforge.me:172.20.1.5"
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - langfuse-internal
+      - forge-net
+
+networks:
+  langfuse-internal:
+    name: langfuse-internal
+  forge-net:
+    external: true
+  grafana-datasources:
+    external: true

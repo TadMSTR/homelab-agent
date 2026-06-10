@@ -1,10 +1,26 @@
 #!/bin/bash
 set -euo pipefail
 
-LOG="/var/log/claudebox/build-unblock-scan.log"
+LOG="$HOME/logs/build-unblock-scan.log"
 PLANS_DIR="$HOME/.claude/comms/artifacts/build-plans"
+MATRIX_MCP_URL="http://127.0.0.1:8487/mcp"
+
+mkdir -p "$HOME/logs"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
+
+matrix_notify() {
+    # SECURITY[resolved]: use jq to construct JSON payload — prevents injection from unescaped message content.
+    # Audit: 2026-05-29/forge-build-workflow-infra-2026-05.
+    local msg="$1"
+    local payload
+    payload=$(jq -n --arg msg "$msg" \
+        '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"send_matrix_message","arguments":{"room_name":"forge","message":$msg}},"id":1}')
+    curl -s -X POST "$MATRIX_MCP_URL" \
+        -H "Content-Type: application/json" \
+        -d "$payload" \
+        > /dev/null 2>&1 || true
+}
 
 log "Build unblock scan starting"
 
@@ -12,10 +28,6 @@ INDEX="$PLANS_DIR/index.md"
 [[ ! -f "$INDEX" ]] && log "No index.md found — nothing to scan" && exit 0
 
 NEWLY_UNBLOCKED=()
-
-# index.md format: markdown sections (## <plan-name>) with inline annotations:
-#   status: <value>, depends-on: <name>
-# Two-pass: collect completed plan names, then find newly-unblockable plans.
 
 declare -A COMPLETED_PLANS
 declare -A PLAN_DEPS
@@ -47,7 +59,7 @@ done
 if [[ ${#NEWLY_UNBLOCKED[@]} -gt 0 ]]; then
     NAMES=$(printf '%s, ' "${NEWLY_UNBLOCKED[@]}")
     log "Newly unblocked: ${NAMES%, }"
-    ~/scripts/send-matrix.sh claudebox "**[UNBLOCKED]** Build plans ready: ${NAMES%, }. Check ~/.claude/comms/artifacts/build-plans/index.md"
+    matrix_notify "**[UNBLOCKED]** Build plans ready: ${NAMES%, }. Check ~/.claude/comms/artifacts/build-plans/index.md"
 else
     log "No newly unblocked plans"
 fi

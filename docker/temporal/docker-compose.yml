@@ -1,7 +1,9 @@
 services:
   temporal-postgresql:
-    image: postgres:${POSTGRESQL_VERSION:-16}
+    image: postgres:16
     container_name: temporal-postgresql
+    # DC-05: postgres entrypoint runs as root to set up data dir, then drops to postgres user.
+    # cap_drop and user: are not set — upstream constraint, standard postgres image behavior.
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER: temporal
@@ -11,6 +13,10 @@ services:
     networks:
       - temporal-network
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: "0.5"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U temporal"]
       interval: 5s
@@ -19,7 +25,7 @@ services:
       start_period: 30s
 
   temporal-admin-tools:
-    image: temporalio/admin-tools:${TEMPORAL_VERSION:-1.26.2}
+    image: temporalio/admin-tools:${TEMPORAL_VERSION:-1.30.2}
     container_name: temporal-admin-tools
     restart: on-failure:6
     depends_on:
@@ -32,34 +38,59 @@ services:
       - POSTGRES_PWD=${POSTGRES_PASSWORD}
       - POSTGRES_SEEDS=temporal-postgresql
       - SQL_PASSWORD=${POSTGRES_PASSWORD}
+      - SQL_PLUGIN=postgres12
+      - SQL_PORT=5432
+      - SQL_USER=temporal
+      - SQL_HOST=temporal-postgresql
     networks:
       - temporal-network
     volumes:
       - ./scripts:/scripts:ro
     entrypoint: ["/bin/sh"]
     command: /scripts/setup-postgres.sh
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 256m
+    cpus: "0.25"
 
   temporal:
-    image: temporalio/server:${TEMPORAL_VERSION:-1.26.2}
+    image: temporalio/server:${TEMPORAL_VERSION:-1.30.2}
     container_name: temporal
     depends_on:
       temporal-admin-tools:
         condition: service_completed_successfully
+    # M-02 fix: custom entrypoint renders config/development-rendered.yaml at startup, substituting
+    # POSTGRES_PASSWORD and BROADCAST_ADDRESS, then starts with --config-file. Required because
+    # v1.30.2 ignores configDir entirely in favour of the embedded template, and the embedded
+    # template has no certFile/keyFile support in global.tls.frontend.client.
+    entrypoint: ["/scripts/temporal-entrypoint.sh"]
     environment:
-      - DB=postgres12
-      - DB_PORT=5432
-      - POSTGRES_USER=temporal
-      - POSTGRES_PWD=${POSTGRES_PASSWORD}
-      - POSTGRES_SEEDS=temporal-postgresql
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - BIND_ON_IP=0.0.0.0
-      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    # SECURITY[control]: mTLS configured in config/development-rendered.yaml.
+    # Closes L-01 from temporal-forge-2026-06 (requireClientAuth=true on frontend.server).
+    # M-02 fix: certFile/keyFile/serverName/rootCaFiles hardcoded in frontend.client section.
+    # Audit: temporal-mtls-2026-06.
     networks:
       - temporal-network
     ports:
       - "127.0.0.1:7233:7233"
     volumes:
-      - ./dynamicconfig:/etc/temporal/config/dynamicconfig:ro
+      - ./config:/etc/temporal/config:ro
+      - ./scripts:/scripts:ro
+      - ./tls:/etc/temporal/tls:ro
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 1g
+    cpus: "1.0"
+    # I-02 (deferred): nc tests port connectivity only, not TLS handshake health.
+    # A gRPC-aware check requires grpc_health_probe, not present in the upstream image.
+    # Accepted: false-positive risk is low (gRPC port only opens after TLS stack is up).
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "7233"]
       interval: 5s
@@ -68,7 +99,7 @@ services:
       retries: 60
 
   temporal-create-namespace:
-    image: temporalio/admin-tools:${TEMPORAL_VERSION:-1.26.2}
+    image: temporalio/admin-tools:${TEMPORAL_VERSION:-1.30.2}
     container_name: temporal-create-namespace
     restart: on-failure:5
     depends_on:
@@ -77,30 +108,57 @@ services:
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - DEFAULT_NAMESPACE=default
+      # mTLS client cert for namespace init against mTLS-enabled frontend.
+      - TEMPORAL_TLS_CA=/etc/temporal/tls/ca.crt
+      - TEMPORAL_TLS_CERT=/etc/temporal/tls/server.crt
+      - TEMPORAL_TLS_KEY=/etc/temporal/tls/server.key
+      - TEMPORAL_TLS_SERVER_NAME=localhost
     networks:
       - temporal-network
     volumes:
       - ./scripts:/scripts:ro
+      - ./tls:/etc/temporal/tls:ro
     entrypoint: ["/bin/sh"]
     command: /scripts/create-namespace.sh
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 128m
+    cpus: "0.1"
 
   temporal-ui:
-    image: temporalio/ui:${TEMPORAL_UI_VERSION:-2.34.0}
+    image: temporalio/ui:${TEMPORAL_UI_VERSION:-2.48.1}
     container_name: temporal-ui
     depends_on:
       temporal:
         condition: service_healthy
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
-      - TEMPORAL_CORS_ORIGINS=https://temporal.yourdomain
+      - TEMPORAL_CORS_ORIGINS=https://temporal.helmforge.me
+      # M-03 fix: mTLS client cert for UI → frontend connection.
+      # Audit: temporal-mtls-2026-06.
+      - TEMPORAL_TLS_CA=/etc/temporal/tls/ca.crt
+      - TEMPORAL_TLS_CERT=/etc/temporal/tls/server.crt
+      - TEMPORAL_TLS_KEY=/etc/temporal/tls/server.key
+      - TEMPORAL_TLS_ENABLE_HOST_VERIFICATION=true
+      - TEMPORAL_TLS_SERVER_NAME=localhost
+    volumes:
+      - ./tls:/etc/temporal/tls:ro
     networks:
       - temporal-network
-      - claudebox-net
+      - forge-net
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 256m
+    cpus: "0.25"
 
 networks:
   temporal-network:
     name: temporal-network
     driver: bridge
-  claudebox-net:
+  forge-net:
     external: true

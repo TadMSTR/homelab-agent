@@ -1,0 +1,127 @@
+services:
+  server:
+    image: ghcr.io/patchmon/patchmon-server:2.0.2@sha256:eaa1bcce290c7003cff01a96cfc893a64cb144e582e9b797875e6381f56b297a
+    container_name: patchmon-server
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:3005:3000"
+    depends_on:
+      database:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      guacd:
+        condition: service_healthy
+    networks:
+      - patchmon-internal
+      - forge-net
+    extra_hosts:
+      - "auth.helmforge.me:172.20.1.20"
+    cap_drop:
+      - ALL
+    mem_limit: 1g
+    cpus: '1.0'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  database:
+    image: postgres:17-alpine@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
+    container_name: patchmon-database
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: patchmon_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: patchmon_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - patchmon-internal
+    # DC-05: postgres:17-alpine uses gosu to switch from root→postgres at init,
+    # requiring SETUID/SETGID. cap_drop: ALL would break startup (upstream constraint).
+    mem_limit: 512m
+    cpus: '0.5'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U patchmon_user -d patchmon_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  valkey:
+    image: valkey/valkey:8-alpine@sha256:b027235326507cfdade9b6684056ec1d0b0c0757412e628245129b5d7b788618
+    container_name: patchmon-valkey
+    restart: unless-stopped
+    user: valkey
+    env_file: .env
+    command: valkey-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - valkey_data:/data
+    networks:
+      - patchmon-internal
+      - grafana-datasources
+    cap_drop:
+      - ALL
+    mem_limit: 128m
+    cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "valkey-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 7
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  guacd:
+    image: guacamole/guacd:1.6.0@sha256:8974eaa9ba32f713daf311e7cc8cd7e4cdfba1edea39eed75524e78ef4b08f4f
+    container_name: patchmon-guacd
+    restart: unless-stopped
+    networks:
+      - patchmon-internal
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    mem_limit: 512m
+    cpus: '1.0'
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4822 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  postgres_data:
+  valkey_data:
+
+networks:
+  patchmon-internal:
+    driver: bridge
+  forge-net:
+    external: true
+  grafana-datasources:
+    external: true

@@ -1,0 +1,44 @@
+# Writer Agent — Forge
+
+Focus: Documentation for forge tools, services, and infrastructure.
+
+## Purpose
+
+The writer agent maintains all public and internal documentation:
+
+1. **MCP server READMEs** — public GitHub repos (TadMSTR/*)
+2. **Component docs** — operational reference for each forge service
+3. **Phase docs** — build completion records
+4. **Runbooks** — operational procedures
+
+## Session Start
+
+1. Check task queue: `task-queue-mcp: list_tasks(agent="writer", status="pending")`
+2. Check doc queue: `~/.claude/memory/shared/doc-update-queue.jsonl`
+3. Process in priority order
+
+## Key Tools
+
+| Tool | Purpose |
+|------|---------|
+| `system-ops` | Read source code and config to document it |
+| `githost-mcp` | Commit and push docs |
+| `qmd` | Pull current service state before writing |
+| `task-queue-mcp` | Receive doc tasks from other agents |
+| `matrix-mcp` | Ask questions when blocked |
+
+## Doc Routing
+
+| Type | Repo | Path |
+|------|------|------|
+| `mcp-readme` | `TadMSTR/<repo>` (GitHub) | `README.md` |
+| `component` | `helm-platform` | `docs/components/<service>.md` |
+| `phase-doc` | `helm-platform` | `docs/phases/<build>.md` |
+| `services` | `host-forge` | `services.md` |
+| `runbook` | `helm-platform` | `docs/operations/runbooks.md` |
+
+## Rules
+
+- Commit doc-only changes directly to main (no PRs needed)
+- Read current state via `qmd` before writing service docs
+- Do not edit code — hand off to developer

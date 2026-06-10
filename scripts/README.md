@@ -1,47 +1,71 @@
 # Scripts
 
-Utility scripts for backup, monitoring, reindexing, and maintenance. Most are executed by PM2 cron jobs (see [`pm2/ecosystem.config.js.example`](../pm2/ecosystem.config.js.example)) but can be run standalone.
+Maintenance and monitoring scripts for the Helm platform. These run as PM2 processes or cron jobs on the forge host.
 
-## Scripts
+## Platform Maintenance
 
-| Script | PM2 Job | What It Does |
+| Script | Purpose | How It Runs |
 |--------|---------|-------------|
-| [git-snapshot.sh](git-snapshot.sh) | *(system cron)* | Commits and pushes uncommitted changes in tracked config repos (docker, scripts, appdata, context repo). Runs nightly before backup. Skips repos with no changes. |
-| [docker-stack-backup.sh](docker-stack-backup.sh) | docker-stack-backup | Discovers Compose stacks, stops containers, archives appdata + compose files, restarts. Supports dry-run, configurable compression, retry logic, and notifications (ntfy, Pushover, email). |
-| [memory-sync.sh](memory-sync.sh) | memory-sync | Runs Claude Code in headless mode to distill durable knowledge from agent memory and LibreChat conversations into the context repo. |
-| [qmd-reindex.sh](qmd-reindex.sh) | qmd-reindex | Pulls latest from all configured git repos and re-runs `qmd index` to refresh the semantic search index. |
-| [check-qmd-repos.sh](check-qmd-repos.sh) | qmd-repo-check | Scans the personal repos directory for git repos not yet in the QMD index. Auto-adds each new repo to `~/.config/qmd/index.yml` with a default file pattern and triggers a reindex. Sends a push notification listing what was added. |
-| [check-resources.sh](check-resources.sh) | resource-monitor | Checks RAM, disk, Docker health, PM2 status, and NFS mount availability. Alerts via push notification if thresholds are exceeded. |
-| [check-dep-updates.sh](check-dep-updates.sh) | dep-update-check | Checks npm global packages, pip packages, Docker images, and Claude Code for available updates. |
-| claude-update.sh | updater *(4:30 AM daily)* | Full automated updater: soak-windowed Claude Code and Docker updates, apt check, parallel agent self-checks (7 agents), Matrix notification, and Gitea update log. Configured via `updater-config.yml`. See [updater component doc](../docs/components/updater.md). |
+| `btrbk-daily.sh` | Btrfs snapshot creation (daily) | PM2 cron, daily |
+| `btrfs-scrub-monthly.sh` | Btrfs filesystem scrub | PM2 cron, monthly |
+| `build-unblock-scan.sh` | Scans for build blockers before agent sessions | On-demand / agent-triggered |
+| `drift-detector-scan.sh` | Detects config drift between tracked repos and deployed state | PM2 cron, daily |
+| `git-drift-alert.sh` | Alerts via Matrix when git repos have uncommitted changes | PM2 cron |
+| `send-matrix.sh` | Send a message to a Matrix room | Utility, called by other scripts |
+| `vault-seal-watcher.sh` | Monitors HashiCorp Vault seal status, alerts on seal | PM2 always-on |
 
-## Usage
+## Monitoring
 
-All scripts are designed to run unattended but support manual execution:
+| Script | Purpose | How It Runs |
+|--------|---------|-------------|
+| `disk-space-probe.sh` | Pushes disk usage metrics to InfluxDB | PM2 cron, every 5 min |
+| `snapshot-space-probe.sh` | Pushes Btrfs snapshot space metrics to InfluxDB | PM2 cron, every 5 min |
+| `doc-health.sh` | Checks documentation freshness and coverage | PM2 cron, daily |
 
-```bash
-# Dry-run a backup to see what would happen
-./docker-stack-backup.sh --dry-run
+## Memory Pipeline
 
-# Manually trigger a reindex
-./qmd-reindex.sh
+| Script | Purpose | How It Runs |
+|--------|---------|-------------|
+| `memory-pipeline.sh` | Main memory processing pipeline (promote + sync) | PM2 always-on |
+| `memory-promote-daily.sh` | Promotes working memory to distilled tier | PM2 cron, daily |
+| `memory-sync-weekly.sh` | Syncs memory across tiers and to backup | PM2 cron, weekly |
+| `memory-archive-mirror.sh` | Mirrors memory archives to NAS | PM2 cron |
+| `memory-expire.py` | Expires aged working memory notes | PM2 cron |
+| `memsearch-compact.sh` | Compacts memsearch index | PM2 cron |
+| `memsearch-watch-fast.sh` | Polls for new memory files and indexes them | PM2 always-on |
 
-# Check what repos are missing from the QMD index right now
-./check-qmd-repos.sh
+## Documentation & Search
 
-# Check system health now
-./check-resources.sh
-```
+| Script | Purpose | How It Runs |
+|--------|---------|-------------|
+| `qmd-refresh.sh` | Reindexes the QMD semantic search corpus | PM2 cron, hourly |
+| `doc-sync.py` | Syncs documentation from source repos to QMD | PM2 cron |
 
-```bash
-# Check what updates are pending without applying anything
-~/scripts/updater --check-only
-```
+## Agent Infrastructure
 
-## Related Docs
+| Script | Purpose | How It Runs |
+|--------|---------|-------------|
+| `task-dispatcher.py` | Routes incoming task queue entries to target agents | PM2 always-on |
 
-- [PM2 ecosystem config](../pm2/ecosystem.config.js.example) — Scheduling and service definitions
-- [Backups](../docs/components/backups.md) — Full backup strategy including these scripts
-- [memory-sync](../docs/components/memory-sync.md) — Knowledge distillation pipeline details
-- [qmd](../docs/components/qmd.md) — QMD index configuration and reindexing details
-- [updater](../docs/components/updater.md) — Soak-windowed update automation details
+## What Was Removed from the Previous Version
+
+The following claudebox-era scripts are not included because they have forge equivalents or were superseded:
+
+| Removed | Replaced by |
+|---------|-------------|
+| `docker-stack-backup.sh` | Backrest (containerized backup service) |
+| `memory-sync.sh` | `memory-pipeline.sh` + PM2 cron jobs |
+| `trigger-proxy.py` | Removed — OAuth bridge replaced by Authentik outpost |
+| `check-resources.sh` | Grafana dashboards + Telegraf metrics |
+| `check-dep-updates.sh` | Renovate (containerized) |
+| `qmd-reindex.sh` | `qmd-refresh.sh` |
+| `git-snapshot.sh` | Backrest + btrbk snapshots |
+
+## Environment
+
+All scripts use `$HOME` for paths. Replace hostnames and IPs with your values:
+- `<server-ip>` — your server's LAN IP
+- `<nas-ip>` — your NAS or backup target IP
+- `<lan-subnet>` — your LAN subnet in CIDR notation
+
+The `send-matrix.sh` script requires `~/.secrets/matrix.env` with `MATRIX_URL`, `MATRIX_TOKEN`, and `MATRIX_ROOM_ID` set.

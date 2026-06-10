@@ -1,22 +1,10 @@
-# LibreChat Docker Stack
-#
-# Multi-provider chat UI with MongoDB for conversations and
-# Meilisearch for conversation search indexing.
-#
-# Prerequisites:
-#   - External Docker network (e.g., claudebox-net) already created
-#   - .env file with ANTHROPIC_API_KEY, MEILI_MASTER_KEY, and web search vars
-#   - librechat.yaml mounted into the container
-#
-# See docs/components/librechat.md for full setup context.
-
 services:
   librechat:
-    image: ghcr.io/danny-avila/librechat:v0.8.3
+    image: ghcr.io/danny-avila/librechat:v0.8.5
     container_name: librechat
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/LibreChat
-      - MEILI_HOST=http://meilisearch:7700
+      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@librechat-mongodb:27017/LibreChat?authSource=admin
+      - MEILI_HOST=http://librechat-meilisearch:7700
     env_file:
       - .env
     volumes:
@@ -27,79 +15,64 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - mongodb
-      - meilisearch
+      - librechat-mongodb
+      - librechat-meilisearch
     networks:
-      - your-network  # Replace with your shared Docker network
+      - forge-net
+      - librechat-internal
     restart: unless-stopped
 
-  mongodb:
-    image: mongo:7
+  librechat-mongodb:
+    image: mongo:7.0
     container_name: librechat-mongodb
+    command: ["mongod", "--auth"]
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
     volumes:
       - /opt/appdata/librechat/mongodb:/data/db
+      - /opt/appdata/librechat/mongodb-configdb:/data/configdb
     networks:
-      - your-network
+      - librechat-internal
     restart: unless-stopped
 
-  backrest-mcp:
-    image: ghcr.io/supercorp-ai/supergateway:latest
-    container_name: librechat-backrest-mcp
-    command: >
-      --stdio "node /app/build/src/index.js"
-      --outputTransport streamableHttp
-      --port 8000
-    volumes:
-      - /path/to/backrest-mcp-server:/app  # path to cloned backrest-mcp-server repo
-    environment:
-      - BACKREST_URL=http://host.docker.internal:9898
-      - BACKREST_USERNAME=YOUR_BACKREST_USERNAME
-      - BACKREST_PASSWORD=${BACKREST_MCP_PASSWORD}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - your-network
-    restart: unless-stopped
-
-  grafana-mcp:
-    image: mcp/grafana:latest
-    container_name: librechat-grafana-mcp
-    command: ["-t", "streamable-http"]
-    environment:
-      - GRAFANA_URL=http://YOUR_GRAFANA_HOST:3000
-      - GRAFANA_SERVICE_ACCOUNT_TOKEN=${GRAFANA_SERVICE_ACCOUNT_TOKEN}
-    networks:
-      - your-network
-    restart: unless-stopped
-
-  meilisearch:
-    image: getmeili/meilisearch:v1.37.0
+  librechat-meilisearch:
+    image: getmeili/meilisearch:v1.44.0
     container_name: librechat-meilisearch
     environment:
       - MEILI_NO_ANALYTICS=true
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
-    env_file:
-      - .env
     volumes:
       - /opt/appdata/librechat/meilisearch:/meili_data
     networks:
-      - your-network
+      - librechat-internal
     restart: unless-stopped
 
-  librechat-exporter:
-    image: ghcr.io/virtuos/librechat_exporter:main
-    container_name: librechat-exporter
+  librechat-mcp:
+    image: ghcr.io/tadmstr/librechat-mcp:latest
+    container_name: librechat-mcp
+    ports:
+      - "127.0.0.1:8496:8496"
     environment:
-      - MONGODB_URI=mongodb://YOUR_MONGO_USER:YOUR_MONGO_PASSWORD@mongodb:27017/?authSource=admin
-      - LOGGING_LEVEL=info
-    expose:
-      - "8000"
+      - LIBRECHAT_URL=http://librechat:3080
+      - LIBRECHAT_ADMIN_EMAIL=${LIBRECHAT_MCP_EMAIL}
+      - LIBRECHAT_ADMIN_PASSWORD=${LIBRECHAT_MCP_PASSWORD}
+      - MCP_PORT=8496
     depends_on:
-      - mongodb
+      - librechat
     networks:
-      - your-network  # Replace with your shared Docker network
+      - librechat-internal
     restart: unless-stopped
+    user: "1000:1000"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: "0.5"
 
 networks:
-  your-network:
+  forge-net:
     external: true
+  librechat-internal:
+    driver: bridge

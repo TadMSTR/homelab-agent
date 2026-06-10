@@ -1,76 +1,83 @@
 # loki-mcp
 
-loki-mcp is a read-only FastMCP server that exposes Loki log queries as MCP tools. Agents call it to search and tail logs from any labeled stream — application logs, PM2 output, system events — using LogQL without needing direct Loki API access.
+loki-mcp is a read-only FastMCP server that wraps Loki's LogQL HTTP API, giving the
+security and sysadmin agents programmatic access to forge log data without exposing
+Loki's ingest endpoints.
 
-**Repo:** `TadMSTR/loki-mcp`  
-**Deploy path:** `~/repos/personal/loki-mcp/`  
-**Transport:** stdio (PM2 process — no port binding)  
-**Version:** v0.1.0
+- **Package:** `loki-mcp` v0.1.1 (TadMSTR/loki-mcp)
+- **Repo:** `/home/ted/repos/personal/loki-mcp/`
+- **Venv:** `/home/ted/repos/personal/loki-mcp/.venv/`
+- **Transport:** stdio (launched via `run-loki-mcp.sh`)
+- **Loki URL:** `http://localhost:3100` (port 3100 published to `127.0.0.1:3100` in docker/observability/docker-compose.yml)
 
-## Why
-
-Claude Code agents need log access for diagnosis and audit work, but direct Loki API calls require LogQL fluency and HTTP auth handling from inside an agent context. loki-mcp wraps the Loki HTTP API in a typed MCP interface: agents describe what they want in plain terms (stream selector, time window, pattern) and get structured results back. Being read-only, it carries no write risk.
-
-## MCP Tools
-
-| Tool | Purpose |
-|------|---------|
-| `query_logs` | Run a LogQL log query over a time range, return matching lines |
-| `query_aggregate` | Run a LogQL metric query (rate, count_over_time, sum by label) |
-| `get_labels` | List all label names in the Loki instance |
-| `get_label_values` | List values for a specific label (e.g., all values of `{job}`) |
-| `get_streams` | List available log streams (label combinations with recent data) |
-| `tail_recent` | Fetch the N most recent lines from a stream without a time window |
-
-All tools are read-only. No write or delete operations are exposed.
-
-## Configuration
-
-| Env var | Default | Description |
-|---------|---------|-------------|
-| `LOKI_URL` | `http://localhost:3100` | Base URL of the Loki instance |
-
-No authentication is required — loki-mcp is intended for internal use on a host with local Loki access. If your Loki instance requires auth, add it to `LOKI_URL` or extend the implementation.
-
-## PM2 Setup
-
-loki-mcp runs as a stdio PM2 process alongside other MCP servers:
+## Installation
 
 ```bash
-pm2 start ecosystem.config.js --only loki-mcp
+cd /home/ted/repos/personal
+git clone https://github.com/TadMSTR/loki-mcp.git
+cd loki-mcp
+git checkout v0.1.1
+python3 -m venv .venv
+.venv/bin/pip install -e .
 ```
 
-The ecosystem entry uses `interpreter: "python3"` and sets `LOKI_URL` via `env`. Logs go to `~/.pm2/logs/loki-mcp-*.log`.
+## Launch Script
 
-## Usage Examples
+`/home/ted/scripts/run-loki-mcp.sh`:
 
-```python
-# Fetch the 50 most recent lines from the agent-bus process
-tail_recent(stream='{job="agent-bus"}', limit=50)
-
-# Search for errors in a time window
-query_logs(
-    query='{job="homelab-ops"} |= "ERROR"',
-    start="2026-05-26T00:00:00Z",
-    end="2026-05-26T23:59:59Z"
-)
-
-# Count error rate by job over the last hour
-query_aggregate(
-    query='sum by (job) (rate({job=~".+"} |= "ERROR" [5m]))',
-    start="now-1h",
-    end="now"
-)
+```bash
+#!/bin/bash
+set -euo pipefail
+export LOKI_URL="http://localhost:3100"
+exec /home/ted/repos/personal/loki-mcp/.venv/bin/python3 -m loki_mcp.server
 ```
 
-## Prerequisites
+## Tools (6, all read-only)
 
-Loki's HTTP port (default 3100) must be reachable from the host running loki-mcp. If Loki runs in a Docker stack on the same host, ensure the port is published to `localhost` or that the container network is accessible.
+| Tool | Description |
+|------|-------------|
+| `query_logs` | LogQL instant query — returns matching log lines |
+| `query_aggregate` | LogQL metric query — returns aggregated values |
+| `get_labels` | List all label names in Loki |
+| `get_label_values` | List values for a specific label |
+| `get_streams` | List active log streams |
+| `tail_recent` | Return recent log entries for a stream |
 
-## Gotchas and Lessons Learned
+No ingest, push, or delete endpoints are exposed. This is a read-only surface by design.
 
-**LogQL stream selectors are required.** Loki rejects queries without at least one label matcher (e.g., `{job="..."}` or `{job=~".+"}`). Bare pattern searches without a stream selector will error.
+## scoped-mcp Wiring
 
-**Time ranges must use RFC3339 or Loki's relative syntax.** `query_logs` and `query_aggregate` accept either ISO timestamps (`2026-05-26T00:00:00Z`) or Loki relative notation (`now-1h`). Plain integers (Unix nanoseconds) also work if needed.
+loki-mcp is added as a module to the security and sysadmin agent manifests:
 
-**`tail_recent` is not a live tail.** It fetches the N most recent lines at call time — it doesn't stream. For continuous monitoring, call it on a polling schedule or use `query_logs` with a sliding window.
+```yaml
+loki-mcp:
+  type: mcp_proxy
+  config:
+    command: /home/ted/scripts/run-loki-mcp.sh
+```
+
+The other 3 agents (research, developer, writer) do not have access — log data is
+security/ops-relevant only.
+
+## Observability
+
+Structured logging (structlog, JSON-L) is always on. Logs go to **stderr and a file simultaneously** — no configuration required.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOG_FILE` | `/opt/appdata/loki-mcp/logs/loki-mcp.log` | Log file path. Default is baked in; override to redirect. |
+| `LOG_LEVEL` | `INFO` | Structured log level. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | — | Enable OTEL tracing (`pip install loki-mcp[otel]`). |
+
+The log directory is created automatically on startup.
+
+## Security Notes
+
+- Read-only: no ingest tools exposed (SC-07 confirmed in security audit 2026-05-26)
+- stdio transport: no network binding, no external exposure
+- Loki port 3100 is bound to `127.0.0.1:3100` only — localhost-only, no SWAG proxy
+
+## Related Docs
+
+- [scoped-mcp-forge.md](scoped-mcp-forge.md) — agent proxy that loads loki-mcp
+- [forge-agent-setup.md](../phases/forge-agent-setup.md) — agent framework setup

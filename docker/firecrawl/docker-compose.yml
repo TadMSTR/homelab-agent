@@ -1,0 +1,90 @@
+services:
+  firecrawl-api:
+    image: trieve/firecrawl:v0.0.46
+    container_name: firecrawl-api
+    env_file:
+      - .env
+    environment:
+      # WORKAROUND: pnpm v9.x Corepack key mismatch with trieve/firecrawl:v0.0.46
+      # Remove when upgrading to v0.0.47+ or when upstream pnpm key is updated in image
+      - COREPACK_INTEGRITY_KEYS=0
+      - REDIS_URL=redis://:${FIRECRAWL_REDIS_PASSWORD}@firecrawl-redis:6379
+      - REDIS_RATE_LIMIT_URL=redis://:${FIRECRAWL_REDIS_PASSWORD}@firecrawl-redis:6379
+      - PLAYWRIGHT_MICROSERVICE_URL=http://firecrawl-puppeteer:3000
+      - PORT=3002
+      - HOST=0.0.0.0
+      - NUM_WORKERS_PER_QUEUE=4
+      - MAX_RAM=0.8
+      - MAX_CPU=0.8
+      - USE_DB_AUTHENTICATION=false
+    depends_on:
+      - firecrawl-redis
+      - firecrawl-puppeteer
+    ports:
+      - "127.0.0.1:3002:3002"
+    command: ["pnpm", "run", "start:production"]
+    networks:
+      - forge-net
+      - firecrawl-internal
+    restart: unless-stopped
+
+  firecrawl-worker:
+    image: trieve/firecrawl:v0.0.46
+    container_name: firecrawl-worker
+    env_file:
+      - .env
+    environment:
+      # WORKAROUND: pnpm v9.x Corepack key mismatch with trieve/firecrawl:v0.0.46
+      # Remove when upgrading to v0.0.47+ or when upstream pnpm key is updated in image
+      - COREPACK_INTEGRITY_KEYS=0
+      - REDIS_URL=redis://:${FIRECRAWL_REDIS_PASSWORD}@firecrawl-redis:6379
+      - REDIS_RATE_LIMIT_URL=redis://:${FIRECRAWL_REDIS_PASSWORD}@firecrawl-redis:6379
+      - PLAYWRIGHT_MICROSERVICE_URL=http://firecrawl-puppeteer:3000
+      - PORT=3002
+      - HOST=0.0.0.0
+      - NUM_WORKERS_PER_QUEUE=4
+      - MAX_RAM=0.8
+      - MAX_CPU=0.8
+      - USE_DB_AUTHENTICATION=false
+    depends_on:
+      - firecrawl-redis
+      - firecrawl-puppeteer
+      - firecrawl-api
+    command: ["pnpm", "run", "workers"]
+    networks:
+      - firecrawl-internal
+    restart: unless-stopped
+
+  firecrawl-puppeteer:
+    image: trieve/puppeteer-service-ts:v0.0.6
+    container_name: firecrawl-puppeteer
+    environment:
+      - PORT=3000
+      - MAX_CONCURRENCY=4
+    networks:
+      - firecrawl-internal
+    restart: unless-stopped
+
+  firecrawl-redis:
+    image: redis:7-alpine
+    container_name: firecrawl-redis
+    user: "999:999"
+    command: redis-server --bind 0.0.0.0 --requirepass ${FIRECRAWL_REDIS_PASSWORD}
+    env_file:
+      - .env
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - firecrawl-internal
+      - grafana-datasources
+
+networks:
+  forge-net:
+    external: true
+  firecrawl-internal:
+    driver: bridge
+  grafana-datasources:
+    external: true

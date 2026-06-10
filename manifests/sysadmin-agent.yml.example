@@ -1,0 +1,244 @@
+agent_type: sysadmin
+description: "Sysadmin agent — forge infrastructure ops"
+
+max_auto_risk: low
+interaction_permissions:
+  auto_approved:
+    - research    # build plan handoffs
+    - writer      # doc tasks
+  needs_approval:
+    - security    # infra changes from security always need Ted
+
+credentials:
+  source: vault
+  vault:
+    addr: "${VAULT_ADDR}"
+    auth: approle
+    role_id_env: VAULT_ROLE_ID
+    secret_id_env: VAULT_SECRET_ID
+    path: "agents/{agent_type}"
+    kv_version: 2
+
+modules:
+  system-ops:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8282/mcp
+
+  githost-mcp:
+    type: mcp_proxy
+    config:
+      command: /home/ted/repos/gitea/host-forge-scripts/scripts/run-githost-mcp-sysadmin.py
+      env:
+        AGENT_ID: sysadmin
+      # SECURITY[control]: log_args:true logs call arguments only — tool responses are NOT
+      # logged by scoped-mcp (confirmed in scoped_mcp/audit.py). woodpecker_get_logs response
+      # (pipeline output, may contain secrets) is never written to the agent audit trail.
+      # Audit: 2026-05-31/githost-mcp-expansion-2026-05.
+
+  patchmon-mcp:
+    type: mcp_proxy
+    config:
+      command: /home/ted/scripts/run-patchmon-mcp.sh
+
+  backrest-mcp:
+    type: mcp_proxy
+    config:
+      command: /home/ted/repos/personal/backrest-mcp/.venv/bin/backrest-mcp
+      env:
+        BACKREST_URL: "http://localhost:9898"
+        BACKREST_USERNAME: "${BACKREST_USERNAME}"
+        BACKREST_PASSWORD: "${BACKREST_PASSWORD}"
+        BACKREST_READONLY: "true"
+        BACKREST_ALLOW_DESTRUCTIVE: "false"
+        BACKREST_RESTORE_ALLOWED_PREFIX: "/tmp/backrest-restore/"
+        BACKREST_AUDIT_LOG: "/home/ted/logs/backrest-mcp-audit.jsonl"
+        LOG_LEVEL: "INFO"
+        LOG_FILE: "/home/ted/logs/backrest-mcp.log"
+      # Write tools (trigger_backup, do_repo_task, cancel_operation) disabled via READONLY=true.
+      # Set BACKREST_READONLY=false in env to enable; add to hitl.approval_required if write access granted.
+
+  dockhand-mcp:
+    type: mcp_proxy
+    config:
+      command: /home/ted/repos/personal/dockhand-mcp/.venv/bin/python3
+      args: ["-m", "dockhand_mcp.server"]
+      env:
+        DOCKHAND_ENDPOINT: "http://localhost:7777"
+
+  searxng-mcp:
+    type: mcp_proxy
+    config:
+      command: /home/ted/scripts/run-searxng-mcp.sh
+      tool_denylist:
+        - clear_cache
+
+  qmd:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8181/mcp
+
+  memory-metadata-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8490/mcp
+
+  memsearch-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8493/mcp
+      headers:
+        Authorization: "Bearer ${MEMSEARCH_API_TOKEN}"
+
+  task-queue-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8485/mcp
+
+  plane-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8495/mcp
+      headers:
+        Authorization: "Bearer ${PLANE_TOKEN}"
+        x-workspace-slug: "${PLANE_WORKSPACE}"
+
+  pm2-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8486/mcp
+
+  grafana-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8014/sse
+
+  loki-mcp:
+    type: mcp_proxy
+    config:
+      command: /home/ted/scripts/run-loki-mcp.sh
+
+  signoz-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8492/mcp
+      tool_denylist: []
+
+  claudebox-ops:
+    type: mcp_proxy
+    config:
+      url: http://<server-ip>:8282/mcp
+
+  agent-bus:
+    type: mcp_proxy
+    config:
+      command: /home/ted/repos/personal/agent-bus/venv/bin/python3
+      args: ["/home/ted/repos/personal/agent-bus/server.py"]
+
+  matrix:
+    config:
+      allowed_rooms:
+        - "<room-id>"    # #forge:helmforge.me
+        - "<room-id>"    # #announcements:helmforge.me
+
+  matrix-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8487/mcp
+
+  code-server-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8498/mcp
+
+rate_limits:
+  global: "60/minute"
+  per_tool:
+    "dockhand-mcp_container_action": "10/minute"
+    "dockhand-mcp_update_container": "3/hour"
+    "patchmon-mcp_approve_patch_run": "2/hour"
+    "pm2-mcp_stop_service": "5/minute"
+    "pm2-mcp_restart_service": "10/minute"
+    "claudebox-ops_run_command": "60/minute"
+    "signoz-mcp_search_traces": "30/minute"
+    "signoz-mcp_tail_logs": "30/minute"
+
+state_backend:
+  type: dragonfly
+  url: "${DRAGONFLY_URL}"
+
+hitl:
+  timeout_seconds: 300
+  approval_required:
+    - "dockhand-mcp_container_action"
+    - "dockhand-mcp_stack_action"
+    - "dockhand-mcp_update_container"
+    - "patchmon-mcp_approve_patch_run"
+    - "pm2-mcp_stop_service"
+    - "pm2-mcp_restart_service"
+    - "githost-mcp_gitea_pr_merge"
+    - "githost-mcp_woodpecker_pipeline_cancel"
+    # SECURITY[verified]: I-06 — HITL gate confirmed active 2026-05-31. gitea_pr_merge
+    # intercept tested in session; approval ID sysadmin-01.1858479cb409 issued and approved.
+  notify:
+    type: matrix
+    room: "<room-id>"   # #forge:helmforge.me
+
+audit:
+  agent_bus_emit: true
+  agent_bus_comms_dir: "~/.claude/comms"
+  log_args: true
+
+argument_filters:
+  - name: "credential-leak"
+    pattern: "(password|secret|api[_.]?key|bearer\\s+[A-Za-z0-9])"
+    fields: ["*"]
+    action: warn
+    case_insensitive: true
+
+  - name: "path-traversal"
+    pattern: "\\.\\./|\\.\\.\\\\"
+    fields: ["path", "file_path", "target", "src", "dst", "destination"]
+    action: block
+    decode: [url]
+
+  - name: "shell-injection-warn"
+    pattern: "rm\\s+-rf\\s+/|>\\s*/etc/|/etc/shadow|/etc/passwd"
+    fields: ["command"]
+    action: warn
+
+response_filters:
+  - name: "response-credential-leak"
+    pattern: "(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|AKIA[A-Z0-9]{16}|ya29\\.[a-zA-Z0-9_-]{50,})"
+    action: redact
+    decode: [base64]
+
+  - name: "response-injection-attempt"
+    pattern: "ignore (all |previous )?(instructions|prompt)|you are now|disregard your"
+    action: warn
+    case_insensitive: true
+
+workspace_access:
+  - path: ~/repos/gitea/host-forge-scripts/
+    access: readwrite
+    git_backed: true
+    branch_required: false
+  - path: ~/docker/
+    access: readwrite
+    git_backed: true
+    branch_required: false
+  - path: /opt/appdata/
+    access: readwrite
+    git_backed: true
+    branch_required: false
+  - path: ~/.claude/memory/agents/sysadmin/
+    access: readwrite
+    git_backed: false
+  - path: ~/.claude/memory/shared/
+    access: readwrite
+    git_backed: false
+  - path: ~/.claude/comms/
+    access: readwrite
+    git_backed: false
+  - path: /mnt/atlas/
+    access: readonly

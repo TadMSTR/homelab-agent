@@ -1,34 +1,29 @@
-# Dockhand — Docker stack manager UI
-#
-# Visual management for Docker Compose stacks. Provides a web UI for
-# viewing container status, logs, and managing stacks without SSH.
-# https://github.com/fnsys/dockhand
-#
-# Requires Docker socket access. The group_add GID must match your
-# host's docker group — check with: getent group docker | cut -d: -f3
-
 services:
   dockhand:
-    image: fnsys/dockhand:latest
+    image: fnsys/dockhand@sha256:656ae5ed674d79b8251de275ae4259043f60222bbab563c71ed8dd91edd0b660
     container_name: dockhand
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - DATA_DIR=/opt/appdata/dockhand
-    group_add:
-      - "999"  # Docker socket GID — check yours with: getent group docker
-    ports:
-      - "3000:3000"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /opt/appdata/dockhand:/opt/appdata/dockhand
-      # Mount your home dir or compose file locations so Dockhand can
-      # find and manage your stacks:
-      # - /home/youruser:/home/youruser
-    networks:
-      - your-network  # Replace with your shared Docker network
     restart: unless-stopped
+    user: "1000:1000"
+    group_add:
+      - "989"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /opt/appdata/dockhand:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/ted/docker:/home/ted/docker
+    ports:
+      - "127.0.0.1:7777:3000"
+    extra_hosts:
+      - "auth.helmforge.me:172.20.1.17"
+    networks:
+      - forge-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
 
 networks:
-  your-network:
+  forge-net:
     external: true

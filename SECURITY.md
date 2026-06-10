@@ -16,16 +16,18 @@ Include as much detail as possible: the affected component, steps to reproduce, 
 **In scope:**
 
 - Command injection via agent configuration, manifest inputs, or task payloads
-- Credential exposure through agent manifest files or configuration that embed secrets
-- Privilege escalation through agent task dispatch mechanisms
-- Dependency vulnerabilities with a plausible exploitation path in homelab-agent's usage
+- Credential exposure through agent manifest files or scoped-mcp configuration
+- Privilege escalation through agent task dispatch or HITL bypass
+- Argument filter or response filter bypass in scoped-mcp
+- Dependency vulnerabilities with a plausible exploitation path in this platform's usage
 
 **Out of scope:**
 
-- Vulnerabilities in the host system, underlying services, or MCP transport layer
+- Vulnerabilities in the host OS, underlying Docker services, or upstream MCP transport layer
 - Issues that require attacker control of configuration environment variables
   (operator-controlled trust boundaries, not input attack surfaces)
 - Theoretical weaknesses without a realistic attack path against the MCP tool surface
+- Findings already documented in the CHANGELOG as remediated
 
 ## Response Expectations
 

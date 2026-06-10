@@ -1,0 +1,21 @@
+services:
+  # ── Adblock proxy (HTTP proxy filter for searxng-mcp tiers 2+3) ─────────────
+  # Routes Crawl4AI and raw Node fetch through a @ghostery/adblocker HTTP proxy.
+  # Plain-HTTP ad/tracker requests are blocked with an empty 200 response.
+  # HTTPS CONNECT is tunneled without MITM.
+  # Port 8118 exposed to host so searxng-mcp (stdio, host process) can reach it.
+  adblock-proxy:
+    build:
+      context: /home/ted/repos/personal/searxng-mcp/docker/adblock-proxy
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8118:8118"
+    environment:
+      ADBLOCK_FILTERS_URL: "https://easylist.to/easylist/easylist.txt,https://easylist.to/easylist/easyprivacy.txt"
+      ADBLOCK_REFRESH_HOURS: "168"
+      LOG_BLOCKED: "false"
+    networks:
+      - fetch-net
+
+networks:
+  fetch-net:

@@ -1,9 +1,9 @@
-// PM2 Ecosystem Configuration — Example
+// PM2 Ecosystem Configuration — Forge Platform
 //
-// PM2 manages long-running services and scheduled jobs on the AI host.
+// PM2 manages long-running MCP services and scheduled background jobs.
 // Services fall into two categories:
-//   - Always-on: daemons that run continuously (qmd, cloudcli)
-//   - Scheduled: cron jobs that run at set intervals, then stop (backups, syncs, monitors)
+//   - Always-on: daemons that run continuously (MCP servers, watchers)
+//   - Scheduled: cron jobs that run at set intervals, then stop
 //
 // Install PM2: npm install -g pm2
 // Load this config: pm2 start ecosystem.config.js
@@ -13,250 +13,308 @@
 // Logs: ~/.pm2/logs/<name>-out.log, <name>-error.log
 // Monitor: pm2 monit
 
+const HOME = process.env.HOME;
+
 module.exports = {
   apps: [
 
     // =========================================================================
-    // ALWAYS-ON SERVICES
+    // ALWAYS-ON MCP SERVICES
     // =========================================================================
 
     {
-      // Semantic search MCP server (HTTP transport for multi-client access)
-      // Claude Desktop uses stdio transport separately; this serves LibreChat
-      // and any other HTTP MCP clients.
+      name: "agent-bus",
+      script: `${HOME}/repos/personal/agent-bus/server.py`,
+      autorestart: true,
+    },
+
+    {
       name: "qmd",
-      script: "/usr/bin/bash",
-      args: "-c 'qmd mcp --http --port 8181'",
-      env: {
-        QMD_HOST: "0.0.0.0",   // Bind to all interfaces (needed if other hosts connect)
-      },
-      autorestart: true,        // Restart if it crashes
-      max_restarts: 10,
+      script: `${HOME}/scripts/qmd-mcp.sh`,
+      autorestart: true,
     },
 
     {
-      // CloudCLI — richer browser-based Claude Code UI with file explorer,
-      // git integration, shell terminal, and MCP server management.
-      // Complements CUI rather than replacing it.
-      // See: https://github.com/siteboon/claudecodeui
-      // See: docs/components/cloudcli.md for proxy config and gotchas.
+      name: "memory-metadata-mcp",
+      script: `${HOME}/repos/personal/memory-metadata-mcp/server.py`,
+      autorestart: true,
+    },
+
+    {
+      name: "memory-search-mcp",
+      script: `${HOME}/repos/personal/memory-search-mcp/server.py`,
+      autorestart: true,
+    },
+
+    {
+      name: "memsearch-mcp",
+      script: "/opt/venvs/memsearch/bin/python3",
+      args: "-m memsearch.server",
+      autorestart: true,
+    },
+
+    {
+      name: "memsearch-summarize",
+      script: `${HOME}/repos/gitea/host-forge-scripts/scripts/run-memsearch-summarize.py`,
+      autorestart: true,
+    },
+
+    {
+      name: "memsearch-watch-fast",
+      script: `${HOME}/scripts/memsearch-watch-fast.sh`,
+      autorestart: true,
+    },
+
+    {
+      name: "memsearch-watch-templates",
+      script: `${HOME}/scripts/memsearch-watch-templates.sh`,
+      autorestart: true,
+    },
+
+    {
+      name: "memory-os-sync",
+      script: `${HOME}/scripts/memory-os-sync.py`,
+      autorestart: true,
+    },
+
+    {
+      name: "system-ops",
+      script: `${HOME}/repos/personal/homelab-ops-mcp/.venv/bin/python3`,
+      args: "-m homelab_ops_mcp.server",
+      autorestart: true,
+    },
+
+    {
+      name: "patchmon-mcp",
+      script: `${HOME}/repos/personal/patchmon-mcp/.venv/bin/python3`,
+      args: "-m patchmon_mcp.server",
+      autorestart: true,
+    },
+
+    {
+      name: "pm2-mcp",
+      script: `${HOME}/repos/personal/pm2-mcp/.venv/bin/python3`,
+      args: "-m pm2_mcp.server",
+      autorestart: true,
+    },
+
+    {
+      name: "signoz-mcp",
+      script: `${HOME}/repos/personal/signoz-mcp/.venv/bin/python`,
+      args: "-m signoz_mcp.server",
+      autorestart: true,
+    },
+
+    {
+      name: "matrix-mcp-forge",
+      script: `${HOME}/repos/personal/matrix-mcp/venv/bin/fastmcp`,
+      args: "run matrix_mcp:app",
+      autorestart: true,
+    },
+
+    {
+      name: "matrix-dispatcher-forge",
+      script: `${HOME}/repos/personal/matrix-dispatcher/start-forge.sh`,
+      autorestart: true,
+    },
+
+    {
+      name: "matrix-admin-bot-forge",
+      script: `${HOME}/repos/personal/matrix-admin-bot/venv/bin/python`,
+      args: "-m matrix_admin_bot",
+      autorestart: true,
+    },
+
+    {
+      name: "matrix-task-queue-bot",
+      script: `${HOME}/repos/personal/matrix-task-queue-bot/venv/bin/python`,
+      args: "-m matrix_task_queue_bot",
+      autorestart: true,
+    },
+
+    {
       name: "cloudcli",
-      cwd: "/home/YOUR_USER/apps/cloudcli",
-      script: "npm",
-      args: "start",
-      env: {
-        PORT: 3004,
-        VITE_IS_PLATFORM: "true",   // Required — routing breaks without this
-      },
+      script: `${HOME}/scripts/cloudcli.sh`,
       autorestart: true,
-      max_restarts: 10,
     },
 
     {
-      // Homelab operations MCP server — shell exec, file ops, and process
-      // inspection for Claude agents via HTTP MCP transport (port 8282).
-      // Desktop Commander (https://github.com/wonderwhy-er/DesktopCommanderMCP)
-      // is the typical underlying package; run it in HTTP mode so LibreChat
-      // and Claude Code can both reach it simultaneously.
-      // Wired into agents via the MCP server config (see mcp-servers/README.md).
-      name: "homelab-ops-mcp",
-      cwd: "/home/YOUR_USER/apps/homelab-ops-mcp",
-      script: "YOUR_START_COMMAND",
-      env: {
-        PORT: 8282,
-      },
+      name: "temporal-build-worker",
+      script: `${HOME}/repos/personal/temporal-build-worker/worker.py`,
       autorestart: true,
-      max_restarts: 10,
     },
 
     {
-      // Trigger proxy — local HTTP proxy that fires claude.ai RemoteTriggers
-      // on behalf of n8n (which runs in Docker and can't access Claude Code
-      // credentials directly). Binds to the Docker bridge IP (172.18.0.1)
-      // so only containers on the default bridge network can reach it.
-      // Reads OAuth token from ~/.claude/.credentials.json and refreshes
-      // automatically. Trigger IDs come from agent-manifests/.trigger-map.yml.
-      // See: scripts/trigger-proxy.py
-      name: "trigger-proxy",
-      script: "/home/YOUR_USER/scripts/trigger-proxy.py",
-      interpreter: "python3",
+      name: "plane-mcp",
+      script: `${HOME}/scripts/run-plane-mcp.sh`,
       autorestart: true,
-      max_restarts: 10,
     },
 
     {
-      // Agent panel — lightweight web UI for monitoring PM2 services,
-      // viewing logs, and inspecting agent activity from a browser.
-      name: "agent-panel",
-      cwd: "/home/YOUR_USER/apps/agent-panel",
-      script: "YOUR_START_COMMAND",
-      env: {
-        PORT: 3003,
-      },
+      name: "code-server-mcp",
+      script: `${HOME}/repos/personal/code-server-mcp/venv/bin/python3`,
+      args: "-m code_server_mcp",
       autorestart: true,
-      max_restarts: 10,
+    },
+
+    {
+      name: "vault-seal-watcher",
+      script: `${HOME}/scripts/vault-seal-watcher.sh`,
+      cron_restart: "*/5 * * * *",
+      autorestart: false,
     },
 
     // =========================================================================
-    // SCHEDULED JOBS (cron-triggered, run once then stop)
+    // SCHEDULED JOBS (cron_restart = run on schedule)
     // =========================================================================
-    //
-    // Pattern: autorestart: false + cron_restart = "run at schedule, don't loop"
-    // PM2 starts the script at cron time, script runs to completion, PM2 marks
-    // it as "stopped" until next cron trigger.
 
     {
-      // Agent task dispatcher — processes the task queue every 2 minutes.
-      // Routes submitted tasks to the appropriate agent based on manifests
-      // in ~/.claude/agent-manifests/. Auto-approves low-risk tasks, sends
-      // Matrix notification (#approvals) for tasks requiring approval. Fires
-      // n8n webhook on approval to trigger RemoteTrigger → agent session.
-      // Moves exhausted-retry tasks to dead-letters/ with Matrix alert (#task-queue).
-      // See: scripts/task-dispatcher.py
+      name: "qmd-refresh",
+      script: `${HOME}/scripts/qmd-refresh.sh`,
+      cron_restart: "0 * * * *",   // hourly
+      autorestart: false,
+    },
+
+    {
       name: "task-dispatcher",
-      script: "/home/YOUR_USER/scripts/task-dispatcher.py",
-      interpreter: "python3",
-      cron_restart: "*/2 * * * *",  // Every 2 minutes
+      script: `${HOME}/scripts/task-dispatcher.py`,
+      cron_restart: "*/2 * * * *",
       autorestart: false,
-      watch: false,
     },
 
     {
-      // Backup Docker appdata to NFS/remote storage
-      // Stops containers, rsyncs appdata, restarts containers.
-      name: "docker-stack-backup",
-      script: "/home/YOUR_USER/scripts/docker-stack-backup.sh",
-      interpreter: "bash",
-      cron_restart: "0 1 * * *",   // Daily at 1:00 AM
-      autorestart: false,
-      watch: false,
-    },
-
-    {
-      // Scan repos directory for collections not yet in the QMD index.
-      // Repos matching keywords (claude, claudebox, mcp) are auto-added to
-      // ~/.config/qmd/index.yml and a reindex is triggered. Everything else
-      // is reported via push notification for manual review.
-      // State is tracked — won't re-notify for the same pending set.
-      name: "qmd-repo-check",
-      script: "/home/YOUR_USER/scripts/check-qmd-repos.sh",
-      interpreter: "bash",
-      cron_restart: "0 9 * * *",   // Daily at 9:00 AM
-      autorestart: false,
-      watch: false,
-    },
-
-    {
-      // Sequential memory pipeline — runs memory-sync → memsearch-compact →
-      // qmd-reindex in order, waiting for each to complete before the next.
-      // Replaces three independent crons (4:00, 4:30, 5:00 AM) that had no
-      // dependency enforcement. memory-sync failure is non-fatal: compact and
-      // reindex still run on existing data. Lock at /tmp/memory-pipeline.lock
-      // prevents overlapping runs.
-      // See: claude-code/projects/memory-sync.md for memory-sync agent instructions.
-      name: "memory-pipeline",
-      script: "/home/YOUR_USER/scripts/memory-pipeline.sh",
-      interpreter: "bash",
-      cron_restart: "0 4 * * *",   // Daily at 4:00 AM
-      autorestart: false,
-      watch: false,
-    },
-
-    {
-      // Documentation health audit — drift, index, coverage, staleness, sanitization.
-      // Opus model for editorial judgment. Report-first: findings go to
-      // ~/.claude/memory/shared/doc-health-report.md, only index.md fixes auto-commit.
-      // Lock file at ~/.claude/doc-health.lock prevents overlapping runs.
-      // 20-minute timeout (Opus needs headroom for deeper reasoning).
-      name: "doc-health",
-      script: "/home/YOUR_USER/.claude/scripts/doc-health.sh",
-      interpreter: "bash",
-      cron_restart: "0 23 * * 0",   // Sundays at 11:00 PM
-      autorestart: false,
-      watch: false,
-    },
-
-    {
-      // Check for updates to pinned dependencies (qmd, memsearch, Authelia,
-      // Claude Code, etc). Posts report to Matrix #events if updates are available.
-      name: "dep-update-check",
-      script: "/home/YOUR_USER/scripts/check-dep-updates.sh",
-      interpreter: "bash",
-      cron_restart: "0 12 * * 3",  // Wednesdays at noon
-      autorestart: false,
-      watch: false,
-    },
-
-    {
-      // Health check — RAM, disk, Docker containers, PM2 services, NFS mounts.
-      // Sends alerts to Matrix #claudebox if anything is unhealthy.
-      name: "resource-monitor",
-      script: "/home/YOUR_USER/scripts/check-resources.sh",
-      interpreter: "bash",
-      cron_restart: "0 */6 * * *", // Every 6 hours
-      autorestart: false,
-      watch: false,
-    },
-
-    {
-      // Automated diagnostics — calls the agent panel's lightweight diagnostics
-      // API on a schedule and sends push alerts on failures. Covers Docker
-      // containers, PM2 services, NFS mounts, ports, TLS expiry, DNS, and
-      // cross-host ping. The panel defines the checks; this job triggers them.
-      // See: docs/components/diag-check.md
-      name: "diag-check",
-      script: "/home/YOUR_USER/scripts/run-diagnostics.sh",
-      interpreter: "bash",
-      cron_restart: "0 */6 * * *", // Every 6 hours
-      autorestart: false,
-      watch: false,
-    },
-
-    {
-      // Drift detector — checks for build close-out notes written in the last
-      // 15 minutes and verifies that expected audit reports exist. Lightweight
-      // structural check; sends no notification unless drift is found (logged only).
-      // See: scripts/drift-detector-scan.sh
       name: "drift-detector-scan",
-      script: "/home/YOUR_USER/scripts/drift-detector-scan.sh",
-      interpreter: "bash",
-      cron_restart: "*/15 * * * *",  // Every 15 minutes
+      script: `${HOME}/scripts/drift-detector-scan.sh`,
+      cron_restart: "*/15 * * * *",
       autorestart: false,
-      watch: false,
     },
 
     {
-      // Build-unblock scanner — reads build-plans/index.md and sends a Matrix
-      // notification to #claudebox when a blocked plan's dependency is complete.
-      // Prevents build plans from sitting unnoticed when their blocker resolves.
-      // See: scripts/build-unblock-scan.sh
       name: "build-unblock-scan",
-      script: "/home/YOUR_USER/scripts/build-unblock-scan.sh",
-      interpreter: "bash",
-      cron_restart: "*/30 * * * *",  // Every 30 minutes
+      script: `${HOME}/scripts/build-unblock-scan.sh`,
+      cron_restart: "*/30 * * * *",
       autorestart: false,
-      watch: false,
     },
 
-    // =========================================================================
-    // OPTIONAL: Issue/bug watchers
-    // =========================================================================
-    //
-    // If you're tracking specific upstream issues that affect your stack,
-    // you can add watchers that check GitHub issue status on a schedule.
-    // Remove these if you don't need them.
+    {
+      name: "git-drift-alert",
+      script: `${HOME}/scripts/git-drift-alert.sh`,
+      cron_restart: "*/30 * * * *",
+      autorestart: false,
+    },
 
     {
-      // Check whether a tracked upstream GitHub issue is resolved.
-      // Useful for issues that affect your stack and require a config
-      // change or workaround once fixed. Posts to Matrix #claudebox on resolution.
-      // Rename and update the script path to match the issue you're tracking.
-      name: "qmd-issue-check",
-      script: "/home/YOUR_USER/scripts/check-qmd-issue.sh",
-      interpreter: "bash",
-      cron_restart: "0 12 * * 1",  // Mondays at noon
+      name: "agent-bus-cleanup",
+      script: `${HOME}/repos/personal/agent-bus/cleanup.sh`,
+      cron_restart: "50 3 * * *",
       autorestart: false,
-      watch: false,
+    },
+
+    {
+      name: "agent-bus-reconcile",
+      script: `${HOME}/repos/personal/agent-bus/reconcile.py`,
+      cron_restart: "*/5 * * * *",
+      autorestart: false,
+    },
+
+    {
+      name: "doc-sync-daily",
+      script: "/opt/venvs/doc-sync/bin/python3",
+      args: `${HOME}/scripts/doc-sync.py`,
+      cron_restart: "0 3 * * *",
+      autorestart: false,
+    },
+
+    {
+      name: "doc-health-daily",
+      script: `${HOME}/scripts/doc-health.sh`,
+      cron_restart: "0 22 * * *",
+      autorestart: false,
+    },
+
+    {
+      name: "writer-doc-queue",
+      script: `${HOME}/scripts/writer-doc-queue-run.sh`,
+      cron_restart: "0 21 * * *",
+      autorestart: false,
+    },
+
+    {
+      name: "memory-promote-daily",
+      script: `${HOME}/scripts/memory-promote-daily.sh`,
+      cron_restart: "0 23 * * *",
+      autorestart: false,
+    },
+
+    {
+      name: "memory-pipeline",
+      script: `${HOME}/scripts/memory-pipeline.sh`,
+      cron_restart: "0 4 * * *",
+      autorestart: false,
+    },
+
+    {
+      name: "memory-sync-weekly",
+      script: `${HOME}/scripts/memory-sync-weekly.sh`,
+      cron_restart: "0 7 * * 1",   // Mondays
+      autorestart: false,
+    },
+
+    {
+      name: "memory-archive-mirror",
+      script: `${HOME}/scripts/memory-archive-mirror.sh`,
+      cron_restart: "30 2 * * *",
+      autorestart: false,
+    },
+
+    {
+      name: "memory-expire",
+      script: `${HOME}/scripts/memory-expire.py`,
+      cron_restart: "0 3 * * *",
+      autorestart: false,
+    },
+
+    {
+      name: "memsearch-compact",
+      script: `${HOME}/scripts/memsearch-compact.sh`,
+      cron_restart: "0 5 * * 0",   // Sundays
+      autorestart: false,
+    },
+
+    {
+      name: "btrbk-daily",
+      script: `${HOME}/scripts/btrbk-daily.sh`,
+      cron_restart: "0 3 * * *",
+      autorestart: false,
+    },
+
+    {
+      name: "btrfs-scrub-monthly",
+      script: `${HOME}/scripts/btrfs-scrub-monthly.sh`,
+      cron_restart: "0 2 1 * *",   // 1st of month
+      autorestart: false,
+    },
+
+    {
+      name: "snapshot-space-probe",
+      script: `${HOME}/scripts/snapshot-space-probe.sh`,
+      cron_restart: "*/15 * * * *",
+      autorestart: false,
+    },
+
+    {
+      name: "disk-space-probe",
+      script: `${HOME}/scripts/disk-space-probe.sh`,
+      cron_restart: "*/15 * * * *",
+      autorestart: false,
+    },
+
+    {
+      name: "renovate-cron",
+      // Renovate is run via a Docker one-shot; this triggers the container
+      script: `${HOME}/docker/renovate/run-renovate.sh`,
+      cron_restart: "0 * * * *",   // hourly
+      autorestart: false,
     },
 
   ],

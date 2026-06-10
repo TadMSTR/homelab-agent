@@ -1,0 +1,98 @@
+services:
+  agent-dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.37.2
+    container_name: agent-dragonfly
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - /opt/appdata/agent-platform/dragonfly:/data
+    command: >
+      dragonfly
+      --maxmemory=8gb
+      --proactor_threads=4
+      --requirepass ${DRAGONFLY_PASSWORD}
+      --logtostderr
+    networks:
+      - forge-net
+      - grafana-datasources
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  nats:
+    image: nats:2.12.6
+    container_name: nats
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    command: -c /etc/nats/nats.conf
+    volumes:
+      - /opt/appdata/agent-platform/nats:/data
+      - /opt/appdata/agent-platform/nats/nats.conf:/etc/nats/nats.conf:ro
+    ports:
+      - "127.0.0.1:4222:4222"
+      - "127.0.0.1:8222:8222"
+    networks:
+      - forge-net
+
+  ollama-queue-proxy:
+    image: ghcr.io/tadmstr/ollama-queue-proxy:0.3.0
+    container_name: ollama-queue-proxy
+    user: '1000:1000'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    ports:
+      - "127.0.0.1:11435:11435"
+      - "127.0.0.1:11436:11436"
+    volumes:
+      - /opt/appdata/agent-platform/ollama-queue-proxy/config.yml:/app/config.yml:ro
+    environment:
+      - OQP_CONFIG=/app/config.yml
+      - OQP_EMBEDDING_CACHE__BACKEND=redis://:${OQP_VALKEY_PASSWORD}@oqp-valkey:6379/0
+    networks:
+      - forge-net
+      - oqp-internal
+
+  oqp-valkey:
+    image: valkey/valkey:8-alpine
+    container_name: oqp-valkey
+    restart: unless-stopped
+    user: "999:999"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    command: valkey-server --requirepass ${OQP_VALKEY_PASSWORD}
+    networks:
+      - oqp-internal
+      - grafana-datasources
+
+networks:
+  forge-net:
+    external: true
+  oqp-internal:
+    internal: true
+  grafana-datasources:
+    external: true

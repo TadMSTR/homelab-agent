@@ -1,0 +1,27 @@
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - WEBUI_AUTH=true
+      - OPENAI_API_BASE_URL=http://gateway:8080/v1
+      - OPENAI_API_KEY=gateway-not-deployed-yet
+      - DEFAULT_MODELS=claude-default
+      - ENABLE_SIGNUP=false
+      - ENABLE_OAUTH_SIGNUP=true
+      - OAUTH_CLIENT_ID=${OPENWEBUI_OAUTH_CLIENT_ID}
+      - OPENID_PROVIDER_URL=https://auth.helmforge.me/application/o/open-webui/.well-known/openid-configuration
+      - OAUTH_PROVIDER_NAME=Authentik
+    extra_hosts:
+      - "auth.helmforge.me:172.20.1.3"
+    volumes:
+      - /opt/appdata/open-webui:/app/backend/data
+    networks:
+      - forge-net
+
+networks:
+  forge-net:
+    external: true

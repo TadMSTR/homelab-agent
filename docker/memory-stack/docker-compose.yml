@@ -1,0 +1,79 @@
+services:
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: milvus-etcd
+    restart: unless-stopped
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    command: >
+      etcd
+      --advertise-client-urls=http://milvus-etcd:2379
+      --listen-client-urls=http://0.0.0.0:2379
+      --data-dir=/etcd
+    volumes:
+      - /opt/appdata/memory-stack/milvus/etcd:/etcd
+    networks:
+      - memory-net
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  milvus-minio:
+    image: minio/minio:RELEASE.2023-03-13T19-46-17Z
+    container_name: milvus-minio
+    restart: unless-stopped
+    environment:
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    command: minio server /minio_data
+    volumes:
+      - /opt/appdata/memory-stack/milvus/minio:/minio_data
+    networks:
+      - memory-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  milvus:
+    image: milvusdb/milvus:v2.5.27
+    container_name: milvus
+    command: ["milvus", "run", "standalone"]
+    restart: unless-stopped
+    environment:
+      - ETCD_ENDPOINTS=milvus-etcd:2379
+      - MINIO_ADDRESS=milvus-minio:9000
+    volumes:
+      - /opt/appdata/memory-stack/milvus:/var/lib/milvus
+    ports:
+      - "127.0.0.1:19530:19530"
+    depends_on:
+      - milvus-etcd
+      - milvus-minio
+    networks:
+      - memory-net
+
+  opensearch:
+    image: opensearchproject/opensearch:2.17.0
+    container_name: opensearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx1g
+    volumes:
+      - /opt/appdata/memory-stack/opensearch:/usr/share/opensearch/data
+    ports:
+      - "127.0.0.1:9202:9200"
+    networks:
+      - memory-net
+
+networks:
+  memory-net:
+    name: memory-net

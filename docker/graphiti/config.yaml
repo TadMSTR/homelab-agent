@@ -1,5 +1,5 @@
-# Graphiti MCP Server Configuration
-# Based on config-docker-neo4j.yaml from image, customized for homelab
+# Graphiti MCP Server Configuration — forge
+# Based on config-docker-neo4j.yaml from image, customized for helm platform
 
 server:
   transport: "http"
@@ -8,7 +8,7 @@ server:
 
 llm:
   provider: "anthropic"
-  model: "claude-sonnet-4-6"
+  model: "claude-sonnet-4-6-20250514"
   temperature: 1.0
   max_tokens: 4096
 
@@ -25,8 +25,8 @@ embedder:
 
   providers:
     openai:
-      api_key: ${OPENAI_API_KEY}
-      api_url: ${OLLAMA_EMBEDDINGS_URL}  # e.g., http://your-ollama-host/v1
+      api_key: "${GRAPHITI_OPENAI_API_KEY}"
+      api_url: "http://host.docker.internal:11435/v1"
 
 database:
   provider: "neo4j"
@@ -40,12 +40,12 @@ database:
       use_parallel_runtime: ${USE_PARALLEL_RUNTIME:false}
 
 graphiti:
-  group_id: ${GRAPHITI_GROUP_ID:homelab}
+  group_id: ${GRAPHITI_GROUP_ID:helm}
   episode_id_prefix: ${EPISODE_ID_PREFIX:}
   user_id: ${USER_ID:mcp_user}
   entity_types:
     - name: "Service"
-      description: "A running service, container, or application in the homelab"
+      description: "A running service, container, or application in the helm platform"
     - name: "Host"
       description: "A physical or virtual machine"
     - name: "Network"
