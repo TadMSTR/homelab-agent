@@ -15,7 +15,7 @@ documented risk.
 Each agent manifest received a `tool_denylist` block (least-privilege) and `rate_limits` block.
 The sysadmin global limit is 60/minute; research and developer are 120/minute. High-cost tools
 (`searxng-mcp_search_and_summarize`, `system-ops_run_command`, all dockhand/patchmon/pm2 tools)
-have per-tool limits. See [scoped-mcp-forge.md](../components/scoped-mcp-forge.md) for the full
+have per-tool limits. See [scoped-mcp.md](../components/scoped-mcp.md) for the full
 table.
 
 ### HITL for sysadmin
@@ -108,7 +108,7 @@ approval workflow completes before treating HITL as production-ready.
 
 ## Related Docs
 
-- [scoped-mcp-forge.md](../components/scoped-mcp-forge.md) — full deployment reference with manifest details
+- [scoped-mcp.md](../components/scoped-mcp.md) — full deployment reference with manifest details
 - [loki-mcp.md](../components/loki-mcp.md) — read-only Loki query MCP (security + sysadmin)
 - [vault.md](../components/vault.md) — Vault AppRole auth and KV setup
 - [agent-bus.md](../components/agent-bus.md) — audit event bus and ed25519 signature verification

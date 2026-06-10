@@ -117,4 +117,4 @@ Replace `<room-id>` with your actual Matrix room IDs and `<server-ip>` with your
 
 ## Deployment
 
-See [`docs/components/scoped-mcp-forge.md`](../docs/components/scoped-mcp-forge.md) for the full deployment guide including PM2 config, environment setup, and Vault integration.
+See [`docs/components/scoped-mcp.md`](../docs/components/scoped-mcp.md) for the full deployment guide including PM2 config, environment setup, and Vault integration.

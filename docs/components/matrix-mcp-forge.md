@@ -52,4 +52,4 @@ Same tool surface as the claudebox matrix-mcp:
 
 - [synapse.md](synapse.md) — forge homeserver
 - [matrix-dispatcher-forge.md](matrix-dispatcher-forge.md) — message routing to forge agents
-- [scoped-mcp-forge.md](scoped-mcp-forge.md) — per-agent tool proxy that includes this MCP
+- [scoped-mcp.md](scoped-mcp.md) — per-agent tool proxy that includes this MCP

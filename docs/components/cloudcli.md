@@ -41,4 +41,4 @@ control is at the SWAG level.
 ## Related Docs
 
 - [swag.md](swag.md) — HTTPS reverse proxy
-- [scoped-mcp-forge.md](scoped-mcp-forge.md) — per-agent MCP tool proxy used in Claude Code sessions
+- [scoped-mcp.md](scoped-mcp.md) — per-agent MCP tool proxy used in Claude Code sessions

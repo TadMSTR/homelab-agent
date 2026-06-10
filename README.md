@@ -116,7 +116,7 @@ The two GPUs do separate jobs: the NVIDIA card handles LLM inference via Ollama;
 
 Five resident agents — `sysadmin`, `research`, `developer`, `writer`, `security` — run as scoped Claude Code projects. Each gets:
 
-**Scoped tool surface** — [scoped-mcp](docs/components/scoped-mcp-forge.md) proxies only the tools the agent's manifest allows. Agents see tool results, never credential values. A credential rotation in one agent has zero effect on others.
+**Scoped tool surface** — [scoped-mcp](docs/components/scoped-mcp.md) proxies only the tools the agent's manifest allows. Agents see tool results, never credential values. A credential rotation in one agent has zero effect on others.
 
 **Matrix dispatch** — [matrix-dispatcher-forge](docs/components/matrix-dispatcher-forge.md) polls each agent's Matrix room for messages from the operator and routes them into the right agent's project directory. Send a message from any Matrix client; the agent picks it up and replies in-thread.
 
