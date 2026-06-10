@@ -215,7 +215,7 @@ Key cross-references:
 | Component | Depends On | Used By |
 |-----------|-----------|---------|
 | `scoped-mcp` | All MCP servers | All agents |
-| `memsearch-mcp` | Milvus, OpenSearch, Reranker | All agents |
+| `memsearch-mcp` | Milvus, Reranker | All agents |
 | `matrix-dispatcher` | Synapse | All agents |
 | `matrix-mcp` | Synapse | All agents |
 | `agent-bus` | NATS | All agents |
