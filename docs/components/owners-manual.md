@@ -72,8 +72,8 @@ Static files are served directly by nginx from the built mkdocs site — no upst
 ## mkdocs Configuration
 
 ```yaml
-site_name: Helm Owner's Manual
-site_description: Auto-generated platform reference for Helm forge
+site_name: homelab-agent Owner's Manual
+site_description: Auto-generated platform reference for homelab-agent on forge
 theme:
   name: material
   palette:
