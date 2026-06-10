@@ -1,6 +1,6 @@
 # Scripts
 
-Maintenance and monitoring scripts for the Helm platform. These run as PM2 processes or cron jobs on the forge host.
+Maintenance and monitoring scripts for the homelab-agent platform. These run as PM2 processes or cron jobs on the forge host.
 
 ## Platform Maintenance
 

@@ -5,7 +5,7 @@
 
 ## What Was Built
 
-Full Matrix/Synapse homeserver stack on forge as the Helm platform communications backbone.
+Full Matrix/Synapse homeserver stack on forge as the homelab-agent platform communications backbone.
 Synapse v1.153.0 with PostgreSQL backend, SWAG reverse proxy with well-known delegation,
 Ketesa admin UI gated by Authentik, and three PM2-managed services enabling agent-to-agent
 Matrix communication.

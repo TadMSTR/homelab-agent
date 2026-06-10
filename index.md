@@ -1,6 +1,6 @@
 # homelab-agent — Document Index
 
-Machine-readable navigation index for the Helm platform repository. Load only the sections relevant to your task — don't load everything at once.
+Machine-readable navigation index for the homelab-agent platform repository. Load only the sections relevant to your task — don't load everything at once.
 
 ## Repo Map
 

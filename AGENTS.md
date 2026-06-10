@@ -1,6 +1,6 @@
 # AGENTS.md — homelab-agent
 
-Public reference repository documenting the Helm platform — a multi-agent AI homelab built on Claude Code running on forge. Covers the full three-layer architecture: dedicated host, self-hosted Docker service stack, and a five-agent Claude Code engine with scoped tool surfaces, persistent memory, and Matrix-based dispatch.
+Public reference repository documenting the homelab-agent platform — a multi-agent AI homelab built on Claude Code running on forge. Covers the full three-layer architecture: dedicated host, self-hosted Docker service stack, and a five-agent Claude Code engine with scoped tool surfaces, persistent memory, and Matrix-based dispatch.
 
 ## Purpose
 

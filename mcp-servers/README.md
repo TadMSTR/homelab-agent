@@ -1,6 +1,6 @@
 # MCP Servers
 
-The Helm platform uses [scoped-mcp](../docs/components/scoped-mcp-forge.md) to give each agent a controlled MCP tool surface. This is different from the direct Claude Desktop stdio-transport pattern documented in the previous version of this repo.
+The homelab-agent platform uses [scoped-mcp](../docs/components/scoped-mcp-forge.md) to give each agent a controlled MCP tool surface. This is different from the direct Claude Desktop stdio-transport pattern documented in the previous version of this repo.
 
 ## Architecture
 

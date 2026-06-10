@@ -1,6 +1,6 @@
 # Owner's Manual
 
-The Owner's Manual is a living reference document for the Helm platform, auto-generated from live system state by the docs agent (The Archivists). It covers hardware specs, running services, agent inventory, networking, backups, secrets layout, PM2 processes, update history, security posture, and troubleshooting.
+The Owner's Manual is a living reference document for the homelab-agent platform, auto-generated from live system state by the docs agent (The Archivists). It covers hardware specs, running services, agent inventory, networking, backups, secrets layout, PM2 processes, update history, security posture, and troubleshooting.
 
 ## Infrastructure
 

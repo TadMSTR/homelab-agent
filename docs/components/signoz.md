@@ -1,6 +1,6 @@
 # SigNoz
 
-SigNoz is an open-source APM and observability platform built on OpenTelemetry. On forge it collects distributed traces, metrics, and logs from Helm platform services via OTLP — including telemetry forwarded from claudebox's Alloy instance.
+SigNoz is an open-source APM and observability platform built on OpenTelemetry. On forge it collects distributed traces, metrics, and logs from homelab-agent platform services via OTLP — including telemetry forwarded from claudebox's Alloy instance.
 
 - **Version:** 0.118.0
 - **URL:** `https://signoz.helmforge.me`

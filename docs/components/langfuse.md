@@ -1,6 +1,6 @@
 # Langfuse
 
-Langfuse is an open-source LLM engineering platform — traces, evaluations, prompt management, and metrics for AI applications. On forge it serves as the primary observability layer for Helm agent pipelines, capturing LLM spans, token usage, and evaluation results from any service that instruments with an OpenTelemetry-compatible SDK.
+Langfuse is an open-source LLM engineering platform — traces, evaluations, prompt management, and metrics for AI applications. On forge it serves as the primary observability layer for homelab-agent pipelines, capturing LLM spans, token usage, and evaluation results from any service that instruments with an OpenTelemetry-compatible SDK.
 
 - **Version:** 3.167.4
 - **URL:** `https://langfuse.helmforge.me`
@@ -134,7 +134,7 @@ environment:
   DFLY_requirepass: ${LANGFUSE_DRAGONFLY_PASSWORD}
 ```
 
-**512MB / 2 threads** — forge-wide Dragonfly constraint: minimum 256MB maxmemory per proactor thread. At 512MB, 2 threads is the maximum safe configuration. This is distinct from the standalone Dragonfly instance (`dragonfly` container at `127.0.0.1:6380`) used by Helm agents — that one gets 2GB / 4 threads.
+**512MB / 2 threads** — forge-wide Dragonfly constraint: minimum 256MB maxmemory per proactor thread. At 512MB, 2 threads is the maximum safe configuration. This is distinct from the standalone Dragonfly instance (`dragonfly` container at `127.0.0.1:6380`) used by forge agents — that one gets 2GB / 4 threads.
 
 Password is set via `DFLY_requirepass` environment variable, not `--requirepass` CLI arg. The CLI arg approach embeds the plaintext password in `docker inspect` output.
 
@@ -217,6 +217,6 @@ Priority order if restoring selectively:
 
 ## Related Docs
 
-- [dragonfly.md](dragonfly.md) — standalone Dragonfly for Helm agents (different instance, 2GB/4 threads)
+- [dragonfly.md](dragonfly.md) — standalone Dragonfly for forge agents (different instance, 2GB/4 threads)
 - [phase-analytics-stack.md](../phases/phase-analytics-stack.md) — build narrative for this stack
 - [signoz.md](signoz.md) — companion APM/observability stack

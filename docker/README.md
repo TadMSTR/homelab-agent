@@ -1,6 +1,6 @@
 # Docker Stacks
 
-Docker Compose stacks for the Helm platform running on forge. Each directory is a self-contained stack with a `docker-compose.yml` and a `.env.example` template.
+Docker Compose stacks for the homelab-agent platform running on forge. Each directory is a self-contained stack with a `docker-compose.yml` and a `.env.example` template.
 
 ## Layout
 

@@ -1,6 +1,6 @@
 # Claude Code Configuration
 
-Example Claude Code project configurations for the Helm platform's five resident agents. These show how each agent is scoped, what tools it uses, and how sessions are structured.
+Example Claude Code project configurations for the homelab-agent platform's five resident agents. These show how each agent is scoped, what tools it uses, and how sessions are structured.
 
 ## Files
 

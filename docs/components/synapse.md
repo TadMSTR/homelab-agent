@@ -1,6 +1,6 @@
 # Synapse (forge)
 
-Synapse is the Matrix homeserver for the Helm platform, running on forge and serving
+Synapse is the Matrix homeserver for the homelab-agent platform, running on forge and serving
 `helmforge.me`. It provides the Matrix communications backbone for forge's operator
 agents — the same role that claudebox's Synapse plays for claudebox agents, but scoped to
 the forge environment.

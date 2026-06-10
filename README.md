@@ -4,11 +4,11 @@
 [![Built with Claude](https://img.shields.io/badge/Built%20with-Claude-blueviolet)](https://claude.ai)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-enabled-blueviolet)](https://claude.ai/code)
 
-![Helm Platform](docs/assets/banner.png)
+![homelab-agent banner](docs/assets/banner.png)
 
 I rebuilt my AI homelab platform on more capable hardware and documented everything from scratch. Five purpose-built agents share a memory system, run unattended builds, and stay reachable from any Matrix client or browser. This repo is that documentation — every Docker service, every PM2 process, every design decision that got it here.
 
-The platform is called **Helm**. The host is **forge** — a [Minisforum MS-A2](https://www.minisforum.com/product/ms-a2/) running Debian 13, 55+ containers, and a multi-agent Claude Code engine.
+The host is **forge** — a [Minisforum MS-A2](https://www.minisforum.com/product/ms-a2/) running Debian 13, 55+ containers, and a multi-agent Claude Code engine.
 
 > Previously documented a claudebox-era build. That build is archived at tag `archive/claudebox-v1` and branch `archive/claudebox`.
 
