@@ -76,4 +76,4 @@ Each agent has its own:
 - Memory path — `~/.claude/memory/agents/<agent>/`
 
 Agents share `~/.claude/memory/shared/` for cross-agent communication.
-See [`docs/components/scoped-mcp-forge.md`](../docs/components/scoped-mcp-forge.md) for architecture details.
+See [`docs/components/scoped-mcp.md`](../docs/components/scoped-mcp.md) for architecture details.

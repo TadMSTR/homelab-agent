@@ -10,6 +10,30 @@ to third-party search APIs.
 - **Transport:** stdio — spawned per agent session via `/home/ted/scripts/run-searxng-mcp.sh`
 - **Runtime:** Node.js 20+
 
+## Architecture
+
+```mermaid
+flowchart TD
+    agent["Forge agent"]
+    agent -->|"stdio via run-searxng-mcp.sh"| mcp["searxng-mcp"]
+
+    mcp -->|"expand query (optional)"| ollama["Ollama :11435\nquery expansion"]
+    mcp -->|"search"| searxng["SearXNG :8081"]
+    searxng --> results["raw results"]
+    results -->|"rerank"| reranker["Reranker :8787\n(ML model)"]
+    reranker --> ranked["ranked results → agent"]
+
+    mcp -->|"fetch_url / search_and_fetch"| cascade["Fetch cascade\n(see below)"]
+    cascade --> content["page markdown → agent"]
+
+    mcp -->|"cache reads/writes"| dragonfly["Dragonfly :6381\n(search 1h · fetch 3d · crawl 6h)"]
+
+    mcp -->|"search_and_summarize"| ollama2["Ollama :11435\nsummarize model"]
+
+    mcp -->|"events"| nats["NATS :4222\nevents.searxng.*"]
+    mcp -->|"traces"| signoz["SigNoz OTLP :4318"]
+```
+
 ## Tools (6)
 
 | Tool | Description |
@@ -23,14 +47,55 @@ to third-party search APIs.
 
 ## Fetch Cascade
 
-`fetch_url` uses a multi-tier strategy with per-domain success tracking:
+`fetch_url` uses a multi-tier strategy with per-domain success tracking. Tiers are tried in
+order; each failure falls through to the next. Per-domain success rates are tracked in
+Dragonfly — if a domain's success rate drops below 30% over 10+ tries, that tier is skipped.
 
-1. **Fast paths** — Kiwix (offline Wikipedia/SO/Arch Wiki), Hister (browser history), GitHub raw, llms.txt
-2. **Firecrawl** — JS-rendered extraction (port 3002)
-3. **Crawl4AI** — fallback extraction (port 11235)
-4. **Raw HTTP** — direct fetch with readability extraction
+```mermaid
+flowchart TD
+    entry["fetchPage(url)"]
+    cache{"Valkey\ncache hit?"}
+    cached["return cached result"]
+    github{"github.com?"}
+    gh_fetch["GitHub API / raw.githubusercontent.com"]
+    llms{"llms.txt domain?"}
+    llms_fetch["Probe /llms-full.txt → extract section"]
+    kiwix{"Kiwix host?\nKIWIX_URL set"}
+    kiwix_fetch["Kiwix ZIM\nWikipedia · Stack Overflow · Arch Wiki"]
+    pdf{".pdf URL?"}
+    robots["robots.txt pre-check\ndisallowed → error (cached 24h)"]
+    tier_skip(["Per-domain tier skip\n&lt;30% success rate over ≥10 tries\nor operator override"])
+    t1["Tier 1 — Firecrawl :3002\nJS-rendered extraction"]
+    t2["Tier 2 — Crawl4AI :11235\n(optional · adblock proxy if set)"]
+    t3["Tier 3 — Raw HTTP + Readability\n(adblock proxy if set)"]
+    t4["Tier 4 — Wayback Machine\n(opt-in · WAYBACK_ENABLED=true)"]
+    post["Post-extraction\ntitle cascade · JSON-LD"]
+    result["return { title, url, text }"]
 
-Robots.txt compliance is enforced. Adblock filtering available via `ADBLOCK_PROXY_URL`.
+    entry --> cache
+    cache -->|hit| cached
+    cache -->|miss| github
+    github -->|yes| gh_fetch
+    github -->|no| llms
+    llms -->|yes| llms_fetch
+    llms -->|no| kiwix
+    kiwix -->|yes| kiwix_fetch
+    kiwix -->|no| pdf
+    pdf -->|"yes — skip tier 1"| t2
+    pdf -->|no| robots
+    robots --> tier_skip --> t1
+    t1 -->|success| post
+    t1 -->|"empty / error"| t2
+    t2 -->|success| post
+    t2 -->|"empty / error"| t3
+    t3 -->|success| post
+    t3 -->|"empty / error"| t4
+    t4 --> result
+    post --> result
+```
+
+Robots.txt compliance is enforced on tiers 1–3. Adblock filtering is available via
+`ADBLOCK_PROXY_URL` (applied to tiers 2 and 3).
 
 ## Environment Variables
 

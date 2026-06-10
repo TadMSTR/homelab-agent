@@ -108,29 +108,66 @@ nats -s nats://helm-health:<password>@localhost:4222 pub events.platform.health 
 
 ## Subject Topology
 
-```
-tasks.research.>          ← agent-research task queue
-tasks.sysadmin.>          ← agent-sysadmin task queue
-tasks.security.>          ← agent-security task queue
-tasks.writer.>            ← agent-writer task queue
-tasks.developer.>         ← agent-developer task queue
-tasks.helm-build.>        ← helm-build task queue (legacy)
-tasks.health.>            ← helm-health task queue (legacy)
-tasks.update.>            ← helm-update task queue (legacy)
-tasks.docs.>              ← helm-docs task queue (legacy)
+```mermaid
+flowchart TD
+    root["NATS subjects"]
 
-events.research.>         ← agent-research event log
-events.sysadmin.>         ← agent-sysadmin event log
-events.security.>         ← agent-security event log
-events.writer.>           ← agent-writer event log
-events.developer.>        ← agent-developer event log
-events.searxng.>          ← searxng-mcp events
-events.platform.health    ← health check results (helm-health)
-events.platform.alerts    ← platform alert events
-alerts.security.>         ← security alerts
+    root --> tasks["tasks.*"]
+    root --> events["events.*"]
+    root --> alerts["alerts.*"]
+
+    tasks --> t_research["tasks.research.>"]
+    tasks --> t_sysadmin["tasks.sysadmin.>"]
+    tasks --> t_security["tasks.security.>"]
+    tasks --> t_writer["tasks.writer.>"]
+    tasks --> t_developer["tasks.developer.>"]
+    tasks --> t_legacy["tasks.helm-build.> / tasks.health.>\ntasks.update.> / tasks.docs.> (legacy)"]
+
+    events --> e_agents["events.research.>\nevents.sysadmin.>\nevents.security.>\nevents.writer.>\nevents.developer.>"]
+    events --> e_searxng["events.searxng.>"]
+    events --> e_platform["events.platform.health\nevents.platform.alerts"]
+
+    alerts --> a_security["alerts.security.>"]
 ```
 
-The `platform` user has full access for administrative operations and cross-agent coordination. `agent-bus` subscribes to `>` and publishes to `events.>` — it routes events across agents.
+### User ACL summary
+
+```mermaid
+flowchart LR
+    subgraph "Publishes to"
+        pub_bus["events.>"]
+        pub_tq["tasks.>"]
+        pub_agent["tasks.&lt;type&gt;.>\nevents.&lt;type&gt;.>"]
+        pub_security_extra["tasks.security.>\nevents.security.>\nalerts.security.>"]
+        pub_platform["&gt; (all)"]
+    end
+
+    subgraph "Users"
+        u_bus["agent-bus"]
+        u_tq["task-queue"]
+        u_research["agent-research"]
+        u_sysadmin["agent-sysadmin"]
+        u_writer["agent-writer"]
+        u_developer["agent-developer"]
+        u_security["agent-security"]
+        u_platform["platform (admin)"]
+    end
+
+    u_bus --> pub_bus
+    u_tq --> pub_tq
+    u_research --> pub_agent
+    u_sysadmin --> pub_agent
+    u_writer --> pub_agent
+    u_developer --> pub_agent
+    u_security --> pub_security_extra
+    u_platform --> pub_platform
+```
+
+`agent-bus` subscribes to `>` (everything) and re-publishes to `events.>` — it is the
+cross-agent event router. `agent-security` is the only agent-type user with an
+`alerts.*` publish ACL and broad `events.>` subscribe access.
+
+`platform` has full publish and subscribe access for administrative operations.
 
 ## Migration History
 

@@ -30,7 +30,7 @@ Claude Code project path.
 
 Each agent has a manifest at `~/.claude/manifests/<agent>-agent.yml` (YAML). All 5
 manifests use `mcp_proxy` module type to route tool calls to forge's MCP services.
-See [scoped-mcp-forge.md](../components/scoped-mcp-forge.md) for the current full tool
+See [scoped-mcp.md](../components/scoped-mcp.md) for the current full tool
 surface per agent — scope has evolved significantly since initial setup.
 
 Initial wiring at build time:
@@ -85,10 +85,10 @@ restarted. Follow-up task for helm-build.
 
 - Per-agent `MATRIX_ACCESS_TOKEN` generated; matrix module added to all 5 manifests
 - `matrix-dispatcher` config.yml updated with real project paths; PM2 service restarted
-- Phase 7 hardening applied (denylists, rate limits, HITL, audit, argument/response filters) — see scoped-mcp-forge.md
+- Phase 7 hardening applied (denylists, rate limits, HITL, audit, argument/response filters) — see scoped-mcp.md
 
 ## Related Docs
 
-- [scoped-mcp-forge.md](../components/scoped-mcp-forge.md) — forge scoped-mcp deployment
+- [scoped-mcp.md](../components/scoped-mcp.md) — forge scoped-mcp deployment
 - [phase-matrix-synapse.md](phase-matrix-synapse.md) — Matrix homeserver (forge)
 - [forge-operator-agents.md](forge-operator-agents.md) — prior phase: MCP services deployed

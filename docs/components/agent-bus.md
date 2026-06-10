@@ -51,21 +51,25 @@ scopes. High-priority events trigger ntfy notifications.
 
 ## Architecture
 
-```
-Agent  ──log_event()──→  server.py
-                              │
-                              ├─→ ~/.claude/comms/logs/YYYY-MM-DD-{scope}.jsonl
-                              ├─→ NATS (inline publish, real-time)
-                              └─→ ntfy (high-priority events: audit, task.failed)
+```mermaid
+flowchart TD
+    agent["Forge agent\n(any of the 5)"]
 
-Background federation loop (every 30s):
-  File log + offset cursor → NATS (gap-fill for NATS downtime)
+    agent -->|"log_event()"| server["server.py\nagent-bus"]
 
-reconcile.py (PM2 cron, 5 min):
-  Scan ~/.claude/comms/artifacts/ → log artifact.untracked for new files
+    server --> jsonl["~/.claude/comms/logs/\nYYYY-MM-DD-{scope}.jsonl"]
+    server -->|"inline, real-time"| nats["NATS\nagent-bus.&lt;host&gt;.events"]
+    server -->|"high-priority only\naudit.*, task.failed"| ntfy["ntfy"]
 
-cleanup.sh (PM2 cron, 3:50 AM):
-  Purge cross-agent logs > 90 days, session logs > 30 days
+    jsonl -->|"federation loop every 30s\ngap-fill on NATS downtime"| nats
+
+    reconcile["reconcile.py\nPM2 cron, 5 min"]
+    artifacts["~/.claude/comms/artifacts/"]
+    reconcile -->|"scan for new files"| artifacts
+    reconcile -->|"log artifact.untracked\nfor any unlogged file"| server
+
+    cleanup["cleanup.sh\nPM2 cron, 3:50 AM"]
+    cleanup -->|"purge cross-agent > 90d\nsession > 30d"| jsonl
 ```
 
 ## Log Location
@@ -96,6 +100,22 @@ Verification mode is controlled by `AGENT_BUS_VERIFY_SIGNATURES` in the agent-bu
 
 Current mode: **enforce** (set 2026-05-28).
 
+```mermaid
+flowchart LR
+    call["log_event() arrives"]
+
+    call --> sig{"Signature\npresent?"}
+
+    sig -->|"no"| accept["Accept\nevent logged"]
+
+    sig -->|"yes"| verify{"Valid ed25519?"}
+    verify -->|"valid"| accept
+    verify -->|"invalid"| mode{"Verify mode"}
+    mode -->|"enforce"| reject["Reject\nerror to caller"]
+    mode -->|"warn"| warn_log["Accept\nwarning logged"]
+    mode -->|"off"| accept
+```
+
 Unsigned events are always accepted in enforce mode — the server distinguishes between
 "no signature present" (allowed) and "signature present but invalid" (rejected). This lets
 agents that haven't restarted since signing was enabled continue logging without errors.
@@ -107,4 +127,4 @@ to confirm which agents have registered keys.
 
 - [nats.md](nats.md) — NATS JetStream event bus
 - [task-queue-mcp.md](task-queue-mcp.md) — task state alongside agent-bus events
-- [scoped-mcp-forge.md](scoped-mcp-forge.md) — signing hook wiring and Vault key storage
+- [scoped-mcp.md](scoped-mcp.md) — signing hook wiring and Vault key storage

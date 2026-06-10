@@ -79,5 +79,5 @@ The log directory is created automatically on startup.
 
 ## Related Docs
 
-- [scoped-mcp-forge.md](scoped-mcp-forge.md) — agent proxy that loads loki-mcp
+- [scoped-mcp.md](scoped-mcp.md) — agent proxy that loads loki-mcp
 - [forge-agent-setup.md](../phases/forge-agent-setup.md) — agent framework setup

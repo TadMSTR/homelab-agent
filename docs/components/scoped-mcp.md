@@ -6,8 +6,7 @@ tool surface. Each agent session launches its own scoped-mcp process; the proxy 
 the modules the agent is allowed to use and injects credentials so agents never see token
 values directly.
 
-See [homelab-agent scoped-mcp doc](../../../homelab-agent/docs/components/scoped-mcp.md) for
-the general architecture. This doc covers the forge-specific deployment.
+This doc covers the forge-specific deployment: manifests, session wiring, Vault integration, and Phase 7 hardening.
 
 - **Package:** `scoped-mcp` v1.2.2 (installed at `/opt/venvs/scoped-mcp/`; `pip show scoped-mcp` reports 1.2.2)
 - **Venv:** `/opt/venvs/scoped-mcp/`
@@ -44,6 +43,29 @@ All three repos commit directly to main. Run `qmd update && qmd embed` for the r
 ## Session Wiring
 
 scoped-mcp is launched differently for interactive vs headless sessions.
+
+```mermaid
+flowchart TD
+    subgraph "Interactive (Claude Code desktop/terminal)"
+        settings["~/.claude/projects/&lt;agent&gt;/.claude/settings.json"]
+        settings -->|"stdio command"| scoped_i["scoped-mcp\n/opt/venvs/scoped-mcp/bin/scoped-mcp\n--manifest ~/.claude/manifests/&lt;agent&gt;-agent.yml"]
+    end
+
+    subgraph "Headless (claude -p)"
+        mcp_json["~/.claude/projects/&lt;agent&gt;/.mcp.json"]
+        mcp_json -->|"stdio command"| wrapper["run-scoped-mcp.sh\nsources /opt/appdata/agents/&lt;type&gt;/.env\n(Vault creds, Dragonfly URL)"]
+        wrapper --> scoped_h["scoped-mcp\n--manifest ~/.claude/manifests/&lt;agent&gt;-agent.yml"]
+    end
+
+    scoped_i --> manifest["~/.claude/manifests/&lt;agent&gt;-agent.yml\n(modules, denylists, rate limits,\nHITL, audit, filters)"]
+    scoped_h --> manifest
+
+    manifest --> tools["Allowed MCP modules\n(per agent — see tool surfaces table)"]
+    tools --> mcp1["searxng-mcp"]
+    tools --> mcp2["githost-mcp"]
+    tools --> mcp3["system-ops"]
+    tools --> mcp4["dockhand-mcp · patchmon-mcp\nqmd · graphiti · matrix · …"]
+```
 
 ### Interactive sessions (Claude Code desktop/terminal)
 
@@ -188,6 +210,28 @@ then call the tool, then immediately run the HITL list + approve commands via sy
 This keeps the approval round-trip well within the 300s timeout since Ted's in-chat
 confirmation is the signal to proceed.
 
+```mermaid
+sequenceDiagram
+    participant Ted
+    participant Agent as sysadmin agent
+    participant SM as scoped-mcp
+    participant Matrix
+
+    Agent->>Ted: asks in-chat for approval
+    Ted->>Agent: confirms in-chat
+
+    Agent->>SM: tool call (e.g. dockhand-mcp_container_action)
+    SM->>SM: gate: HITL required
+    SM->>Matrix: POST notification to #forge (notify only)
+    SM-->>Agent: pending — approval needed
+
+    Agent->>SM: scoped-mcp hitl list (via system-ops)
+    Agent->>SM: scoped-mcp hitl approve <id> (via system-ops)
+    SM->>SM: approval recorded, 300s window ok
+    SM->>SM: execute tool call
+    SM-->>Agent: tool result
+```
+
 State backend (Dragonfly):
 ```yaml
 state_backend:
@@ -249,7 +293,25 @@ AppRole credentials are in `/opt/appdata/agents/<type>/.env` (chmod 600).
 
 ## Vault AppRole Setup
 
-Each agent authenticates to Vault via a dedicated AppRole:
+Each agent authenticates to Vault via a dedicated AppRole. At session start, scoped-mcp
+fetches the signing keypair and registers the ed25519 hook before any tool calls are made.
+
+```mermaid
+sequenceDiagram
+    participant SM as scoped-mcp (startup)
+    participant Env as /opt/appdata/agents/&lt;type&gt;/.env
+    participant Vault as Vault :8200
+    participant Keys as ~/.claude/comms/agent-keys.json
+
+    SM->>Env: read VAULT_ADDR, VAULT_ROLE_ID, VAULT_SECRET_ID
+    SM->>Vault: AppRole login (role_id + secret_id)
+    Vault-->>SM: client token (scoped to secret/data/agents/&lt;type&gt;)
+    SM->>Vault: KV read secret/data/agents/&lt;type&gt;
+    Vault-->>SM: ed25519 private key
+    SM->>SM: register signing_hook (pre-call)
+    SM->>Keys: register public key
+    Note over SM: All subsequent log_event() calls are signed
+```
 
 | Agent | AppRole | Policy | Vault path |
 |-------|---------|--------|------------|

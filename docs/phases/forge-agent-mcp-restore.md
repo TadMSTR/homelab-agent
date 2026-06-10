@@ -141,4 +141,4 @@ No commits — all touched files are non-git-tracked (scoped-mcp venv, `~/.claud
 - [forge-agent-setup.md](forge-agent-setup.md) — agent project dirs, manifests, initial wiring
 - [forge-matrix-agent-wiring.md](forge-matrix-agent-wiring.md) — Matrix token wiring
 - [forge-operator-agents.md](forge-operator-agents.md) — prior phase: Langfuse, NATS, SigNoz deployed
-- [scoped-mcp-forge.md](../components/scoped-mcp-forge.md) — scoped-mcp forge deployment (local patches)
+- [scoped-mcp.md](../components/scoped-mcp.md) — scoped-mcp forge deployment (local patches)

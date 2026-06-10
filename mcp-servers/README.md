@@ -1,6 +1,6 @@
 # MCP Servers
 
-The homelab-agent platform uses [scoped-mcp](../docs/components/scoped-mcp-forge.md) to give each agent a controlled MCP tool surface. This is different from the direct Claude Desktop stdio-transport pattern documented in the previous version of this repo.
+The homelab-agent platform uses [scoped-mcp](../docs/components/scoped-mcp.md) to give each agent a controlled MCP tool surface. This is different from the direct Claude Desktop stdio-transport pattern documented in the previous version of this repo.
 
 ## Architecture
 
@@ -16,7 +16,7 @@ Agent → scoped-mcp proxy → MCP backend services
          - argument filters
 ```
 
-See [`docs/components/scoped-mcp-forge.md`](../docs/components/scoped-mcp-forge.md) for the full architecture and deployment guide.
+See [`docs/components/scoped-mcp.md`](../docs/components/scoped-mcp.md) for the full architecture and deployment guide.
 
 ## MCP Servers in This Platform
 

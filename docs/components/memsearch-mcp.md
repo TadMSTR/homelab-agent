@@ -89,4 +89,4 @@ as its primary search backend, replacing the older `memory-search-mcp`.
 - [memsearch.md](memsearch.md) — memsearch library, polling watch daemon, reranker
 - [memory-services.md](memory-services.md) — overview of all memory layer PM2 services
 - [memory-stack.md](memory-stack.md) — Milvus + OpenSearch storage backends
-- [scoped-mcp-forge.md](scoped-mcp-forge.md) — manifest structure and agent tool surfaces
+- [scoped-mcp.md](scoped-mcp.md) — manifest structure and agent tool surfaces

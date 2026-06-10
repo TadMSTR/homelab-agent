@@ -100,7 +100,7 @@ homelab-agent/
 
 | Doc | Topic |
 |-----|-------|
-| `docs/components/scoped-mcp-forge.md` | scoped-mcp architecture, manifest schema |
+| `docs/components/scoped-mcp.md` | scoped-mcp architecture, manifest schema |
 | `docs/components/matrix-dispatcher-forge.md` | Matrix dispatch loop |
 | `docs/components/agent-bus.md` | Inter-agent event log |
 | `docs/components/memory-architecture.md` | Three-tier memory system |
@@ -118,7 +118,7 @@ homelab-agent/
 → `docs/components/<service>.md`, then `docker/<service>/`
 
 ### "I want to set up the agent system"
-→ `docs/components/scoped-mcp-forge.md`, then `manifests/`, then `claude-code/`
+→ `docs/components/scoped-mcp.md`, then `manifests/`, then `claude-code/`
 
 ### "I want to understand the memory system"
 → `docs/components/memory-architecture.md`
