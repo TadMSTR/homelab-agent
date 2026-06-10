@@ -1,8 +1,7 @@
-# matrix-mcp (forge)
+# matrix-mcp
 
-The forge instance of matrix-mcp gives forge's operator agents Matrix messaging capability
-via the `helmforge.me` homeserver. It is a separate PM2 process from the claudebox
-`matrix-mcp` instance — different homeserver, different bot account, different port.
+matrix-mcp gives forge's operator agents Matrix messaging capability via the
+`helmforge.me` homeserver.
 
 - **Source:** `~/repos/personal/matrix-mcp/`
 - **PM2 name:** `matrix-mcp` (ID 20)
@@ -33,13 +32,9 @@ All 5 forge operator agent scoped-mcp configs include `matrix-mcp` as a module:
 }
 ```
 
-This gives each forge agent the same `mcp__matrix__*` tool surface available to claudebox
-agents, but routed through the forge homeserver. The endpoint is localhost-only — not
-accessible from other hosts on forge-net.
+The endpoint is localhost-only — not accessible from other hosts on forge-net.
 
 ## Tools
-
-Same tool surface as the claudebox matrix-mcp:
 
 | Tool | What it does |
 |------|-------------|
