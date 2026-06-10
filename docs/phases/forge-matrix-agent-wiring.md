@@ -99,5 +99,5 @@ No commits — all touched files are non-git-tracked secrets or local config fil
 
 - [forge-agent-setup.md](forge-agent-setup.md) — prior phase: agent project dirs and manifests
 - [phase-matrix-synapse.md](phase-matrix-synapse.md) — Matrix homeserver (Synapse + PostgreSQL)
-- [matrix-dispatcher-forge.md](../components/matrix-dispatcher-forge.md) — matrix-dispatcher on forge
+- [matrix-dispatcher.md](../components/matrix-dispatcher.md) — matrix-dispatcher on forge
 - [forge-agent-mcp-restore.md](forge-agent-mcp-restore.md) — next phase: scoped-mcp repair and observability

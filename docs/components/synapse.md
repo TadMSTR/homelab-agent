@@ -91,6 +91,6 @@ with minimal `cap_add`, memory limits (Synapse 2 GB, PostgreSQL 1 GB, Ketesa 64 
 
 ## Related Docs
 
-- [matrix-mcp-forge.md](matrix-mcp-forge.md) — MCP server for forge agent access
-- [matrix-dispatcher-forge.md](matrix-dispatcher-forge.md) — message routing to forge agents
-- [matrix-admin-bot-forge.md](matrix-admin-bot-forge.md) — account management bot
+- [matrix-mcp.md](matrix-mcp.md) — MCP server for forge agent access
+- [matrix-dispatcher.md](matrix-dispatcher.md) — message routing to forge agents
+- [matrix-admin-bot.md](matrix-admin-bot.md) — account management bot

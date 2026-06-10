@@ -5,17 +5,17 @@ forge agent Claude Code session. It polls the forge homeserver for new messages 
 agent's room and injects them into the agent's Claude Code project directory.
 
 - **Source:** `~/repos/personal/matrix-dispatcher/`
-- **PM2 name:** `matrix-dispatcher-forge` (ID 21)
+- **PM2 name:** `matrix-dispatcher` (ID 21)
 - **Entry point:** `start-forge.sh`
 - **Status:** online
 
 ## How It Runs
 
-`start-forge.sh` sources credentials from `/home/ted/.secrets/matrix-dispatcher-forge.env`
+`start-forge.sh` sources credentials from `/home/ted/.secrets/matrix-dispatcher.env`
 (bot access token), then executes `dispatcher.py`. The credentials file must exist and be
 readable before the process starts — PM2 restarts will fail with an error if it's missing.
 
-Logs at `~/.pm2/logs/matrix-dispatcher-forge-{out,error}.log`.
+Logs at `~/.pm2/logs/matrix-dispatcher-{out,error}.log`.
 
 ## Configuration
 
@@ -74,5 +74,5 @@ configured path. These were provisioned by the `forge-agent-setup` build (comple
 ## Related Docs
 
 - [synapse.md](synapse.md) — forge homeserver
-- [matrix-mcp-forge.md](matrix-mcp-forge.md) — MCP tool surface for forge agents
-- [matrix-admin-bot-forge.md](matrix-admin-bot-forge.md) — account management bot
+- [matrix-mcp.md](matrix-mcp.md) — MCP tool surface for forge agents
+- [matrix-admin-bot.md](matrix-admin-bot.md) — account management bot

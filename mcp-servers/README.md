@@ -38,7 +38,7 @@ See [`docs/components/scoped-mcp.md`](../docs/components/scoped-mcp.md) for the 
 | pm2-mcp | [doc](../docs/components/pm2-mcp.md) | :8486 HTTP | PM2 process management |
 | task-queue-mcp | [doc](../docs/components/task-queue-mcp.md) | :8485 HTTP | Inter-agent task queue |
 | agent-bus | [doc](../docs/components/agent-bus.md) | subprocess | Event logging + NATS |
-| matrix-mcp | [doc](../docs/components/matrix-mcp-forge.md) | :8487 HTTP | Matrix messaging |
+| matrix-mcp | [doc](../docs/components/matrix-mcp.md) | :8487 HTTP | Matrix messaging |
 | plane-mcp | [doc](../docs/components/plane-mcp.md) | :8495 HTTP | Issue tracking |
 | graphiti | [doc](../docs/components/graphiti.md) | :8000 HTTP | Knowledge graph |
 | nats-mcp | [doc](../docs/components/nats-mcp.md) | subprocess | NATS event queries |

@@ -65,7 +65,7 @@ claude
 # matrix-dispatcher routes messages from #forge Matrix room to the sysadmin project dir
 ```
 
-The [matrix-dispatcher-forge](../docs/components/matrix-dispatcher-forge.md) polls each agent's Matrix room and injects messages into the agent's stdin stream, enabling async operation from any Matrix client.
+The [matrix-dispatcher](../docs/components/matrix-dispatcher.md) polls each agent's Matrix room and injects messages into the agent's stdin stream, enabling async operation from any Matrix client.
 
 ## Agent Isolation
 

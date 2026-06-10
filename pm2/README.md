@@ -29,7 +29,7 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `patchmon-mcp` | 8484 | Apt package tracking and approval |
 | `pm2-mcp` | 8486 | PM2 process management tool surface |
 | `signoz-mcp` | 8492 | SigNoz APM queries |
-| `matrix-mcp-forge` | 8487 | Matrix messaging tool surface |
+| `matrix-mcp` | 8487 | Matrix messaging tool surface |
 | `plane-mcp` | 8495 | Plane issue tracking |
 | `code-server-mcp` | 8498 | VS Code server integration |
 
@@ -37,8 +37,8 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 
 | Process | Purpose |
 |---------|---------|
-| `matrix-dispatcher-forge` | Routes operator Matrix messages → agent project dirs |
-| `matrix-admin-bot-forge` | Matrix account provisioning |
+| `matrix-dispatcher` | Routes operator Matrix messages → agent project dirs |
+| `matrix-admin-bot` | Matrix account provisioning |
 | `matrix-task-queue-bot` | Task queue notifications via Matrix |
 | `memsearch-watch-fast` | Polls for new memory files and indexes them |
 | `memsearch-watch-templates` | Indexes template memory files |

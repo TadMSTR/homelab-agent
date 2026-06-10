@@ -101,7 +101,7 @@ homelab-agent/
 | Doc | Topic |
 |-----|-------|
 | `docs/components/scoped-mcp.md` | scoped-mcp architecture, manifest schema |
-| `docs/components/matrix-dispatcher-forge.md` | Matrix dispatch loop |
+| `docs/components/matrix-dispatcher.md` | Matrix dispatch loop |
 | `docs/components/agent-bus.md` | Inter-agent event log |
 | `docs/components/memory-architecture.md` | Three-tier memory system |
 | `docs/components/memsearch.md` | Hybrid memory search |
@@ -130,7 +130,7 @@ homelab-agent/
 → `docker/observability/`, `docs/components/grafana-alloy.md`, `docs/components/influxdb.md`
 
 ### "I want to understand how agents communicate"
-→ `docs/components/nats.md`, `docs/components/agent-bus.md`, `docs/components/matrix-dispatcher-forge.md`
+→ `docs/components/nats.md`, `docs/components/agent-bus.md`, `docs/components/matrix-dispatcher.md`
 
 ## Component Inventory
 

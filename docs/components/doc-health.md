@@ -63,7 +63,7 @@ doc queue at `~/.claude/memory/shared/doc-update-queue.jsonl`.
 
 ## Dependencies
 
-- **matrix-mcp-forge** (port 8487) — sends completion/failure notifications
+- **matrix-mcp** (port 8487) — sends completion/failure notifications
 - **daily-touched-files.json** — populated by other processes to track which files changed
 - **doc-health project** (`~/.claude/projects/doc-health/CLAUDE.md`) — audit instructions
 

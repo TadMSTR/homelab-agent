@@ -118,7 +118,7 @@ Five resident agents — `sysadmin`, `research`, `developer`, `writer`, `securit
 
 **Scoped tool surface** — [scoped-mcp](docs/components/scoped-mcp.md) proxies only the tools the agent's manifest allows. Agents see tool results, never credential values. A credential rotation in one agent has zero effect on others.
 
-**Matrix dispatch** — [matrix-dispatcher-forge](docs/components/matrix-dispatcher-forge.md) polls each agent's Matrix room for messages from the operator and routes them into the right agent's project directory. Send a message from any Matrix client; the agent picks it up and replies in-thread.
+**Matrix dispatch** — [matrix-dispatcher](docs/components/matrix-dispatcher.md) polls each agent's Matrix room for messages from the operator and routes them into the right agent's project directory. Send a message from any Matrix client; the agent picks it up and replies in-thread.
 
 **Persistent memory** — a [three-tier memory system](docs/components/memory-architecture.md) (session → working → distilled) backed by Milvus vector search, OpenSearch full-text, a SQLite metadata index, and a Neo4j knowledge graph. Session notes written mid-build are searchable in the next session.
 
@@ -137,9 +137,9 @@ Five resident agents — `sysadmin`, `research`, `developer`, `writer`, `securit
 | `memory-search-mcp` | Full-text memory search via OpenSearch |
 | `signoz-mcp` | SigNoz APM query MCP — traces, logs, metrics |
 | `temporal-build-worker` | Temporal worker — drives autonomous build pipelines |
-| `matrix-mcp-forge` | Matrix messaging tool surface for forge agents |
-| `matrix-dispatcher-forge` | Routes operator Matrix messages → agent project dirs |
-| `matrix-admin-bot-forge` | Matrix account provisioning bot |
+| `matrix-mcp` | Matrix messaging tool surface for forge agents |
+| `matrix-dispatcher` | Routes operator Matrix messages → agent project dirs |
+| `matrix-admin-bot` | Matrix account provisioning bot |
 | `system-ops` | Homelab-ops MCP server — shell, files, processes |
 | `cloudcli` | CloudCLI web UI on port 3001 |
 

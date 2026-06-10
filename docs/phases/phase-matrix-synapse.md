@@ -22,9 +22,9 @@ the entire forge agent fleet.
 | Synapse | Matrix homeserver (v1.153.0) | `matrix.helmforge.me` |
 | PostgreSQL | Synapse database backend | internal only (matrix-internal network) |
 | Ketesa | Synapse admin UI | `ketesa.helmforge.me` (Authentik-gated) |
-| matrix-mcp-forge | MCP server bridging Matrix to forge agents | `127.0.0.1:8487` (PM2 id 20) |
-| matrix-dispatcher-forge | Routes incoming Matrix messages to forge agents | PM2 id 21 |
-| matrix-admin-bot-forge | Handles bot commands in Matrix rooms | PM2 id 22 |
+| matrix-mcp | MCP server bridging Matrix to forge agents | `127.0.0.1:8487` (PM2 id 20) |
+| matrix-dispatcher | Routes incoming Matrix messages to forge agents | PM2 id 21 |
+| matrix-admin-bot | Handles bot commands in Matrix rooms | PM2 id 22 |
 
 ## Network Architecture
 
@@ -71,14 +71,14 @@ All three services are managed by PM2 on forge. Secrets are stored in `~/.secret
 
 | Service | PM2 ID | Secrets file |
 |---------|--------|-------------|
-| matrix-mcp-forge | 20 | `~/.secrets/matrix-mcp-forge.env` |
-| matrix-dispatcher-forge | 21 | `~/.secrets/matrix-dispatcher-forge.env` |
-| matrix-admin-bot-forge | 22 | `~/.secrets/matrix-admin-bot-forge.yml` |
+| matrix-mcp | 20 | `~/.secrets/matrix-mcp.env` |
+| matrix-dispatcher | 21 | `~/.secrets/matrix-dispatcher.env` |
+| matrix-admin-bot | 22 | `~/.secrets/matrix-admin-bot.yml` |
 
-matrix-mcp-forge uses FastMCP HTTP transport, listening on `127.0.0.1:8487`. All 5 forge
+matrix-mcp uses FastMCP HTTP transport, listening on `127.0.0.1:8487`. All 5 forge
 agent scoped-mcp configs register it as `http://localhost:8487/mcp`.
 
-**Note:** matrix-dispatcher-forge `config.yml` `project_dirs` entries are stubs pointing to
+**Note:** matrix-dispatcher `config.yml` `project_dirs` entries are stubs pointing to
 `/home/ted/.claude/projects/<agent>`. These will be wired after the `forge-agent-setup` build
 provisions agent project directories on forge.
 
@@ -122,6 +122,6 @@ exactly — trailing whitespace in the YAML value causes silent auth failures in
 ## Related Docs
 
 - [synapse.md](../components/synapse.md) *(homelab-agent — sanitized)*
-- [matrix-mcp-forge.md](../components/matrix-mcp-forge.md) *(homelab-agent — sanitized)*
-- [matrix-dispatcher-forge.md](../components/matrix-dispatcher-forge.md) *(homelab-agent — sanitized)*
-- [matrix-admin-bot-forge.md](../components/matrix-admin-bot-forge.md) *(homelab-agent — sanitized)*
+- [matrix-mcp.md](../components/matrix-mcp.md) *(homelab-agent — sanitized)*
+- [matrix-dispatcher.md](../components/matrix-dispatcher.md) *(homelab-agent — sanitized)*
+- [matrix-admin-bot.md](../components/matrix-admin-bot.md) *(homelab-agent — sanitized)*

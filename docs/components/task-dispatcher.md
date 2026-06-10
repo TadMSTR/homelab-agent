@@ -61,7 +61,7 @@ Launch logs go to `~/.pm2/logs/agent-launch-<agent>-<task_id_prefix>.log`.
 ## Dependencies
 
 - **task-queue-mcp** (port 8485) — provides the task YAML files on disk
-- **matrix-mcp-forge** (port 8487) — sends notifications to Matrix
+- **matrix-mcp** (port 8487) — sends notifications to Matrix
 - **agent-bus** — event logging via `agent_bus_client.log_event()`
 - **Agent manifests** — `~/.claude/manifests/*.yaml` for routing validation
 

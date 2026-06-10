@@ -8,23 +8,23 @@ See [homelab-agent matrix-admin-bot doc](../../../homelab-agent/docs/components/
 for the claudebox instance and full command reference. This doc covers the forge deployment only.
 
 - **Source:** `~/repos/personal/matrix-admin-bot/`
-- **PM2 name:** `matrix-admin-bot-forge` (ID 22)
-- **Config:** `~/.secrets/matrix-admin-bot-forge.yml`
+- **PM2 name:** `matrix-admin-bot` (ID 22)
+- **Config:** `~/.secrets/matrix-admin-bot.yml`
 - **Status:** online
 
 ## How It Runs
 
 ```
-python bot.py --config /home/ted/.secrets/matrix-admin-bot-forge.yml
+python bot.py --config /home/ted/.secrets/matrix-admin-bot.yml
 ```
 
 Launched via the matrix-admin-bot virtualenv at
 `~/repos/personal/matrix-admin-bot/venv/bin/python`. Logs at
-`~/.pm2/logs/matrix-admin-bot-forge-{out,error}.log`.
+`~/.pm2/logs/matrix-admin-bot-{out,error}.log`.
 
 ## Configuration
 
-Config at `~/.secrets/matrix-admin-bot-forge.yml` (chmod 600). The bot runs as
+Config at `~/.secrets/matrix-admin-bot.yml` (chmod 600). The bot runs as
 `@matrix-admin-bot:helmforge.me` with `@ted:helmforge.me` as the sole
 `allowed_sender`.
 
@@ -54,5 +54,5 @@ for the full command reference (`!create-account`, `!rotate-token`, `!audit-memb
 ## Related Docs
 
 - [synapse.md](synapse.md) — forge homeserver
-- [matrix-mcp-forge.md](matrix-mcp-forge.md) — MCP tool surface for forge agents
-- [matrix-dispatcher-forge.md](matrix-dispatcher-forge.md) — message routing to forge agents
+- [matrix-mcp.md](matrix-mcp.md) — MCP tool surface for forge agents
+- [matrix-dispatcher.md](matrix-dispatcher.md) — message routing to forge agents
