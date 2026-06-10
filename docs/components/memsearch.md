@@ -1,10 +1,14 @@
 # memsearch
 
 memsearch is the semantic memory indexing and search library for forge. It ingests agent memory
-files into [Milvus](memory-stack.md) (vector store) and [OpenSearch](memory-stack.md) (BM25
-full-text), then combines both signals with a local neural reranker to rank results. Two PM2
-processes consume it: `memsearch-watch` keeps the index current, and `memsearch-mcp` exposes
-search and index-refresh tools to agents.
+files into [Milvus](memory-stack.md), which provides both vector similarity and BM25 full-text
+search (Milvus 2.5+ native hybrid). A local neural reranker combines both signals to rank
+results. Two PM2 processes consume it: `memsearch-watch` keeps the index current, and
+`memsearch-mcp` exposes search and index-refresh tools to agents.
+
+> **Not to be confused with** [memory-search-mcp](memory-search-mcp.md), which is a separate
+> full-text search service backed by [OpenSearch](memory-stack.md). memsearch does not use
+> OpenSearch.
 
 - **Venv:** `/opt/venvs/memsearch/`
 - **CLI:** `/opt/venvs/memsearch/bin/memsearch`
@@ -75,9 +79,8 @@ Forge runtime configuration:
 
 | Service | Purpose |
 |---------|---------|
-| `milvus` (port 19530) | Vector store — required for search and index |
+| `milvus` (port 19530) | Vector store + BM25 full-text — required for search and index |
 | `ollama-queue-proxy` (port 11435) | Serialized embedding inference |
-| `opensearch` (port 9202) | BM25 full-text index (used by qmd and memory-search-mcp) |
 
 ## Operations
 
