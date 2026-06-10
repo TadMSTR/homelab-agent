@@ -1,0 +1,27 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_KV_CACHE_TYPE=q8_0
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - /opt/appdata/ollama:/root/.ollama
+    networks:
+      - forge-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  forge-net:
+    external: true

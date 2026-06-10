@@ -1,217 +1,239 @@
+# Plane Community Edition — forge stack
+# Adapted from: https://github.com/makeplane/plane/blob/develop/deploy/selfhost/docker-compose.yml
+# SWAG replaces the upstream proxy container. All path routing in plane.subdomain.conf.
+#
+# DC-05 note: All Plane upstream images (plane-frontend, plane-backend, plane-admin,
+# plane-live, plane-space) and postgres/valkey/rabbitmq/minio run as root. No non-root
+# user override is set here because Plane CE does not document expected UIDs and setting
+# an arbitrary UID breaks the entrypoints. Accepted upstream constraint.
+
 x-db-env: &db-env
-  PGHOST: ${PGHOST:-plane-db}
-  PGDATABASE: ${PGDATABASE:-plane}
+  PGHOST: plane-db
+  PGDATABASE: plane
   POSTGRES_USER: ${POSTGRES_USER:-plane}
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  POSTGRES_DB: ${POSTGRES_DB:-plane}
-  POSTGRES_PORT: ${POSTGRES_PORT:-5432}
-  PGDATA: ${PGDATA:-/var/lib/postgresql/data}
-
-x-redis-env: &redis-env
-  REDIS_HOST: ${REDIS_HOST:-plane-redis}
-  REDIS_PORT: ${REDIS_PORT:-6379}
-  REDIS_URL: ${REDIS_URL:-redis://plane-redis:6379/}
-
-x-minio-env: &minio-env
-  MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID}
-  MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY}
-
-x-aws-s3-env: &aws-s3-env
-  AWS_REGION: ${AWS_REGION:-}
-  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-  AWS_S3_ENDPOINT_URL: ${AWS_S3_ENDPOINT_URL:-http://plane-minio:9000}
-  AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-uploads}
-
-x-mq-env: &mq-env
-  RABBITMQ_HOST: ${RABBITMQ_HOST:-plane-mq}
-  RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
-  RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-plane}
-  RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
-  RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-plane}
-  RABBITMQ_VHOST: ${RABBITMQ_VHOST:-plane}
-
-x-live-env: &live-env
-  API_BASE_URL: ${API_BASE_URL:-http://api:8000}
-  LIVE_SERVER_SECRET_KEY: ${LIVE_SERVER_SECRET_KEY}
+  POSTGRES_DB: plane
+  POSTGRES_PORT: "5432"
+  PGDATA: /var/lib/postgresql/data
 
 x-app-env: &app-env
-  WEB_URL: ${WEB_URL:-http://localhost}
-  DEBUG: ${DEBUG:-0}
+  WEB_URL: ${WEB_URL}
+  DEBUG: "0"
   CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
-  CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
-  GUNICORN_WORKERS: 1
-  USE_MINIO: ${USE_MINIO:-1}
-  DATABASE_URL: ${DATABASE_URL:-postgresql://plane:${POSTGRES_PASSWORD}@plane-db/plane}
+  USE_MINIO: "1"
+  DATABASE_URL: postgresql://${POSTGRES_USER:-plane}:${POSTGRES_PASSWORD}@plane-db/plane
   SECRET_KEY: ${SECRET_KEY}
-  AMQP_URL: ${AMQP_URL:-amqp://plane:${RABBITMQ_PASSWORD}@plane-mq:5672/plane}
-  API_KEY_RATE_LIMIT: ${API_KEY_RATE_LIMIT:-60/minute}
-  MINIO_ENDPOINT_SSL: ${MINIO_ENDPOINT_SSL:-0}
-  LIVE_SERVER_SECRET_KEY: ${LIVE_SERVER_SECRET_KEY}
+  GUNICORN_WORKERS: "2"
+  WEBHOOK_ALLOWED_IPS: "172.20.1.0/24"
+
+x-redis-env: &redis-env
+  REDIS_HOST: plane-valkey
+  REDIS_PORT: "6379"
+  REDIS_URL: redis://:${VALKEY_PASSWORD}@plane-valkey:6379/
+
+x-amqp-env: &amqp-env
+  AMQP_URL: amqp://${RABBITMQ_USER:-plane}:${RABBITMQ_PASSWORD}@plane-rabbitmq:5672/plane
+
+x-s3-env: &s3-env
+  AWS_REGION: ""
+  AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-plane}
+  AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+  AWS_S3_ENDPOINT_URL: http://plane-minio:9000
+  AWS_S3_BUCKET_NAME: uploads
+  FILE_SIZE_LIMIT: "5242880"
 
 services:
-  web:
-    image: makeplane/plane-frontend:${APP_RELEASE:-stable}
+  plane-web:
+    image: makeplane/plane-frontend:stable@sha256:c178fd85c4588165262cfe748bd103fdeccebbbab827c53e71b9ce32fff84f86
     container_name: plane-web
     restart: unless-stopped
+    security_opt: [no-new-privileges:true]
     networks:
-      - plane
-      - plane-swag
+      - plane-internal
+      - forge-net
     depends_on:
-      - api
-      - worker
+      - plane-api
+      - plane-worker
 
-  space:
-    image: makeplane/plane-space:${APP_RELEASE:-stable}
+  plane-space:
+    image: makeplane/plane-space:stable@sha256:e08c2c8741ae6f81a9326dc9201e7e09c0c411b87a20198f9ea9e5cf2fae3488
     container_name: plane-space
     restart: unless-stopped
+    security_opt: [no-new-privileges:true]
     networks:
-      - plane
-      - plane-swag
+      - plane-internal
+      - forge-net
     depends_on:
-      - api
-      - worker
-      - web
+      - plane-api
+      - plane-worker
+      - plane-web
 
-  admin:
-    image: makeplane/plane-admin:${APP_RELEASE:-stable}
+  plane-admin:
+    image: makeplane/plane-admin:stable@sha256:ff9219127a2c2c4a4bb066d6a0e25a5fc6a11204cf8484b521dada53d696fe43
     container_name: plane-admin
     restart: unless-stopped
+    security_opt: [no-new-privileges:true]
     networks:
-      - plane
-      - plane-swag
+      - plane-internal
+      - forge-net
     depends_on:
-      - api
-      - web
+      - plane-api
+      - plane-web
 
-  live:
-    image: makeplane/plane-live:${APP_RELEASE:-stable}
+  plane-live:
+    image: makeplane/plane-live:stable@sha256:2073b6950a394545ea1db6ed4157e951ad5a6e1881e74f4f9238ace6c35bbf3d
     container_name: plane-live
     restart: unless-stopped
+    security_opt: [no-new-privileges:true]
     environment:
-      <<: [*live-env, *redis-env]
+      API_BASE_URL: http://plane-api:8000
+      LIVE_SERVER_SECRET_KEY: ${LIVE_SECRET_KEY}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      REDIS_URL: redis://:${VALKEY_PASSWORD}@plane-valkey:6379/
     networks:
-      - plane
-      - plane-swag
+      - plane-internal
+      - forge-net
     depends_on:
-      - api
-      - web
+      - plane-api
+      - plane-web
 
-  api:
-    image: makeplane/plane-backend:${APP_RELEASE:-stable}
+  plane-api:
+    image: makeplane/plane-backend:stable@sha256:2cdcb5f778c6ccacebce0e5a751d39fac4a549a44e049a5b110a7623cfdad139
     container_name: plane-api
-    command: ./bin/docker-entrypoint-api.sh
     restart: unless-stopped
+    command: ./bin/docker-entrypoint-api.sh
+    security_opt: [no-new-privileges:true]
     ports:
-      - "127.0.0.1:8180:8000"
+      - "127.0.0.1:3007:8000"
     volumes:
       - /opt/appdata/plane/logs/api:/code/plane/logs
     environment:
-      <<: [*app-env, *db-env, *redis-env, *minio-env, *aws-s3-env]
+      <<: [*app-env, *db-env, *redis-env, *amqp-env, *s3-env]
     networks:
-      - plane
-      - plane-swag
+      - plane-internal
+      - forge-net
     depends_on:
       - plane-db
-      - plane-redis
-      - plane-mq
+      - plane-valkey
+      - plane-rabbitmq
 
-  worker:
-    image: makeplane/plane-backend:${APP_RELEASE:-stable}
+  plane-worker:
+    image: makeplane/plane-backend:stable@sha256:2cdcb5f778c6ccacebce0e5a751d39fac4a549a44e049a5b110a7623cfdad139
     container_name: plane-worker
-    command: ./bin/docker-entrypoint-worker.sh
     restart: unless-stopped
+    command: ./bin/docker-entrypoint-worker.sh
+    security_opt: [no-new-privileges:true]
     volumes:
       - /opt/appdata/plane/logs/worker:/code/plane/logs
     environment:
-      <<: [*app-env, *db-env, *redis-env, *minio-env, *aws-s3-env]
+      <<: [*app-env, *db-env, *redis-env, *amqp-env, *s3-env]
     networks:
-      - plane
+      - plane-internal
+      - forge-net
     depends_on:
-      - api
+      - plane-api
       - plane-db
-      - plane-redis
-      - plane-mq
+      - plane-valkey
+      - plane-rabbitmq
 
-  beat-worker:
-    image: makeplane/plane-backend:${APP_RELEASE:-stable}
-    container_name: plane-beat-worker
-    command: ./bin/docker-entrypoint-beat.sh
+  plane-beat:
+    image: makeplane/plane-backend:stable@sha256:2cdcb5f778c6ccacebce0e5a751d39fac4a549a44e049a5b110a7623cfdad139
+    container_name: plane-beat
     restart: unless-stopped
+    command: ./bin/docker-entrypoint-beat.sh
+    security_opt: [no-new-privileges:true]
     volumes:
-      - /opt/appdata/plane/logs/beat-worker:/code/plane/logs
+      - /opt/appdata/plane/logs/beat:/code/plane/logs
     environment:
-      <<: [*app-env, *db-env, *redis-env, *minio-env, *aws-s3-env]
+      <<: [*app-env, *db-env, *redis-env, *amqp-env, *s3-env]
     networks:
-      - plane
+      - plane-internal
     depends_on:
-      - api
+      - plane-api
       - plane-db
-      - plane-redis
-      - plane-mq
+      - plane-valkey
+      - plane-rabbitmq
 
-  migrator:
-    image: makeplane/plane-backend:${APP_RELEASE:-stable}
+  plane-migrator:
+    image: makeplane/plane-backend:stable@sha256:2cdcb5f778c6ccacebce0e5a751d39fac4a549a44e049a5b110a7623cfdad139
     container_name: plane-migrator
+    restart: "no"
     command: ./bin/docker-entrypoint-migrator.sh
-    restart: on-failure
+    security_opt: [no-new-privileges:true]
     volumes:
       - /opt/appdata/plane/logs/migrator:/code/plane/logs
     environment:
-      <<: [*app-env, *db-env, *redis-env, *minio-env, *aws-s3-env]
+      <<: [*app-env, *db-env, *redis-env, *amqp-env, *s3-env]
     networks:
-      - plane
+      - plane-internal
     depends_on:
       - plane-db
-      - plane-redis
+      - plane-valkey
 
   plane-db:
-    image: postgres:15.7-alpine
+    image: postgres:16-alpine
     container_name: plane-db
-    command: postgres -c 'max_connections=1000'
     restart: unless-stopped
+    command: postgres -c 'max_connections=1000'
+    security_opt: [no-new-privileges:true]
     environment:
       <<: *db-env
     volumes:
-      - /opt/appdata/plane/pgdata:/var/lib/postgresql/data
+      - /opt/appdata/plane/postgres:/var/lib/postgresql/data
     networks:
-      - plane
+      - plane-internal
 
-  plane-redis:
-    image: valkey/valkey:7.2.11-alpine
-    container_name: plane-redis
+  plane-valkey:
+    image: valkey/valkey:8-alpine
+    container_name: plane-valkey
     restart: unless-stopped
+    user: "999:999"
+    security_opt: [no-new-privileges:true]
+    cap_drop:
+      - ALL
+    command: valkey-server --requirepass ${VALKEY_PASSWORD}
     volumes:
-      - /opt/appdata/plane/redisdata:/data
+      - /opt/appdata/plane/valkey:/data
     networks:
-      - plane
+      - plane-internal
+      - grafana-datasources
 
-  plane-mq:
-    image: rabbitmq:3.13.6-management-alpine
-    container_name: plane-mq
+  plane-rabbitmq:
+    image: rabbitmq:4-alpine
+    container_name: plane-rabbitmq
     restart: unless-stopped
+    security_opt: [no-new-privileges:true]
     environment:
-      <<: *mq-env
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-plane}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: plane
     volumes:
-      - /opt/appdata/plane/rabbitmq_data:/var/lib/rabbitmq
+      - /opt/appdata/plane/rabbitmq:/var/lib/rabbitmq
     networks:
-      - plane
+      - plane-internal
 
   plane-minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: plane-minio
-    command: server /export --console-address ":9090"
     restart: unless-stopped
+    command: server /export --console-address ":9090"
+    security_opt: [no-new-privileges:true]
+    ports:
+      - "127.0.0.1:9203:9000"
+      - "127.0.0.1:9204:9090"
     environment:
-      <<: *minio-env
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-plane}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
-      - /opt/appdata/plane/uploads:/export
+      - /opt/appdata/plane/minio:/export
     networks:
-      - plane
-      - plane-swag
+      - plane-internal
+      - forge-net  # NE-04: needed for SWAG to route /uploads/ by container name
 
 networks:
-  plane:
-    name: plane
-  plane-swag:
-    name: plane-swag
+  plane-internal:
+    internal: true
+  forge-net:
+    external: true
+  grafana-datasources:
+    external: true

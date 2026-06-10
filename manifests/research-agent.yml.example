@@ -1,0 +1,214 @@
+agent_type: research
+description: "Research agent — forge research and planning"
+
+max_auto_risk: low
+interaction_permissions:
+  auto_approved: []
+  needs_approval: []
+
+credentials:
+  source: vault
+  vault:
+    addr: "${VAULT_ADDR}"
+    auth: approle
+    role_id_env: VAULT_ROLE_ID
+    secret_id_env: VAULT_SECRET_ID
+    path: "agents/{agent_type}"
+    kv_version: 2
+
+modules:
+  searxng-mcp:
+    type: mcp_proxy
+    config:
+      command: /home/ted/scripts/run-searxng-mcp.sh
+      tool_denylist:
+        - clear_cache          # shared Valkey cache, not research's to manage
+
+  qmd:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8181/mcp
+
+  graphiti:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8000/mcp
+      tool_denylist:
+        - clear_graph          # catastrophic — never appropriate for research agent
+
+  memory-metadata-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8490/mcp
+
+  memsearch-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8493/mcp
+      headers:
+        Authorization: "Bearer ${MEMSEARCH_API_TOKEN}"
+      tool_denylist: [index_memory]    # MEM-03: search only; no indexing use case for research agent
+
+  memory-search-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8491/mcp
+
+  githost-mcp:
+    type: mcp_proxy
+    config:
+      command: /home/ted/scripts/run-githost-mcp-research.py
+      env:
+        AGENT_ID: research
+      # SECURITY[control]: Repo access restricted to doc repos via ALLOWED_REPO_ROOTS in
+      # githost-mcp-research.env (primary gate). The path-traversal argument_filter below
+      # adds secondary protection against ../ bypass attempts on repo_path parameters.
+      # scoped-mcp v1.3.0 has no tool_config allowlist or per-tool filter scoping — this
+      # is the strongest enforcement the framework currently supports. Audit: 2026-05-31/woodpecker-forge-2026-05.
+      tool_denylist:
+        - git_tag
+        - release
+        - npm_publish
+        - pypi_publish
+        - gitea_create_release
+        - github_create_release
+        - gitlab_create_release
+        - woodpecker_trigger      # research triggers no CI runs
+        - woodpecker_pipeline_cancel  # destructive — HITL required, not appropriate for research
+        - gitea_pr_merge          # destructive — HITL required, not appropriate for research
+        - audit_log_query         # admin tool
+
+  task-queue-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8485/mcp
+
+  langfuse-mcp:
+    type: mcp_proxy
+    config:
+      command: /home/ted/scripts/run-langfuse-mcp.sh
+
+  plane-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8495/mcp
+      headers:
+        Authorization: "Bearer ${PLANE_TOKEN}"
+        x-workspace-slug: "${PLANE_WORKSPACE}"
+      tool_allowlist:
+        - list_projects
+        - list_work_items
+        - search_work_items
+        - retrieve_work_item
+        - create_work_item
+        - create_intake_work_item
+
+  context7:
+    type: mcp_proxy
+    config:
+      url: https://mcp.context7.com/mcp
+      headers:
+        CONTEXT7_API_KEY: "${CONTEXT7_API_KEY}"
+
+  pm2-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8486/mcp
+      tool_denylist:
+        - start_service
+        - stop_service
+        - restart_service
+        - reload_service
+        - flush_logs
+        - save
+
+  signoz-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8492/mcp
+      tool_denylist: []
+
+  claudebox-ops:
+    type: mcp_proxy
+    config:
+      url: http://<server-ip>:8282/mcp
+      tool_denylist:
+        - write_file   # read/run only — research agent has no business writing to claudebox
+        - edit_file
+
+  agent-bus:
+    type: mcp_proxy
+    config:
+      command: /home/ted/repos/personal/agent-bus/venv/bin/python3
+      args: ["/home/ted/repos/personal/agent-bus/server.py"]
+
+  matrix:
+    config:
+      allowed_rooms:
+        - "<room-id>"    # #research:helmforge.me
+        - "<room-id>"    # #announcements:helmforge.me
+
+  matrix-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8487/mcp
+
+  code-server-mcp:
+    type: mcp_proxy
+    config:
+      url: http://localhost:8498/mcp
+      tool_denylist:
+        - install_extension   # destructive — not appropriate for research agent
+
+rate_limits:
+  global: "120/minute"
+  per_tool:
+    "searxng-mcp_search_and_summarize": "10/minute"   # LLM-intensive
+    "signoz-mcp_search_traces": "30/minute"
+    "signoz-mcp_tail_logs": "30/minute"
+    "claudebox-ops_run_command": "30/minute"
+
+audit:
+  agent_bus_emit: true
+  agent_bus_comms_dir: "~/.claude/comms"
+  log_args: true
+
+argument_filters:
+  - name: "credential-leak"
+    pattern: "(password|secret|api[_.]?key|bearer\\s+[A-Za-z0-9])"
+    fields: ["*"]
+    action: warn
+    case_insensitive: true
+
+  - name: "path-traversal"
+    pattern: "\\.\\./|\\.\\.\\\\"
+    fields: ["path", "file_path", "target", "src", "dst", "destination", "repo_path"]
+    action: block
+    decode: [url]
+
+  - name: "shell-injection-warn"
+    pattern: "rm\\s+-rf\\s+/|>\\s*/etc/|/etc/shadow|/etc/passwd"
+    fields: ["command"]
+    action: warn
+
+response_filters:
+  - name: "response-credential-leak"
+    pattern: "(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|AKIA[A-Z0-9]{16}|ya29\\.[a-zA-Z0-9_-]{50,})"
+    action: redact
+    decode: [base64]
+
+  - name: "response-injection-attempt"
+    pattern: "ignore (all |previous )?(instructions|prompt)|you are now|disregard your"
+    action: warn
+    case_insensitive: true
+
+workspace_access:
+  - path: ~/.claude/comms/
+    access: readwrite
+    git_backed: false
+  - path: ~/.claude/memory/agents/research/
+    access: readwrite
+    git_backed: false
+  - path: ~/.claude/memory/shared/
+    access: readwrite
+    git_backed: false

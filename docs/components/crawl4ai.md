@@ -1,66 +1,57 @@
-# Crawl4AI
+# Crawl4ai
 
-Crawl4AI is a self-hosted web crawling and content extraction service. On claudebox it serves as the second-tier fetch fallback in the searxng-mcp fetch cascade — handling JS-heavy pages and cases where Firecrawl fails or returns poor content.
+Crawl4ai 0.8.6 — browser-based web content extraction service. Used by searxng-mcp for JS-heavy pages that Firecrawl's HTML scraper cannot render. Complements Firecrawl: Firecrawl handles static HTML, Crawl4ai handles pages requiring a full browser.
 
-## Deployment
-
-| Property | Value |
-|----------|-------|
-| Image | `unclecode/crawl4ai:0.8.6` |
-| Port | `127.0.0.1:11235` (localhost only) |
-| Network | `claudebox-net` |
-| Appdata | `/opt/appdata/crawl4ai/` |
-| Stack | `~/docker/crawl4ai/docker-compose.yml` |
-| SWAG proxy | `crawl4ai.<internal-domain>` (Authelia forward auth) |
-
-The container is bound to `127.0.0.1:11235` — external access is via SWAG only. The SWAG proxy is for operator use (testing, direct crawl requests); searxng-mcp reaches Crawl4AI via Docker DNS through `claudebox-net`.
-
-## Role in searxng-mcp Fetch Cascade
-
-`search_and_fetch`, `fetch_url`, and `search_and_summarize` use a three-tier fetch cascade:
-
-```
-1. Firecrawl    ← primary (JS rendering, clean markdown)
-2. Crawl4AI     ← fallback if Firecrawl fails or returns empty content
-3. rawFetch()   ← last resort (plain HTTP GET, basic HTML stripping)
-```
-
-Crawl4AI is invoked when Firecrawl fails or returns empty content. Firecrawl returns `success: true` with an empty body on bot-blocked or challenge pages rather than throwing — the cascade checks for empty content after a successful Firecrawl response and falls through to Crawl4AI in those cases too. Crawl4AI uses the `markdown.raw_markdown` field from its response for clean, readable output. Skipped silently if `CRAWL4AI_URL` is not set.
-
-The rawFetch() tier-3 fallback ensures a fetch never fails silently when both upstream services are unavailable.
-
-## API Usage
-
-Crawl4AI exposes an async crawl API. The searxng-mcp adapter:
-1. POSTs a crawl request to `/crawl` with the target URL
-2. Polls `/task/<task_id>` until status is `completed` or timeout
-3. Extracts `result.markdown.raw_markdown` from the completed response
-
-`task_id` values are validated against `^[a-zA-Z0-9_-]+$` before use in URL path construction — prevents SSRF via path traversal.
-
-HTTP redirects in rawFetch() are blocked to prevent SSRF bypass via redirect chains to internal addresses.
+- **Version:** 0.8.6
+- **Port:** `11235` (forge-net internal)
+- **Compose:** `~/docker/crawl4ai/docker-compose.yml`
+- **Network:** `forge-net`
+- **No SWAG proxy** — internal use only
+- **API token:** required — stored in `~/docker/crawl4ai/.env` (chmod 600), mirrored to `~/.claude-secrets/crawl4ai.env`
 
 ## Configuration
 
-Set `CRAWL4AI_URL` in the MCP server config:
-
-```json
-{
-  "mcpServers": {
-    "searxng": {
-      "env": {
-        "CRAWL4AI_URL": "http://crawl4ai:11235",
-        "CRAWL4AI_API_TOKEN": "your-token-here"
-      }
-    }
-  }
-}
+```yaml
+environment:
+  - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN}  # via env_file: .env
+shm_size: "1g"   # required for browser rendering (Chromium shared memory)
 ```
 
-- `CRAWL4AI_URL` — required to enable Crawl4AI. If omitted, Crawl4AI is skipped and rawFetch() is used directly as the fallback.
-- `CRAWL4AI_API_TOKEN` — optional. If set, sent as `Authorization: Bearer <token>` on every request. Required for Crawl4AI instances with API token protection enabled.
+`shm_size: 1g` is required. Without it, Chromium browser processes inside the container crash during page rendering.
+
+## API Token
+
+API token auth is enforced. Token is stored in two places:
+
+| Path | Purpose |
+|------|---------|
+| `~/docker/crawl4ai/.env` | Loaded into container via `env_file` |
+| `~/.claude-secrets/crawl4ai.env` | Read at runtime by `run-forge.sh` to set `CRAWL4AI_API_TOKEN` env var for searxng-mcp |
+
+`run-forge.sh` reads the token at startup:
+```bash
+CRAWL4AI_API_TOKEN=$(grep '^CRAWL4AI_API_TOKEN=' ~/.claude-secrets/crawl4ai.env | cut -d= -f2-)
+export CRAWL4AI_API_TOKEN
+```
+
+When rotating the token: update both files and redeploy crawl4ai + restart searxng-mcp sessions.
+
+## Healthcheck
+
+```
+GET http://crawl4ai:11235/health
+```
+
+Returns 200 when the service is ready. searxng-mcp uses `CRAWL4AI_URL=http://crawl4ai:11235`.
+
+## Security
+
+| Finding | Status |
+|---------|--------|
+| H2: `CRAWL4AI_API_TOKEN` hardcoded in compose + run-forge.sh, committed to Gitea | Fixed — token rotated, moved to `env_file`, run-forge.sh updated to read from secrets file (commit `dbecf11`) |
 
 ## Related Docs
 
-- [searxng-mcp.md](searxng-mcp.md) — MCP server that uses Crawl4AI as a fetch fallback
-- [searxng.md](searxng.md) — SearXNG search backend
+- [phase-5-user-stack-infra.md](../phases/phase-5-user-stack-infra.md) — web search pipeline architecture
+- [firecrawl.md](firecrawl.md) — static HTML extraction (complementary service)
+- [reranker.md](reranker.md) — result reranking (downstream of both)

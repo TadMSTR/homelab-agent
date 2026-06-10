@@ -1,38 +1,50 @@
-# Homelab — System Context
+# Forge — System Context
 
-You are operating on YOUR_HOSTNAME (describe your hardware, OS, IP).
-This is a dedicated AI agent workstation for homelab operations.
+You are operating on <your-hostname> (<hardware description>, <OS>, IP <server-ip>).
+This is a dedicated AI agent server for homelab operations.
 
 ## Key Paths
-
-- Repos: ~/repos/personal/, ~/repos/third-party/
-- Docker stacks: ~/docker/ (compose files)
+- Repos: ~/repos/personal/
+- Docker stacks: ~/docker/
 - Docker appdata: /opt/appdata/
-- Memory: ~/.claude/memory/ (memsearch-indexed, see Layer 3)
-- Context repo: ~/repos/YOUR_CONTEXT_REPO/
+- Agent manifests: ~/.claude/manifests/
+- Secrets: ~/.secrets/forge.env
+- NATS credentials: ~/.claude-secrets/nats-agent-users.env
+- Memory: ~/.claude/memory/
+- Operator profile: ~/repos/gitea/agent-platform-operator/
 
-## Infrastructure Context
+## Infrastructure
+- Operator workstation: <server-ip>
+- NAS/backup: <nas-ip> — NFS: <nas-ip>:/mnt/storage/<hostname> → /mnt/nas/<hostname>
+- Forge domain: <your-domain>
 
-Describe your hosts here. The AI loads this every session, so it needs to know
-what exists, where it lives, and how to reach it.
+## Running Services
+- SWAG: ports 80/443, wildcard cert <your-domain>
+- Authentik: auth.<your-domain> (domain forward auth, *.<your-domain>)
+- Vaultwarden: vault.<your-domain> (no forward auth — Bitwarden clients need direct access)
+- Grafana: grafana.<your-domain> (OIDC via Authentik, local login disabled)
+- InfluxDB: influxdb.<your-domain> (forward auth)
+- SearXNG: search.<your-domain> (forward auth)
+- Langfuse: langfuse.<your-domain> (forward auth)
+- SigNoz: signoz.<your-domain> (forward auth)
+- NATS: localhost:4222 (JetStream, per-agent user auth)
+- Neo4j + Graphiti MCP: bolt://localhost:7687, MCP at :8000
+- Dockhand: localhost:7777
+- PatchMon: localhost:3005
 
-Example format:
+## Agent Framework
+- Manifests: ~/.claude/manifests/<type>.yaml
+- Credentials: ~/.claude-secrets/nats-agent-users.env (chmod 600)
+- Comms/artifacts: ~/.claude/comms/artifacts/
 
-- Server1 (primary Docker host): 192.168.1.x
-  - Runs: reverse proxy, media stack, monitoring
-- Server2 (storage/backup): 192.168.1.x
-  - Runs: NFS exports, backup targets, Grafana stack
-- AI Host (this machine): 192.168.1.x
-  - Runs: Claude Desktop, Claude Code, MCP servers, Docker services
-- NFS mounts from Server2: /mnt/server2/backups (rw), /mnt/server2/media (ro)
+## Users
+- <your-user> (UID 1000) — admin, sudo access
 
 ## Rules
-
-- Always check memsearch for relevant context before starting work.
-- Write durable decisions and learnings to ~/.claude/memory/shared/.
-- Never modify deploy or backup scripts without explicit approval.
-- Use git branches for code repos; documentation repos can commit to main.
-- Third-party repos clone to ~/repos/third-party/.
+- Never push directly to main on code repos
+- Doc repos can commit directly to main
+- Use git branches for all code changes
+- All inter-agent artifacts: ~/.claude/comms/artifacts/
 
 ---
 
@@ -44,19 +56,16 @@ don't have to re-explain your setup every time.
 
 ### What to put here
 
-- **Host inventory**: hostnames, IPs, what each machine runs. Keep it concise —
-  just enough that the AI knows what exists and how to reach it.
+- **Host inventory**: hostnames, IPs, what each machine runs. Keep it concise.
 - **Key paths**: where repos, Docker files, configs, and memory live on this host.
 - **Global rules**: things that should apply to every session regardless of project.
 - **NFS/storage mounts**: what's mounted from where, read-only vs read-write.
 
 ### What NOT to put here
 
-- Project-specific context — that goes in per-project CLAUDE.md files (see
-  `projects/` directory for examples).
+- Project-specific context — that goes in per-project CLAUDE.md files.
 - Secrets, API keys, tokens — never put credentials in context files.
 - Verbose documentation — this file is loaded every session, keep it tight.
-  Link to detailed docs instead of inlining them.
 
 ### File hierarchy
 
@@ -67,15 +76,3 @@ Claude Code loads CLAUDE.md files in order of specificity:
 ~/.claude/projects/<project>/CLAUDE.md       ← Loaded when working in that project
 ~/repos/<repo>/CLAUDE.md                     ← Loaded when in a specific repo
 ```
-
-The root file provides infrastructure context. Project files add domain-specific
-tools, conventions, and memory paths. Repo-level files add repo-specific build
-instructions, test commands, and coding standards.
-
-### Tips
-
-- Keep this under ~60 lines. If it's getting long, you're putting too much here.
-- Update it when infrastructure changes (new host, new IP, new mount).
-- The AI reads this literally — be precise about paths and IPs.
-- Test changes by starting a new Claude Code session and asking "what do you know
-  about my infrastructure?" — the answer should be accurate from this file alone.

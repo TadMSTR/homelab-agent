@@ -1,0 +1,91 @@
+services:
+  woodpecker-docker-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: woodpecker-docker-proxy
+    restart: unless-stopped
+    networks:
+      - woodpecker-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      # Woodpecker CI needs: create/start/wait/stop/remove containers, pull images,
+      # manage workspace volumes, create per-pipeline networks.
+      CONTAINERS: 1
+      IMAGES: 1
+      VOLUMES: 1
+      NETWORKS: 1
+      POST: 1
+      INFO: 1
+      PING: 1
+      # Blocked — not needed for CI, reduces blast radius:
+      EXEC: 0       # cannot docker exec into other host containers
+      BUILD: 0
+      SWARM: 0
+      SECRETS: 0
+      SERVICES: 0
+      NODES: 0
+      PLUGINS: 0
+      DISTRIBUTION: 0
+      COMMIT: 0
+      SESSION: 0
+
+  woodpecker-server:
+    image: woodpeckerci/woodpecker-server:v3.15.0
+    container_name: woodpecker-server
+    restart: unless-stopped
+    networks:
+      - woodpecker-net
+      - forge-net
+    ports:
+      - "127.0.0.1:8100:8000"
+    volumes:
+      - /opt/appdata/woodpecker/server:/var/lib/woodpecker
+    environment:
+      - WOODPECKER_OPEN=false
+      - WOODPECKER_HOST=https://ci.helmforge.me
+      - WOODPECKER_GITEA=true
+      - WOODPECKER_GITEA_URL=https://gitea.tadmstr.me
+      - WOODPECKER_DATABASE_DRIVER=sqlite3
+      - WOODPECKER_DATABASE_DATASOURCE=/var/lib/woodpecker/woodpecker.db
+    env_file:
+      - /home/ted/.secrets/woodpecker.env
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: "0.5"
+
+  woodpecker-agent:
+    image: woodpeckerci/woodpecker-agent:v3.15.0
+    container_name: woodpecker-agent
+    restart: unless-stopped
+    depends_on:
+      - woodpecker-server
+      - woodpecker-docker-proxy
+    networks:
+      - woodpecker-net
+    # Accesses Docker via woodpecker-docker-proxy (tecnativa/docker-socket-proxy).
+    # EXEC=0 prevents pipeline steps from exec-ing into host containers.
+    # POST=1 allows container creation — --privileged payload filtering is not
+    # possible at proxy layer; accepted risk for single-tenant homelab. Audit: 2026-05-31/woodpecker-forge-2026-05.
+    volumes:
+      - /opt/appdata/woodpecker/agent:/etc/woodpecker
+    environment:
+      - WOODPECKER_SERVER=woodpecker-server:9000
+      - WOODPECKER_MAX_PROCS=2
+      - DOCKER_HOST=tcp://woodpecker-docker-proxy:2375
+    env_file:
+      - /home/ted/.secrets/woodpecker.env
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 2g
+    cpus: "2.0"
+
+networks:
+  woodpecker-net:
+    driver: bridge
+  forge-net:
+    external: true

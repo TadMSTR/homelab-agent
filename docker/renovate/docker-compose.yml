@@ -1,0 +1,21 @@
+services:
+  renovate:
+    image: renovate/renovate@sha256:e3a93228ff61a4df9d685051c9f762f54fac91de69cb77626f3187511aa4e925
+    container_name: renovate
+    restart: "no"
+    env_file:
+      - /home/ted/docker/renovate/.env
+    volumes:
+      - /home/ted/docker/renovate/config.js:/usr/src/app/config.js:ro
+      - /opt/appdata/renovate/cache:/tmp/renovate/cache
+    networks:
+      - forge-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  forge-net:
+    external: true

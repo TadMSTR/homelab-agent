@@ -1,39 +1,94 @@
-# Docker Compose Files
+# Docker Stacks
 
-Sanitized Docker Compose files for every service in the Layer 2 stack. Each subdirectory contains a `docker-compose.yml` and any supporting config files needed to deploy that service.
+Docker Compose stacks for the homelab-agent platform running on forge. Each directory is a self-contained stack with a `docker-compose.yml` and a `.env.example` template.
 
-All services share a single Docker bridge network. Secrets and environment-specific values use placeholder variables — copy `.env.example` to `.env` and fill in your values.
+## Layout
 
-## Stacks
+```
+docker/
+├── agent-platform/       # NATS, DragonflyDB (agent state), Ollama queue proxy
+├── authentik/            # SSO — domain-level forward auth + OIDC
+├── code-server/          # VS Code in browser
+├── crawl4ai/             # Structured web crawling
+├── crawler/              # Crawl4AI + Firecrawl composite stack
+├── dockhand/             # Docker stack manager UI
+├── firecrawl/            # Web content extraction to markdown
+├── graphiti/             # Temporal knowledge graph (Neo4j + Graphiti MCP)
+├── hister/               # Browser-based semantic search
+├── langfuse/             # LLM observability
+├── librechat/            # Multi-model chat UI
+├── matrix/               # Matrix homeserver (Synapse + Ketesa)
+├── memory-stack/         # Milvus + OpenSearch — vector and full-text search
+├── nvidia-exporter/      # NVIDIA GPU metrics exporter for Prometheus
+├── observability/        # Grafana + Loki + Alloy + InfluxDB + Prometheus + Telegraf
+├── ollama/               # Local LLM inference
+├── open-webui/           # Multi-model chat UI fronting Ollama
+├── patchmon/             # Apt package tracking and patch management
+├── plane/                # Project management
+├── renovate/             # Dependency update scanning
+├── reranker/             # ML reranking service
+├── searxng/              # Private meta-search engine
+├── signoz/               # APM and distributed tracing
+├── swag/                 # Nginx reverse proxy, wildcard SSL
+├── task-queue-mcp/       # Agent task queue with MCP tool surface
+├── temporal/             # Durable workflow engine
+├── vault/                # HashiCorp Vault — secret management
+├── vaultwarden/          # Self-hosted Bitwarden-compatible password manager
+└── woodpecker/           # Self-hosted CI/CD
+```
 
-| Stack | Containers | Component Doc |
-|-------|-----------|---------------|
-| [authelia/](authelia/) | Authelia SSO gateway | [docs/components/authelia.md](../docs/components/authelia.md) |
-| [blog-preview/](blog-preview/) | MkDocs Material preview server | [docs/components/blog-preview.md](../docs/components/blog-preview.md) |
-| [crawl4ai/](crawl4ai/) | Crawl4AI web scraping API | [docs/components/crawl4ai.md](../docs/components/crawl4ai.md) |
-| [dockhand/](dockhand/) | Dockhand Docker stack manager | [docs/components/dockhand.md](../docs/components/dockhand.md) |
-| [firecrawl-simple/](firecrawl-simple/) | Firecrawl API, Puppeteer, Redis, worker | [docs/components/searxng.md](../docs/components/searxng.md) (§Web Search Pipeline) |
-| [grafana/](grafana/) | InfluxDB 2.7, Grafana 11.6.0, Loki 3.6.8, image-renderer | [docs/components/grafana-claudebox.md](../docs/components/grafana-claudebox.md) |
-| [graphiti/](graphiti/) | Neo4j 5.26.x, Graphiti MCP (custom build) | [docs/components/graphiti.md](../docs/components/graphiti.md) |
-| [jobsearch/](jobsearch/) | jobsearch-mcp, job-watcher, Postgres, Qdrant, Valkey | [docs/components/jobsearch-mcp.md](../docs/components/jobsearch-mcp.md) |
-| [librechat/](librechat/) | LibreChat, MongoDB, Meilisearch, LibreChat Exporter, optional MCP sidecars | [docs/components/librechat.md](../docs/components/librechat.md) |
-| [milvus/](milvus/) | Milvus standalone v2.5.x (embedded etcd) | [docs/components/memsearch.md](../docs/components/memsearch.md) (§Vector Store) |
-| [n8n/](n8n/) | n8n workflow engine, Postgres | [docs/components/n8n.md](../docs/components/n8n.md) |
-| [nats/](nats/) | NATS 2.12.x with JetStream | [docs/components/nats-jetstream.md](../docs/components/nats-jetstream.md) |
-| [ntfy-mcp/](ntfy-mcp/) | ntfy-mcp notification server | [mcp-servers/README.md](../mcp-servers/README.md#ntfy-mcp) |
-| [plane/](plane/) | Plane project management (12 containers) | [docs/components/plane.md](../docs/components/plane.md) |
-| [reranker/](reranker/) | FlashRank reranker (custom build) | [docs/components/searxng.md](../docs/components/searxng.md) (§Rerank) |
-| [searxng/](searxng/) | SearXNG, Valkey | [docs/components/searxng.md](../docs/components/searxng.md) |
-| [searxng-mcp-cache/](searxng-mcp-cache/) | Valkey cache for searxng-mcp | [docs/components/searxng-mcp.md](../docs/components/searxng-mcp.md) |
-| [swag/](swag/) | SWAG reverse proxy | [docs/components/swag.md](../docs/components/swag.md) |
-| [task-queue-mcp/](task-queue-mcp/) | Task queue MCP server (local build) | [docs/components/task-queue-mcp.md](../docs/components/task-queue-mcp.md) |
-| [temporal/](temporal/) | Temporal server, UI, Postgres, admin-tools | [docs/components/temporal.md](../docs/components/temporal.md) |
+## Dependency Order
 
-## Deployment Order
+Deploy in this order to satisfy network and service dependencies:
 
-SWAG → Authelia → everything else. See [Getting Started](../docs/getting-started.md) for the full dependency-ordered setup guide.
+1. **swag** — creates `forge-net` network, SSL termination
+2. **authentik** — SSO must be available before services that use forward auth
+3. **vault** — secret backend; agents and services pull credentials from here
+4. **observability** — creates `grafana-datasources` network used by other stacks
+5. **matrix** — homeserver; agent communication depends on it
+6. **agent-platform** — NATS, DragonflyDB, Ollama queue proxy
+7. **ollama** — local LLM inference; needed by memsearch and embedding services
+8. **memory-stack** — Milvus + OpenSearch; memsearch depends on these
+9. **graphiti** — knowledge graph; depends on Neo4j (included in compose)
+10. **task-queue-mcp** — inter-agent task routing
+11. All remaining stacks — can be deployed in any order after the above
 
-## Related Docs
+## Usage
 
-- [Architecture — Network Topology](../docs/architecture.md#network-topology) — How containers connect
-- [Backups](../docs/components/backups.md) — Docker appdata backup strategy
+```bash
+# Deploy a stack
+cd docker/<stack>
+cp .env.example .env
+# Edit .env with your values
+docker compose up -d
+
+# Verify
+docker compose ps
+docker compose logs --tail=50
+```
+
+## Networking
+
+All stacks attach to `forge-net` (external network created by the swag stack). Observability stacks additionally attach to `grafana-datasources`.
+
+```bash
+# Create networks (swag stack does this automatically, or manually):
+docker network create forge-net
+docker network create grafana-datasources
+```
+
+## Environment Files
+
+Each stack with configurable secrets or settings ships with a `.env.example`. Copy to `.env` and fill in values before deploying.
+
+Variable names with `${VAR}` in compose files reference the `.env` file. No default values for secrets are provided — all must be set explicitly.
+
+## Sanitization
+
+All compose files have had internal IPs replaced with placeholders:
+- LAN host IPs → `<server-ip>`
+- NAS/storage IPs → `<nas-ip>` and `<nas-subnet>`
+- LAN subnet → `<lan-subnet>`
+- Docker bridge gateway → `<docker-bridge-ip>`
+
+Replace these placeholders with your actual values when deploying.

@@ -1,275 +1,91 @@
-# Task Dispatcher
+# task-dispatcher
 
-The task dispatcher is a Python script that runs every 2 minutes via PM2 cron. It manages the agent orchestration task queue: routing submitted tasks to agents, gating high-risk tasks on operator approval, alerting on stale work, and archiving completed tasks past their TTL.
+task-dispatcher is a Python script that processes the forge agent task queue every 2 minutes.
+It routes tasks between agents, auto-approves low-risk submissions, launches headless agent
+sessions, alerts on stale tasks, and archives completed work.
 
-**Script:** `~/scripts/task-dispatcher.py`  
-**PM2 service:** `task-dispatcher` (cron: `*/2 * * * *`)  
-**Task queue:** `~/.claude/task-queue/` (YAML files, one per task)
+- **Script:** `~/scripts/task-dispatcher.py`
+- **Interpreter:** `/usr/bin/python3`
+- **Schedule:** PM2 cron, every 2 minutes (`*/2 * * * *`)
+- **Log:** `~/.claude/task-queue/dispatcher.log`
+- **No listening port** — runs as a batch job, not a server
 
 ## How It Works
 
-Each run executes three phases sequentially:
+Each run executes three phases:
 
-```mermaid
-graph TD
-    P1["Phase 1: Process submitted tasks<br/>Route, check approval policy, set status"]
-    P2["Phase 2: Alert on stale approved tasks<br/>Re-alert every 24h if approved but unclaimed"]
-    P3["Phase 3: Archive expired tasks<br/>Move completed/failed past TTL to archive/"]
-    P1 --> P2 --> P3
-```
+1. **Process submitted tasks** — scans `~/.claude/task-queue/*.yml` for `status: submitted`.
+   Loads agent manifests to validate target agents. Auto-approves tasks where
+   `requires_approval: false`; others are set to `pending-approval` and a Matrix notification
+   is sent to Ted. Auto-approved tasks trigger a headless `claude -p` launch for the target agent.
 
-**Phase 1 approval routing:**
+2. **Alert stale approved tasks** — any task in `approved` state for >24 hours triggers a
+   Matrix notification to `#forge:helmforge.me`. Re-alerts every 24 hours until claimed.
 
-```mermaid
-graph TD
-    A([task: status=submitted]) --> B{retry window\nelapsed?}
-    B -->|no| SKIP([skip this run])
-    B -->|yes| C{target_agent\n== auto?}
-    C -->|yes| D{manifest\ncapability match?}
-    D -->|no match| RETRY[exponential backoff retry\n5m → 10m → 20m → failed]
-    D -->|matched| E
-    C -->|no| E{bypass_approval?}
-    E -->|yes| AUTO
-    E -->|no| F{requires_approval\nexplicit?}
-    F -->|false| AUTO[status: approved\nNATS tasks.approved]
-    F -->|true| GATE
-    F -->|not set| G{source in\nauto_approved?}
-    G -->|yes| AUTO
-    G -->|no| H{source in\nneeds_approval?}
-    H -->|yes| GATE[status: pending-approval\nMatrix #approvals + NATS tasks.approval-requested]
-    H -->|no| I{risk_level ≤\nmax_auto_risk?}
-    I -->|yes| AUTO
-    I -->|no| GATE
-```
+3. **Archive expired tasks** — moves `completed` or `failed` tasks past their `ttl_days`
+   into `~/.claude/task-queue/archive/`.
 
-### Phase 1: Process Submitted Tasks
+## Headless Agent Launch
 
-For each task with `status: submitted`:
-
-1. **Retry eligibility check** — if `retry_policy.next_retry_at` is set and hasn't elapsed, skip this run. Tasks in exponential backoff stay at `submitted` but are invisible to the dispatcher until their window opens.
-
-2. **Auto-routing** — if `target_agent` is `"auto"`, match `task_type` against agent manifest capabilities. Prefer claudebox-scoped agents; fall back to any capable agent. If no match, trigger routing failure handling (see below).
-
-3. **Approval policy** — determined in priority order:
-   - `bypass_approval: true` → auto-approve (system override; used by rogue-agent lockdown tasks)
-   - `requires_approval: true/false` → explicit override
-   - Source agent in target manifest's `interaction_permissions.auto_approved` → auto-approve
-   - Source agent in target manifest's `interaction_permissions.needs_approval` → gate
-   - Fallback: compare `risk_level` against manifest's `max_auto_risk`
-
-4. **Status transition:**
-   - Auto-approved → `status: approved`, NATS `tasks.approved` published, then dispatched based on task type:
-     - `task_type: audit` with `target_agent: security` — bypasses n8n; launches a headless `claude -p` session directly (see [Headless Audit Dispatch](#headless-audit-dispatch) below)
-     - All other types — n8n approved webhook posted (`post_n8n_approved_webhook()` — triggers the n8n → trigger-proxy → RemoteTrigger session chain; fire-and-forget, no-op if `N8N_WEBHOOK_URL` unset)
-   - Needs approval → `status: pending-approval`, Matrix notification sent to `#approvals`, NATS `tasks.approval-requested` published
-   - n8n submission webhook posted for every submitted task regardless of approval outcome (fire-and-forget, no-op if `N8N_WEBHOOK_URL` unset)
-
-### Headless Audit Dispatch
-
-When a `task_type: audit` task targeting `security` is auto-approved, the dispatcher skips n8n entirely and launches a headless `claude -p` session directly:
-
-```python
-build_name = task["payload"]["build_name"]
-request_path = Path.home() / ".claude/comms/artifacts/audit-requests" / build_name / "request.md"
-proc = subprocess.Popen(
-    ["claude", "--project", "security", "-p",
-     f"Run security audit for build: {build_name}. Request at: {request_path}"],
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL,
-)
-log.info("Security audit dispatched for %s (PID %d)", build_name, proc.pid)
-```
-
-The session runs unattended. The security project CLAUDE.md instructs it to operate in audit-only mode: read the request file, run the `security-audit` skill, write findings, send a Matrix notification to `#claudebox`, and exit. No interactive loop — one pass.
-
-**Payload requirements for audit tasks:**
-
-```yaml
-task_type: audit
-target_agent: security
-payload:
-  build_name: <string>   # must match [a-zA-Z0-9_-]+; used to construct request path
-```
-
-`build_name` is used to derive the request path (`audit-requests/<build_name>/request.md`). The pattern restriction prevents path traversal — the dispatcher rejects names that don't match.
-
-**Matrix notification format (self-contained — no need to open the security chat):**
-
-```
-[AUDIT CLEAN] <build-name> — No findings. Build agent notified.
-[AUDIT] <build-name> — N critical/high — build agent has the handoff. Open claudebox to triage.
-```
-
-For the request file format written by `build-pre-audit`, see `~/.claude/templates/reports/audit-request.template.md`.
-
-### Routing Failure: Exponential Backoff Retry
-
-When routing fails (no manifest match, unknown agent, etc.), the dispatcher retries up to 3 times with exponential backoff before moving the task to the dead-letter queue:
-
-| Attempt | Backoff |
-|---------|---------|
-| 1st retry | 5 minutes |
-| 2nd retry | 10 minutes |
-| 3rd retry | 20 minutes |
-| Exhausted | moved to `dead-letters/`, Matrix `#task-queue` high-priority alert |
-
-The retry state is stored on the task YAML itself:
-
-```yaml
-retry_policy:
-  retry_count: 1
-  max_retries: 3
-  next_retry_at: "2026-03-29T14:35:00+00:00"
-  last_failure_reason: "No agent found for task_type=build_phase"
-```
-
-This means retries survive dispatcher restarts — the task file carries its own retry schedule. On failure exhaustion, `move_to_dead_letter()` is called, NATS `tasks.failed` is published, and a high-priority Matrix notification fires to `#task-queue`.
-
-### Dead-Letter Queue
-
-When a task exhausts all retry attempts, it is moved to `~/.claude/task-queue/dead-letters/` rather than left in the main queue or deleted. The move is atomic (`Path.rename()`). Dead-lettered tasks are retained indefinitely for audit purposes.
-
-A high-priority Matrix notification fires to `#task-queue` on dead-letter with the task summary and last failure reason. To recover a dead-lettered task, move the YAML file back to `~/.claude/task-queue/`, reset `status` to `submitted`, and clear the `retry_policy` block — the dispatcher will pick it up on the next run.
-
-### Phase 2: Alert Deduplication
-
-When an approved task sits unclaimed for more than 24 hours, the dispatcher sends a stale alert. Prior to the fault-tolerance build, it re-alerted on every run after the threshold was crossed — producing a notification storm every 2 minutes.
-
-**Alert dedup** limits re-alerts to once every 24 hours using an `alert_state` block on the task YAML:
-
-```yaml
-alert_state:
-  first_alerted_at: "2026-03-29T10:00:00+00:00"
-  last_alerted_at:  "2026-03-29T10:00:00+00:00"
-  alert_count: 1
-```
-
-The dispatcher checks `last_alerted_at` before firing. If less than 24 hours have elapsed since the last alert, the notification is suppressed and logged as `"stale alert suppressed"`. `alert_count` increments on each actual notification — useful for knowing how long a task has been sitting unclaimed.
-
-### Phase 3: Archive Expired Tasks
-
-Terminal tasks (`completed` or `failed`) past their `ttl_days` (default 30) are moved to `~/.claude/task-queue/archive/`. The move is atomic (`Path.rename()`). Archived tasks are retained indefinitely for audit purposes.
-
-## Task YAML Schema
-
-```yaml
-id: <uuid>
-created: <ISO timestamp>
-source_agent: <name>
-target_agent: <name or "auto">
-task_type: <string>
-risk_level: low | medium | high
-requires_approval: true | false  # optional explicit override
-bypass_approval: true            # optional system override
-status: submitted | pending-approval | approved | working | completed | failed
-summary: <one-line description>
-ttl_days: 30
-payload:
-  <task-type-specific fields>
-result:
-  output: null
-  completed_by: null
-  completed_at: null
-
-# Set by dispatcher on routing failure:
-retry_policy:
-  retry_count: 0
-  max_retries: 3
-  next_retry_at: <ISO timestamp>
-  last_failure_reason: <string>
-
-# Set by dispatcher on stale approved alert:
-alert_state:
-  first_alerted_at: <ISO timestamp>
-  last_alerted_at: <ISO timestamp>
-  alert_count: 1
-
-history:
-  - timestamp: <ISO>
-    status: <status>
-    actor: <dispatcher | ted | <agent>>
-    note: <string>
-```
-
-## task-approve CLI
-
-`~/bin/task-approve` is a symlink to `~/scripts/task-approve.py`. Available subcommands:
+When a task is auto-approved, the dispatcher launches the target agent headlessly:
 
 ```bash
-task-approve list                        # show pending-approval tasks
-task-approve status                      # show all tasks with colored status
-task-approve <task-id>                   # approve a task
-task-approve <task-id> --reject "reason" # reject, sets status: failed
-task-approve clear-alerts <task-id>      # reset alert_state (stops re-alert storm)
+claude -p --dangerously-skip-permissions \
+  "You have a pending task (id=<task_id>). Check your task queue and proceed."
 ```
 
-**`clear-alerts`** was added in the fault-tolerance build. If a task has been alerting for hours and you want to silence re-alerts without approving or rejecting it, `clear-alerts` wipes the `alert_state` block entirely. The next alert will fire again after 24 hours when the threshold is crossed again. Useful when you've acknowledged the alert and want a clean quiet period.
+The launch runs in the agent's project directory from a hardcoded whitelist:
 
-Task IDs can be specified as full UUID or a prefix (8 chars is usually enough).
+| Agent | Project dir |
+|-------|-------------|
+| sysadmin | `~/.claude/projects/sysadmin` |
+| developer | `~/.claude/projects/developer` |
+| research | `~/.claude/projects/research` |
+| writer | `~/.claude/projects/writer` |
+| security | `~/.claude/projects/security` |
 
-## Agent Manifest Fields
+Launch logs go to `~/.pm2/logs/agent-launch-<agent>-<task_id_prefix>.log`.
 
-The dispatcher reads two fields from agent manifests:
+## Configuration
 
-**`max_auto_risk`** — highest risk level the dispatcher will auto-approve for this agent (fallback when source agent not listed in interaction_permissions).
+| Setting | Value |
+|---------|-------|
+| Task queue dir | `~/.claude/task-queue/` |
+| Manifest dir | `~/.claude/manifests/` |
+| Matrix MCP URL | `http://127.0.0.1:8487/mcp` |
+| Retry backoff | 3 retries: 5m, 10m, 20m |
+| Stale alert threshold | 24 hours |
+| Re-alert interval | 24 hours |
+| Dead letter dir | `~/.claude/task-queue/dead-letters/` |
 
-**`interaction_permissions`** — per-source-agent approval policy:
-```yaml
-interaction_permissions:
-  auto_approved:
-    - temporal-worker   # these sources bypass approval for this agent
-  needs_approval:
-    - external-source   # these sources always require approval
+## Dependencies
+
+- **task-queue-mcp** (port 8485) — provides the task YAML files on disk
+- **matrix-mcp-forge** (port 8487) — sends notifications to Matrix
+- **agent-bus** — event logging via `agent_bus_client.log_event()`
+- **Agent manifests** — `~/.claude/manifests/*.yaml` for routing validation
+
+## Operations
+
+```bash
+# Check status
+pm2 show task-dispatcher
+
+# View recent logs
+tail -50 ~/.claude/task-queue/dispatcher.log
+
+# Force a run
+pm2 restart task-dispatcher
+
+# Check for dead-lettered tasks
+ls ~/.claude/task-queue/dead-letters/
+
+# Check for stale approved tasks
+grep -l "status: approved" ~/.claude/task-queue/*.yml
 ```
-
-If the source agent isn't in either list, `max_auto_risk` applies.
-
-## Integration Points
-
-**NATS JetStream:** The dispatcher publishes to these subjects on every transition:
-- `tasks.submitted` — task picked up for routing
-- `tasks.approved` — auto-approved
-- `tasks.approval-requested` — gated on operator
-- `tasks.failed` — routing exhausted or rejected
-- `tasks.working` — published by `inject-task-queue.sh` when an agent picks up a task
-
-All NATS publishes are fire-and-forget (`timeout=5`). If NATS is down, the dispatcher continues normally.
-
-**n8n:** Posts task metadata to `N8N_WEBHOOK_URL` at two points in the lifecycle: on submission (routing and risk-based logic in the n8n task dispatcher workflow) and on approval (`post_n8n_approved_webhook()` — drives the n8n → trigger-proxy → RemoteTrigger agent session chain). Both are fire-and-forget. If `N8N_WEBHOOK_URL` is not set, both no-op silently. Exception: `task_type: audit` tasks targeting `security` bypass `post_n8n_approved_webhook()` entirely — the dispatcher launches a headless `claude -p` session directly instead.
-
-**Matrix:** Sends notifications via `matrix_notify()` (calls matrix-mcp at `http://127.0.0.1:8487/mcp`) for:
-- Pending-approval tasks → `#approvals`
-- Stale approved tasks >24h unclaimed → `#task-queue` (deduplicated, once per 24h)
-- Routing exhausted / task failed → `#task-queue` (high priority)
-
-**inject-task-queue.sh (SessionStart hook):** Reads tasks with `status: approved` or `status: input-required` at Claude Code session start, injects summaries as `additionalContext`. The dispatcher sets status; the hook delivers tasks to agents.
-
-## Gotchas and Lessons Learned
-
-**Notification storm before alert dedup.** Prior to the `alert_state` implementation, a single stale task would fire a Matrix notification every 2 minutes indefinitely. On a 24h-unclaimed task, that's 720 notifications. The `alert_state` block on the task YAML is the fix — check `last_alerted_at` before alerting.
-
-**Retry state survives restarts.** Because `retry_policy` is stored on the task file (not in memory), the backoff schedule persists across PM2 restarts, system reboots, and dispatcher crashes. A task will not be re-routed until `next_retry_at` has elapsed regardless of how many times the dispatcher has restarted.
-
-**`bypass_approval` is a system-only field.** It's intended for rogue-agent lockdown tasks injected directly by system components. Tasks submitted by agents or humans should never set this field — they'd bypass all approval gating including `requires_approval: true`.
-
-**Auto-routing (`target_agent: auto`) scans all manifests.** If two agents have overlapping capabilities and both are claudebox-scoped, the first match wins (dict iteration order). For deterministic routing, set `target_agent` explicitly on the task.
-
-**task-approve partial ID matching.** The tool matches on full UUID, UUID prefix, or filename stem. If two tasks have IDs with the same 8-char prefix (extremely unlikely with UUID4), `find_task` returns the first file found by glob sort. Use the full UUID if ambiguity is a concern.
-
-**Atomic writes everywhere.** Both `task-dispatcher.py` and `task-approve.py` use the `.tmp → rename` pattern for all writes. This prevents a half-written task file from being read mid-write by another tool or hook. If a write fails, the `.tmp` file is cleaned up and the original is untouched. New task files are created via `os.open(..., 0o600)` — they are only readable by the owning user. The `~/.claude/task-queue/` directory itself is `0700`. This prevents other local processes (e.g., Docker containers with a bind-mounted home directory) from reading task contents.
-
-## Further Reading
-
-- [NATS JetStream](nats-jetstream.md) — event bus for task lifecycle events
-- [n8n](n8n.md) — webhook workflow engine that receives task submissions
-- [Agent Orchestration](agent-orchestration.md) — task queue overview, lifecycle, agent manifest schema
-- [Agent Workspace Check](agent-workspace-check.md) — pre-edit workspace resolver used by agents before picking up tasks
-
----
 
 ## Related Docs
 
-- [Agent Orchestration](agent-orchestration.md) — higher-level overview of the queue and agent manifests
-- [NATS JetStream](nats-jetstream.md) — event streaming for task transitions
-- [n8n](n8n.md) — webhook routing layer on top of the dispatcher
-- [Temporal Build Worker](temporal-build-worker.md) — Temporal worker that produces tasks via `raise_complete_async`
+- [task-queue-mcp.md](task-queue-mcp.md) — the MCP server that manages task state
+- [agent-bus.md](agent-bus.md) — event bus for agent coordination
+- [system-agents.md](../../design/system-agents.md) — agents dispatched by this service

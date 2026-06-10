@@ -1,21 +1,6 @@
-# SearXNG Docker Stack
-#
-# Privacy-respecting meta-search engine with Valkey for rate limiting and caching.
-# SearXNG is bound to localhost (127.0.0.1:8081) — only accessible from the host
-# and containers on claudebox-net. Not exposed externally.
-#
-# Valkey is on a separate internal network — no external access needed.
-#
-# Prerequisites:
-#   - External Docker network (claudebox-net) already created
-#   - .env file with SEARXNG_SECRET
-#   - SearXNG settings.yml in /opt/appdata/searxng/searxng/
-#
-# See docs/components/searxng.md for full setup and searxng-mcp wiring.
-
 services:
   searxng:
-    image: searxng/searxng:latest
+    image: searxng/searxng@sha256:dac0c447bdd3f20a43687c6bed8140547f493252fd7bad3ad8bef1faffe1002d
     container_name: searxng
     volumes:
       - /opt/appdata/searxng/searxng:/etc/searxng:rw
@@ -23,7 +8,7 @@ services:
       - /var/cache/searxng:size=64m
     environment:
       - SEARXNG_SECRET=${SEARXNG_SECRET}
-      - SEARXNG_VALKEY_URL=valkey://valkey:6379/0
+      - SEARXNG_VALKEY_URL=valkey://:${DRAGONFLY_PASSWORD}@searxng-dragonfly:6379/0
     cap_drop:
       - ALL
     cap_add:
@@ -42,24 +27,64 @@ services:
     ports:
       - "127.0.0.1:8081:8080"
     networks:
-      - claudebox-net
+      - forge-net
       - searxng-internal
     depends_on:
-      - valkey
+      - searxng-dragonfly
     restart: unless-stopped
 
-  valkey:
-    image: valkey/valkey:8-alpine
-    container_name: searxng-valkey
+  searxng-hister:
+    image: ghcr.io/asciimoo/hister@sha256:ce5e7439726b6ccb0ed9abda91a16b1034bd5be4c25abee81307c006abcd3fd8
+    container_name: searxng-hister
+    command: ["listen", "--config", "/hister/data/config.yml"]
+    user: '1000:1000'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
     tmpfs:
-      - /data:size=64m
-    command: valkey-server --save "" --appendonly no
+      - /tmp
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:4434/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    environment:
+      - HISTER__SERVER__ADDRESS=0.0.0.0:4434
+      - HISTER__SERVER__BASE_URL=https://hister.helmforge.me
+      - HISTER__APP__SEARCH_URL=https://search.helmforge.me/search?q={query}
+      - HISTER__APP__REDIRECT_ON_NO_RESULTS=false
+    ports:
+      - "127.0.0.1:4434:4434"
+    volumes:
+      - /opt/appdata/searxng/hister:/hister/data
+    networks:
+      - forge-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  searxng-dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.37.2
+    container_name: searxng-dragonfly
+    restart: unless-stopped
+    command: ["--proactor_threads=2", "--maxmemory=512mb", "--snapshot_cron=*/30 * * * *", "--requirepass=${DRAGONFLY_PASSWORD}"]
+    ports:
+      - "127.0.0.1:6381:6379"
+    volumes:
+      - /opt/appdata/searxng/dragonfly:/data
     networks:
       - searxng-internal
-    restart: unless-stopped
+      - forge-net
+      - grafana-datasources
 
 networks:
-  claudebox-net:
+  forge-net:
     external: true
   searxng-internal:
-    # Internal-only network for SearXNG <-> Valkey communication
+    driver: bridge
+  grafana-datasources:
+    external: true

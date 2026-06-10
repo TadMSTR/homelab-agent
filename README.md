@@ -1,350 +1,182 @@
-<p align="center">
-  <img src="docs/assets/banner.png" alt="homelab-agent banner" />
-</p>
-
 # homelab-agent
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Built with Claude](https://img.shields.io/badge/Built%20with-Claude-blueviolet)](https://claude.ai)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-enabled-blueviolet)](https://claude.ai/code)
 
-I run a multi-user AI platform out of a mini PC in my homelab. Claude has persistent context about my infrastructure, live tool access to my servers, purpose-built agents for specific tasks, and a web frontend accessible from any browser on the network. This repo documents the full build.
+![homelab-agent banner](docs/assets/banner.png)
 
-## What This Is
+I rebuilt my AI homelab platform on more capable hardware and documented everything from scratch. Five purpose-built agents share a memory system, run unattended builds, and stay reachable from any Matrix client or browser. This repo is that documentation — every Docker service, every PM2 process, every design decision that got it here.
 
-This is more than "I use AI to write scripts." It's a three-layer platform: a dedicated host running Claude Desktop with MCP server integrations for direct infrastructure access, a self-hosted Docker stack with LibreChat as the multi-user frontend and supporting AI services, and a multi-agent Claude Code engine with scoped memory, background jobs, and automated knowledge accumulation.
+The host is **forge** — a [Minisforum MS-A2](https://www.minisforum.com/product/ms-a2/) running Debian 13, 55+ containers, and a multi-agent Claude Code engine.
 
-The LibreChat frontend is where the platform shows its depth. It's not just a chat UI — it hosts specialized agents, each configured with its own tools, context, and purpose. The first: a job search agent with multi-board scraping, resume scoring, and application tracking. More are being added. Any browser on the network can access the platform; anyone with an account can use the agents.
-
-What makes it work over time is the memory system. Claude doesn't start from zero every session. It loads infrastructure context, recalls relevant decisions from past work, and accumulates knowledge automatically through nightly memory sync. Add the version-controlled infrastructure (everything the AI can touch is in git), and you have a system that can operate alongside you without being a liability.
-
-Modular by design. Take the whole thing or just the parts that fit your setup. The system rewards customization — the more you shape it to how you actually work, the more useful it gets.
-
-## How This Started
-
-I watched a TechnoTim video on TrueNAS and Docker, needed a backup script, and used Claude to write it. The script worked, but Claude kept asking me the same questions about my setup every session. So I started writing down my infrastructure in markdown files and feeding them as context. That context system grew into a structured repository — profiles, preferences, infrastructure docs, project instructions — which I started calling the "prime directive."
-
-Once Claude had persistent context about my environment, the interactions changed. Instead of explaining my setup every time, I could say "check if the Plex container is healthy on unraid" and it already knew unraid's IP, what monitoring tools were available, and how my Docker stacks were organized. That was the inflection point.
-
-I built a dedicated mini PC (claudebox) to run Claude Desktop full-time with MCP tool integrations — direct access to Netdata, Grafana, GitHub, the filesystem, and a browser. Then I layered on a self-hosted service stack: reverse proxy with SSO, a multi-provider chat UI with purpose-built agents, semantic search over all my docs and repos, and a Claude Code web interface. On top of that, a multi-agent Claude Code engine with scoped memory, background jobs, and automated knowledge sync.
-
-It grew organically from "AI writes me a script" to "AI operates alongside me as infrastructure."
-
-For the full build history, see [CHANGELOG.md](CHANGELOG.md).
+> Previously documented a claudebox-era build. That build is archived at tag `archive/claudebox-v1` and branch `archive/claudebox`.
 
 ## Architecture
 
-The system has three layers. Each is independently useful — you don't need all three.
+Three layers, each independently useful.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Layer 3: Multi-Agent Claude Code Engine                │
-│  CLAUDE.md hierarchy · scoped memory · memsearch        │
-│  knowledge graph · agent-bus · Temporal · mem pipeline  │
-├─────────────────────────────────────────────────────────┤
-│  Layer 2: Self-Hosted Service Stack (Docker)            │
-│  SWAG/Authelia · LibreChat · purpose-built agents       │
-│  qmd · CloudCLI · SearXNG · Grafana · NATS · Temporal   │
-├─────────────────────────────────────────────────────────┤
-│  Layer 1: Host & Core Tooling                           │
-│  Debian mini PC · Claude Desktop · MCP servers          │
-│  Guacamole remote access                                │
-└─────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│  Layer 3: Multi-Agent Claude Code Engine                       │
+│  5 resident agents · scoped-mcp · Matrix dispatch             │
+│  agent-bus · memory pipeline · knowledge graph                 │
+├────────────────────────────────────────────────────────────────┤
+│  Layer 2: Docker Service Stack (60+ containers, 22 stacks)     │
+│  SWAG/Authentik · Ollama (NVIDIA GPU) · Langfuse · SigNoz      │
+│  Synapse · SearXNG · Milvus · Graphiti · Temporal · NATS       │
+├────────────────────────────────────────────────────────────────┤
+│  Layer 1: Host                                                 │
+│  Minisforum MS-A2 · AMD Ryzen 9 9955HX (16c/32t) · 96 GB      │
+│  NVIDIA RTX 2000 Ada · 5.4 TB NVMe · Debian 13 trixie         │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-### Layer 1 — Host & Core Tooling
+### Layer 1 — Host
 
-The foundation is a dedicated machine running Claude Desktop with MCP (Model Context Protocol) server integrations. MCP gives Claude direct, structured access to your infrastructure tools — not copy-pasting outputs into a chat window, but live tool calls.
+| | |
+|-|-|
+| **Machine** | Minisforum MS-A2 |
+| **CPU** | AMD Ryzen 9 9955HX — 16 cores / 32 threads, up to 5.0 GHz |
+| **RAM** | 96 GB DDR5 |
+| **Storage** | 1.8 TB NVMe (Crucial P310) + 3.6 TB NVMe (Crucial P3 Plus) |
+| **GPU** | NVIDIA RTX 2000 Ada — Ollama inference, GPU-accelerated embeddings |
+| **iGPU** | AMD Radeon (Granite Ridge) — Grafana image rendering |
+| **OS** | Debian 13 trixie |
 
-**Hardware:** GMKTec K11 mini PC — AMD Ryzen 9 8945HS, 32GB RAM, 2TB NVMe. Plenty for local embeddings and multiple Docker containers. Any modern mini PC or repurposed desktop works.
+The two GPUs do separate jobs: the NVIDIA card handles LLM inference via Ollama; the AMD iGPU handles Grafana's image renderer for panel exports and screenshots. Neither workload competes with the other.
 
-**OS:** Debian 13 (trixie). Nothing special about the choice — stable, familiar, good Docker support.
+### Layer 2 — Docker Service Stack
 
-**Claude Desktop** runs as the primary AI interface, with MCP servers providing tool access:
+60+ containers across 22 compose stacks. SWAG handles SSL termination and routing; Authentik provides SSO with domain-level forward auth and per-service OIDC.
 
-| MCP Server | What It Does | Built by |
-|------------|-------------|----------|
-| Backrest | Trigger backup plans, fetch operation history for restic-based backups | me |
-| basic-memory | Persistent knowledge base as Obsidian-compatible markdown files | community |
-| Bluesky | Social media management via AT Protocol | me (fork) |
-| Desktop Commander | Filesystem operations, terminal commands, process management (Claude Desktop) | Anthropic |
-| GitHub | Repo management, issues, PRs, code search across multiple accounts | Anthropic |
-| Grafana | Dashboard management, alert rules, Loki log queries, InfluxDB metrics | Grafana |
-| graphiti-mcp | Knowledge graph access — add episodes, search nodes and facts, query relationships in the Neo4j-backed Graphiti store (Claude Code) | community |
-| helm-ops-mcp | Shell, file, and process operations on a remote build host over SSH — same tool surface as homelab-ops, different transport (Claude Code) | me |
-| homelab-ops | Shell, file, and process operations over HTTP (Claude Code + LibreChat) | me |
-| pm2-mcp | PM2 process manager — list services, tail logs, restart/stop/start via structured `pm2 jlist` output (Claude Code) | me |
-| InfluxDB | Time-series queries and writes for Telegraf-shipped metrics | community |
-| jobsearch-mcp | Multi-board job search, resume scoring, application tracking (LibreChat) | me |
-| matrix-mcp | Send messages, post artifacts, and read history in per-agent Matrix rooms — the agent communications layer (Claude Code) | me |
-| memsearch | Memory recall from past Claude Code sessions (plugin, not MCP) | community |
-| Netdata | Real-time metrics from any monitored host (CPU, RAM, disk, containers, alerts) | Netdata |
-| ntfy-mcp | Push notifications via ntfy as a typed tool call — replaces inline curl in agent workflows (Claude Code) | me |
-| Playwright | Browser automation — navigate, click, fill forms, take screenshots | Anthropic |
-| qmd | Semantic search over repos, docs, and agent memory — stdio and HTTP modes | community |
-| scoped-mcp | Per-agent MCP tool proxy — manifest-driven scoping, credential isolation, structured audit log; one server process per agent (Claude Code) | me |
-| searxng-mcp | Private web search via SearXNG with ML reranking, Valkey result caching, domain filtering/boosting, Ollama query expansion, and LLM summarization | me |
-| task-queue-mcp | Schema-validated access to the agent task queue — submit, list, get, and update tasks (Claude Code + LibreChat) | me |
-| TrueNAS | Datasets, pools, snapshots, users, SMB/NFS/iSCSI via REST API | community |
-| Unraid | Array status, disk health, Docker containers, shares via GraphQL API | me |
+**Foundation**
 
-For config patterns, standalone value ratings, and a prioritized adoption path, see [`mcp-servers/README.md`](mcp-servers/README.md).
+| Service | What It Does |
+|---------|-------------|
+| [SWAG](docs/components/swag.md) | Nginx reverse proxy, wildcard SSL via Let's Encrypt + Cloudflare DNS-01 |
+| [Authentik](docs/components/authentik.md) | SSO — domain-level forward auth + per-service OIDC |
+| [Vaultwarden](docs/components/vaultwarden.md) | Self-hosted Bitwarden-compatible password manager |
+| [Vault](docs/components/vault.md) | HashiCorp Vault — secret management |
+| [Dockhand](docs/components/dockhand.md) | Docker stack manager UI |
 
-**Guacamole** provides browser-based remote desktop access to the machine. Useful when you're away from the desk but need to interact with Claude Desktop's GUI.
+**Observability**
 
-**Standalone value:** Even without Layers 2 and 3, a dedicated machine running Claude Desktop with MCP servers is a significant upgrade over using Claude in a browser tab. The MCP integrations alone — being able to say "check disk health on unraid" or "query Grafana for the last hour of CPU on atlas" — change how you interact with your infrastructure.
+| Service | What It Does |
+|---------|-------------|
+| [Grafana](docs/components/grafana-alloy.md) + [InfluxDB 3](docs/components/influxdb.md) | Dashboards and time-series metrics |
+| [Loki](docs/components/grafana-alloy.md) + [Alloy](docs/components/grafana-alloy.md) | Container log aggregation |
+| [Prometheus](docs/components/telegraf.md) + [Telegraf](docs/components/telegraf.md) | Metrics scraping and system metrics collection |
+| [SigNoz](docs/components/signoz.md) | APM and distributed tracing |
+| [Langfuse](docs/components/langfuse.md) | LLM observability — token usage, cost, trace quality |
 
-### Layer 2 — Self-Hosted Service Stack
+**AI & Search**
 
-Docker containers on the same host, fronted by a reverse proxy with SSO. The stack splits into three groups: a foundation (proxy, auth, observability) that any homelab benefits from, a multi-user platform for serving AI agents to the household, and the agent infrastructure that powers the Claude Code engine in Layer 3.
+| Service | What It Does |
+|---------|-------------|
+| [Ollama](docs/components/ollama.md) | Local LLM inference on NVIDIA RTX 2000 Ada |
+| [Open WebUI](docs/components/open-webui.md) | Multi-model chat UI fronting Ollama |
+| [SearXNG](docs/components/searxng.md) | Private meta-search engine — agent web search backend |
+| [Firecrawl](docs/components/firecrawl.md) | Web content extraction to LLM-ready markdown |
+| [Crawl4AI](docs/components/crawl4ai.md) | Structured web crawling with schema extraction |
+| [Reranker](docs/components/reranker.md) | ML reranking for search result quality |
+| [Hister](docs/components/hister.md) | Browser-based semantic search over the agent knowledge corpus |
 
-#### Foundation
+**Memory & Knowledge**
 
-The plumbing — useful on its own, prerequisite for everything else.
+| Service | What It Does |
+|---------|-------------|
+| [Memory Stack](docs/components/memory-stack.md) — Milvus + OpenSearch | Vector search + full-text search backends for agent memory |
+| [Graphiti + Neo4j](docs/components/graphiti.md) | Temporal knowledge graph — infrastructure topology and entity relationships |
 
-| Service | What It Does | Why It's Here |
-|---------|-------------|---------------|
-| **SWAG** | Nginx reverse proxy with Let's Encrypt wildcard SSL | Single entry point for all `*.yourdomain` services. DNS validation via Cloudflare — internal-only domain, no ports exposed to the internet. |
-| **Authelia** | SSO authentication gateway | One login for all services. SWAG has first-class Authelia support — two lines uncommented per proxy conf. |
-| **Grafana + InfluxDB + Loki** | Local agent observability stack | Dashboards for Claude Code session metrics, token usage, estimated costs, and LibreChat activity. Loki for self-healing system logs. Separate from atlas infrastructure monitoring — see [grafana-claudebox](docs/components/grafana-claudebox.md) and [grafana-observability](docs/components/grafana-observability.md). |
-| **Dockhand** | Docker stack manager UI | Visual management of Docker Compose stacks. |
+**Agent Infrastructure**
 
-#### Multi-User Platform
+| Service | What It Does |
+|---------|-------------|
+| [Synapse + Ketesa](docs/components/synapse.md) | Self-hosted Matrix homeserver — agent communications |
+| [NATS](docs/components/nats.md) | Event bus — agent lifecycle events, JetStream persistence |
+| [task-queue-mcp](docs/components/task-queue-mcp.md) | Containerized task queue with MCP tool surface |
+| [CloudCLI](docs/components/cloudcli.md) | Browser-based Claude Code UI |
 
-Self-hosted, locked-down AI platform for anyone in the house with an account. I use this less day-to-day (CloudCLI is my interface), but it's where purpose-built agents go for shared use.
+**CI/CD & Workflow**
 
-| Service | What It Does | Why It's Here |
-|---------|-------------|---------------|
-| **LibreChat** | Multi-provider chat UI (Anthropic, OpenAI, Ollama, etc.) | The multi-user surface. Hosts specialized agents with their own tools and context. Built-in memory, RAG, MCP integration, and a web search pipeline. See [Purpose-Built Agents](#purpose-built-agents) below. |
-| **SearXNG** | Private meta-search | Self-hosted search backend. Aggregates results from multiple engines with no API keys or per-query costs. Powers LibreChat's web search pipeline. |
+| Service | What It Does |
+|---------|-------------|
+| [Woodpecker CI](docs/components/woodpecker.md) | Self-hosted CI — pipeline execution for Gitea repos |
+| [Temporal](docs/components/temporal.md) | Durable workflow execution engine for agent build pipelines |
 
-#### Agent Infrastructure
+**Platform Maintenance**
 
-Everything that supports the Claude Code agent engine — interface, communications, workflow, memory, and model serving.
-
-| Service | What It Does | Why It's Here |
-|---------|-------------|---------------|
-| **CloudCLI** | Claude Code browser UI _(PM2 host service, not Docker)_ | Browser-based Claude Code interface with file explorer, multi-session tabs, and push notifications. Runs as a PM2-managed Node.js process on the host, proxied through SWAG. Primary day-to-day interface for infrastructure work. |
-| **Matrix (Synapse + Element Web)** | Agent communications layer | Self-hosted Synapse v1.151 + PostgreSQL 16 + Element Web. Primary notification and conversation channel for all agents — replaced ntfy for most events. 11 rooms (one per agent + shared coordination), persistent history, threaded conversations. Two-way operator interaction via the matrix-channel plugin enables permission relay back into a running session. Admin API restricted to LAN at the proxy; bot-managed account provisioning via the matrix-admin-bot PM2 service. See [matrix](docs/components/matrix.md). |
-| **Ketesa** | Synapse admin UI | Browser-based admin interface for the Matrix homeserver — user management, room admin, federation controls. Pure client-side app: static UI loaded from `ketesa.yourdomain`, admin API calls go directly from the browser to Synapse. SWAG vhost is LAN-restricted at the proxy. See [ketesa](docs/components/ketesa.md). |
-| **ntfy** | Push notifications | Self-hosted push notification server. Retained alongside Matrix for two specific cases: pending-approval prompts (where the operator must act before an agent can continue) and dead-letter events (task queue failures, stale handoffs). Everything else routes through Matrix. ntfy-mcp gives agents a typed `send_notification` tool. |
-| **NATS + JetStream** | Agent event bus | NATS 2.10 with JetStream persistence. Task lifecycle events flow here from the dispatcher; inter-agent events (handoffs, audit requests, task failures) federate here from agent-bus. Three streams: TASKS (30d), AGENT_EVENTS (7d), AGENT_BUS (30d, 2-min dedup). Additive to the file queue — source of truth stays in the filesystem. Monitoring dashboard proxied via SWAG. See [nats-jetstream](docs/components/nats-jetstream.md). |
-| **Temporal** | Durable workflow engine | Five-container stack (server, UI, PostgreSQL, two init containers for schema migration). Provides fault-tolerant multi-phase workflow execution — if a phase fails or the system restarts mid-build, it resumes from the last checkpoint rather than starting over. See [temporal](docs/components/temporal.md). |
-| **n8n** | Workflow automation | n8n with Postgres backend. Handles webhook-triggered workflows and event routing between the AI platform and external systems. Task queue and agent manifests mounted read-only for agent-triggered workflows. See [n8n](docs/components/n8n.md). |
-| **Plane** | Self-hosted project management | 11-container Docker stack tracking large architecture builds — modules, cycles, Gantt timeline, dependency-aware issues. plane-mcp-server exposes 55+ tools so agents can read and write workspace state without UI interaction. Behind SWAG with Authelia SSO, isolated on its own Docker network for blast-radius containment. See [plane](docs/components/plane.md). |
-| **Helm Dashboard** | CloudCLI monitoring plugin | Browser tab for observing unattended agent builds — agent sessions, memory state, handoff queue, knowledge graph, PM2/Docker infrastructure, Plane work items, and WebSocket live updates. Pairs with auto mode configuration for walk-away workflows. See [helm-dashboard](docs/components/helm-dashboard.md) and [auto-mode](docs/components/auto-mode.md). |
-| **qmd** | Semantic search MCP server | Hybrid search (BM25 + vector + LLM reranking) over all repos, docs, and agent memory. Local embeddings via GGUF models, GPU-accelerated on AMD iGPU via Vulkan. |
-| **OpenSearch** | Memory full-text search backend | OpenSearch 2.19.1 single-node, isolated on a dedicated `memory-search-net` Docker network for blast-radius containment. Indexes the first 2KB of every memory note (~2800+ notes) for keyword and phrase search. Fed by `memory-os-sync` (PM2, 30s batches, cursor-based incremental). Personal-agent only via `memory-search-mcp`; SearXNG and LibreChat search are deliberately untouched. See [memory-lifecycle](docs/components/memory-lifecycle.md). |
-| **Hister** | Browser-based memory search | Self-hosted semantic + keyword search over the Claude memory corpus (~500 files: agent memory, prime-directive, build plans, platform docs). Independent of live Claude sessions — search past decisions from any browser. Semantic search via `nomic-embed-text` on the forge GPU; Bleve full-text keyword index; SearXNG fallback on zero results. Web UI behind Authelia SSO; MCP endpoint at `/mcp` for programmatic access. See [hister](docs/components/hister.md). |
-| **Graphiti + Neo4j** | Temporal knowledge graph | Neo4j 5.26.0 graph database with Graphiti MCP for entity extraction and relationship mapping. Captures infrastructure topology — services, hosts, networks, agents — with temporal validity. Fed by memory-flush (real-time) and memory-sync (nightly). See [graphiti](docs/components/graphiti.md). |
-| **ollama-queue-proxy** | Ollama pool manager | Smart pool manager for the Ollama fleet — per-client API key auth with priority ceilings and concurrency caps, three-tier priority queue (high/normal/low), model-aware routing to whichever host has the model already loaded, Valkey embedding cache for repeated RAG requests (skips queue and upstream on hit), injection ports for clients without Bearer support, and keep_alive injection to prevent cold-load latency. All active Ollama consumers (graphiti, jobsearch-mcp, searxng-mcp, memsearch-watch) route through it. See [ollama-queue-proxy](docs/components/ollama-queue-proxy.md). |
-
-#### Networking
-
-Most containers sit on a shared `claudebox-net` Docker network, with SWAG handling SSL termination and routing `chat.yourdomain`, `auth.yourdomain`, `cloudcli.yourdomain`, etc. to the appropriate backend. Security-sensitive services run on dedicated networks for blast-radius containment — OpenSearch on `memory-search-net`, Plane on its own `plane`/`plane-swag` pair, Graphiti on `graphiti-internal`, ollama-queue-proxy's Valkey on `oqp-internal`. Only SWAG and the specific dependents reach into those isolated networks. With this many containers, "one big network" stops being a reasonable default; isolation where it matters is cheap insurance.
-
-**Standalone value:** The Foundation row earns its keep on any homelab — SWAG, Authelia, Grafana, and Dockhand are useful long before AI enters the picture. Add the Multi-User Platform on top and you have a self-hosted, SSO-locked AI platform anyone in the house can use, even without Claude Desktop or the agent engine. The Agent Infrastructure layer is opinionated — it only matters if you're running Claude Code or similar agentic workflows, and most rows can be added piecemeal as you build out.
+| Service | What It Does |
+|---------|-------------|
+| [Patchmon](docs/components/patchmon.md) | Apt package tracking and patch management |
+| [Renovate](docs/components/renovate.md) | Dependency update scanning (non-Docker) |
 
 ### Layer 3 — Multi-Agent Claude Code Engine
 
-This is where it gets opinionated. Claude Code (the CLI tool) supports project-scoped context via `CLAUDE.md` files and experimental agent teams. Combined with semantic memory search and PM2-managed background jobs, this creates a persistent, multi-agent system that accumulates knowledge over time.
+Five resident agents — `sysadmin`, `research`, `developer`, `writer`, `security` — run as scoped Claude Code projects. Each gets:
 
-**CLAUDE.md Hierarchy:**
+**Scoped tool surface** — [scoped-mcp](docs/components/scoped-mcp-forge.md) proxies only the tools the agent's manifest allows. Agents see tool results, never credential values. A credential rotation in one agent has zero effect on others.
 
-```
-~/.claude/CLAUDE.md                          ← Root context (loaded every session)
-~/.claude/projects/homelab-ops/CLAUDE.md     ← Infrastructure management agent
-~/.claude/projects/dev/CLAUDE.md             ← Code development agent
-~/.claude/projects/research/CLAUDE.md        ← Technical research agent
-~/.claude/projects/security/CLAUDE.md        ← Security audit agent
-~/.claude/projects/memory-sync/CLAUDE.md     ← Automated knowledge distillation
-```
+**Matrix dispatch** — [matrix-dispatcher-forge](docs/components/matrix-dispatcher-forge.md) polls each agent's Matrix room for messages from the operator and routes them into the right agent's project directory. Send a message from any Matrix client; the agent picks it up and replies in-thread.
 
-The root CLAUDE.md contains infrastructure topology, key paths, and global rules. Each project CLAUDE.md adds domain-specific context, available tools, and conventions. When you start a Claude Code session in a project directory, it loads the root + project context automatically.
+**Persistent memory** — a [three-tier memory system](docs/components/memory-architecture.md) (session → working → distilled) backed by Milvus vector search, OpenSearch full-text, a SQLite metadata index, and a Neo4j knowledge graph. Session notes written mid-build are searchable in the next session.
 
-**Scoped Memory:**
+**Event ledger** — [agent-bus](docs/components/agent-bus.md) logs every cross-agent event (handoffs, task completions, audit requests) to a JSONL trail, federated to NATS JetStream.
 
-```
-~/.claude/memory/
-├── shared/              ← Cross-agent knowledge (infrastructure decisions, system context)
-└── agents/
-    ├── homelab-ops/     ← Infra-specific learnings
-    ├── dev/             ← Development notes
-    └── research/        ← Research findings
-```
+**PM2-managed background services:**
 
-Agents read from shared + their own directory, write to their own directory. Cross-agent knowledge goes to shared. This prevents context bleed — the dev agent doesn't need to know about last week's disk replacement on unraid.
+| Process | What It Does |
+|---------|-------------|
+| `agent-bus` | Inter-agent event log → NATS federation + ntfy alerting |
+| `memsearch-watch` | Periodic memory indexing (polls every 5 minutes) |
+| `memsearch-mcp` | Hybrid vector+BM25+reranker memory search MCP |
+| `memsearch-summarize` | Summarises raw session transcripts via Anthropic API |
+| `qmd` | Semantic + keyword search MCP over 9 000+ docs |
+| `memory-metadata-mcp` | Structured queries over memory note metadata |
+| `memory-search-mcp` | Full-text memory search via OpenSearch |
+| `signoz-mcp` | SigNoz APM query MCP — traces, logs, metrics |
+| `temporal-build-worker` | Temporal worker — drives autonomous build pipelines |
+| `matrix-mcp-forge` | Matrix messaging tool surface for forge agents |
+| `matrix-dispatcher-forge` | Routes operator Matrix messages → agent project dirs |
+| `matrix-admin-bot-forge` | Matrix account provisioning bot |
+| `system-ops` | Homelab-ops MCP server — shell, files, processes |
+| `cloudcli` | CloudCLI web UI on port 3001 |
 
-**memsearch** provides semantic search over the memory directories using local sentence-transformer embeddings and a vector database. The Claude Code plugin auto-injects relevant memories at session start and on each prompt. No API keys, no cloud services — runs entirely on the local CPU. **memsearch-watch** (PM2, always-on) keeps the index current by re-indexing all memory directories within 5 seconds of any write — so context captured mid-session is immediately searchable without waiting for a nightly batch. The **archival-search** skill provides a unified query across all three memory tiers (session, working, distilled) in a single pass, with results labeled by source tier. See [`docs/components/memsearch.md`](docs/components/memsearch.md) for configuration details.
-
-**Graphiti knowledge graph** adds structured relationship queries on top of the flat-file memory system. A Neo4j-backed temporal graph captures infrastructure topology — which services run on which hosts, what depends on what, how the architecture evolved. Fed automatically by real-time memory-flush and nightly memory-sync batch ingestion. Agents query it with `search_memory_facts` and `search_nodes` when they need relational answers rather than text search. See [`docs/components/graphiti.md`](docs/components/graphiti.md).
-
-**agent-bus** is the inter-agent event ledger — a FastMCP server that logs all cross-agent events (handoffs, audit requests, task completions, failures) to a JSONL audit trail and federates them to NATS JetStream. Every coordination action between agents leaves a durable, queryable record. This is what makes multi-agent workflows debuggable: when something goes wrong, the full event sequence is preserved. See [`docs/components/agent-bus.md`](docs/components/agent-bus.md).
-
-**Temporal** provides durable workflow execution for long-running, multi-phase build processes. If a workflow is interrupted mid-phase (system restart, transient error), Temporal resumes from the last checkpoint rather than starting over. The Helm build automation runs through Temporal — each build phase is an activity with heartbeating and timeout guarantees. See [`docs/components/temporal.md`](docs/components/temporal.md).
-
-**PM2 Background Agents:**
-
-| Service | Schedule | What It Does |
-|---------|----------|-------------|
-| memsearch-watch | always-on | Re-indexes all memory directories within 5 seconds of any write — keeps semantic search current without waiting for the nightly batch |
-| memory-os-sync | always-on | Batch-syncs memory notes to OpenSearch (30s intervals, 50-doc batches, cursor-based incremental) — keeps full-text search index current |
-| hister-preview | always-on | Renders markdown as styled HTML for Hister's `/api/preview` endpoint, replacing an upstream `chromedp` dependency that doesn't ship in the container image. Fetches raw files via Hister's `/api/file`, strips frontmatter, converts with the Python `markdown` library. SWAG routes `/api/preview` to the shim before it hits the Hister container. |
-| memory-archive-mirror | 2:30 AM daily | Append-versioned NFS rsync of durable notes to NFS backup host — off-host retention for never-expire categories |
-| agent-bus | always-on | FastMCP server logging all cross-agent events (handoffs, audit requests, task failures) to a JSONL ledger, federated to NATS JetStream. The inter-agent audit trail. |
-| matrix-dispatcher | always-on | Polls agent Matrix rooms every 5s for operator messages, spawns `claude -p` sessions with the target agent's project directory as cwd, streams responses back as threaded replies. SQLite-backed session resume; bang-prefix commands (`!sessions`, `!recap`, `!cancel`); per-room concurrency lock and rate limit. The bridge that turns Matrix into an agent IDE. |
-| matrix-admin-bot | always-on | Synapse account provisioning bot. Eight admin commands gated by an `allowed_senders` allowlist (`!create-account`, `!join-room`, `!rotate-token`, etc.). SIGTERM-safe token rotation with atomic writes to scoped-mcp config files. |
-| task-dispatcher | Every 2 min | Routes submitted tasks between agents — auto-approves low-risk, gates medium/high via Matrix. For `task_type: audit` targeting the security agent, bypasses n8n and launches a headless `claude -p` session directly. Exponential backoff retry on routing failures. Publishes lifecycle events to NATS. |
-| drift-detector-scan | Every 15 min | Checks for recent build close-out memory notes and verifies that expected audit reports exist. Lightweight structural drift check — logs findings only, no Matrix notification unless drift is detected. |
-| build-unblock-scan | Every 30 min | Reads `build-plans/index.md` for blocked plans whose dependency has since been marked complete. Sends a Matrix notification to `#claudebox` when a plan becomes unblockable. |
-| plane-updater | Every 5 min | Watches for close-out notes marked `plane-update: pending`; launches a headless `claude -p` session to close Plane work items and add completion comments via Plane MCP. |
-| trigger-proxy | always-on | Bridges n8n (Docker) to Claude Code RemoteTrigger — reads OAuth token from `~/.claude/.credentials.json` with auto-refresh, validates `X-Trigger-Secret` on inbound calls, proxies to `api.anthropic.com/v1/code/triggers/{id}/run`. Bound to the Docker bridge IP so only workflows on the default bridge can reach it. |
-| docker-stack-backup | 1:00 AM daily | Stops containers, rsyncs appdata to NFS, restarts |
-| memory-promote-daily | 11:00 PM daily | Promotes session transcripts from the last 48h to working-tier notes using a smaller, faster model. Context from the day’s work is searchable the next morning. |
-| memory-pipeline | 4:00 AM daily | Orchestrator: runs memsearch-compact → qmd-reindex in sequence after nightly promotions. Keeps the semantic search indexes fresh. |
-| doc-sync-daily | 3:00 AM daily | Fetches official docs for all configured services, chunks them, and writes to the memsearch-indexed doc cache. Agents query cached docs instead of live URLs during task execution. |
-| memory-sync-weekly | Mondays 7:00 AM | Promotes 14-day-old working notes to the distilled tier, expires 90-day notes, runs graph entity dedup. The expensive weekly pass using a more capable model. |
-| resource-monitor | Every 6 hours | Checks RAM, disk, Docker health, PM2 status, NFS mounts; alerts via Matrix |
-| dep-update-check | Wednesdays noon | Checks for updates to pinned dependencies (qmd, memsearch, Authelia, Claude Code) |
-| doc-health-daily | 10:00 PM daily | Targeted doc scan on files touched that day — drift, index entries, sanitization. Zero-cost if nothing was edited. |
-| doc-health | Sundays 11:00 PM | Full weekly doc audit — drift, coverage, staleness, sanitization, structural integrity |
-| librarian-weekly | Mondays 6:00 AM | Diffs memory and semantic search against the prime-directive repo, commits missing or updated skill files, keeps the navigation index current |
-
-See [`pm2/ecosystem.config.js.example`](pm2/ecosystem.config.js.example) for full configuration including an optional upstream issue watcher.
-
-**Standalone value:** The CLAUDE.md hierarchy alone is worth adopting. Even without memsearch or the background agents, giving Claude Code structured context about your infrastructure dramatically improves the quality of its responses. Start with a root CLAUDE.md and one project, expand from there.
-
-## Purpose-Built Agents
-
-The platform hosts two distinct agent surfaces, each for a different use case.
-
-### Claude Code agents
-
-The infrastructure agents — single-operator, project-scoped, where the day-to-day work happens. Each agent is a Claude Code project with its own CLAUDE.md, MCP tool surface, and scoped memory directory. The example set in this repo covers `homelab-ops`, `dev`, `research`, `security`, and `memory-sync`, but the pattern scales — I run more on my own setup. Each agent loads only the context relevant to its domain, so the dev agent doesn't carry monitoring history and the homelab-ops agent doesn't carry git workflow conventions.
-
-The interaction surface is Matrix. Every agent has its own room (`#dev`, `#research`, `#writer`, etc.) plus `#announcements` for cross-agent broadcasts. A message I send in a room is picked up by the **matrix-dispatcher** PM2 service, which spawns a `claude -p` session in that agent's project directory and streams the response back as a threaded reply. Sessions resume across PM2 restarts via SQLite-backed thread tracking; bang-prefix commands (`!sessions`, `!recap`, `!cancel`) cover the common operations without leaving the chat. The result: I can hand work to the right agent from a phone on the couch, a laptop at a coffee shop, any device with Element Web. Persistent history, threaded conversations, two-way operator interaction during long sessions — it feels like a chat with co-workers rather than a series of disposable subprocess invocations.
-
-For unattended runs, the **task-dispatcher** (PM2, every 2 minutes) routes submitted YAML tasks between agents — auto-approving low-risk work, gating medium/high through Matrix or ntfy for operator confirmation. Multi-phase builds run through **Temporal** so a system restart or transient failure resumes from the last checkpoint rather than starting over. **agent-bus** logs every cross-agent event (handoff, audit request, completion, failure) to a JSONL ledger federated to NATS JetStream — a permanent, queryable record of what each agent did and when.
-
-### LibreChat agents
-
-The multi-user surface. Each LibreChat agent is a FastMCP server plus a system prompt — specific tools, specific context, specific job. Anyone with an Authelia account can talk to them, which is the point: this is the slot for AI agents anyone in the household uses, distinct from the Claude Code agents I drive directly.
-
-**Job Search Agent** — the first one in the stack. Backed by its own FastMCP server with tools for multi-board job scraping, resume scoring against job descriptions, and application tracking in Postgres. A user can ask "find senior DevOps roles remote in the US, score them against my resume, and add the top five to the tracker" and get back structured results, not a list of links. See [`docs/components/jobsearch-mcp.md`](docs/components/jobsearch-mcp.md).
-
-The Job Search Agent is what my situation needed. Someone else might build a home energy monitoring agent, a media request agent, something for tracking a health condition, or an agent scoped entirely to their homelab infrastructure. The platform doesn't prescribe what agents you build — it provides the infrastructure (auth, reverse proxy, memory, search) and gets out of the way. The useful thing isn't the job search agent specifically; it's that the slot exists and you can fill it with whatever fits your life.
-
-## The Memory / Context System
-
-This is the connective tissue that makes the whole thing more than the sum of its parts. Most people's experience with AI assistants is stateless — every conversation starts from zero. This system has six layers of persistent context:
-
-> **For the end-to-end overview of how the tiers, search backends, and promotion pipeline fit together, see [Memory System](docs/memory-system.md).**
-
-1. **Prime directive repo** — Stable configuration: infrastructure docs, project instructions, profile/preferences, deployment scripts. Loaded at session start via CLAUDE.md references and qmd search. This is the source of truth.
-
-2. **Core context** — An always-visible 40-line context block injected at every session start. Contains the user profile, active projects, key constraints, and recent decisions. Sits above the context window's compression threshold so critical facts never scroll out mid-session.
-
-3. **Per-agent scoped memory** — Session summaries and learnings written by agents during their work. Organized by agent (shared/, homelab-ops/, dev/, research/) to prevent context bleed. Indexed by memsearch for automatic recall in future sessions. **memsearch-watch** keeps the index current in real time (5-second debounce) so notes written mid-session are searchable in the same session. A three-tier pipeline (session → working → distilled) ensures raw notes are reviewed, curated, and promoted to permanent storage.
-
-4. **Knowledge graph** — A Neo4j-backed temporal knowledge graph (via [Graphiti](docs/components/graphiti.md)) that captures relationships between infrastructure entities — services, hosts, networks, agents, configurations. File-based memory handles narrative knowledge well; the graph handles "what connects to what" queries. Fed automatically by memory-flush (real-time) and memory-sync (nightly batch).
-
-5. **Documentation cache** — A local library of official service documentation (50+ services: Grafana, Loki, SWAG, Authentik, Compose, and more), fetched nightly, chunked by heading, and indexed in memsearch alongside session memory. Agents query cached docs during task execution instead of fetching live URLs — no network dependency, no stale training data. Managed by `doc-sync-daily` (PM2, 3 AM). See [`docs/components/doc-sync.md`](docs/components/doc-sync.md).
-
-6. **Automated memory pipeline** — Three scheduled jobs handle different parts of the promotion cycle. **memory-promote-daily** (11 PM) promotes same-day session transcripts to working-tier notes using a faster model — context from the day's work is searchable the next morning. **memory-pipeline** (4 AM) runs memsearch compaction and qmd reindex after promotions settle. **memory-sync-weekly** (Mondays 7 AM) promotes 14-day-old working notes to the distilled tier, expires 90-day notes, and runs graph entity dedup. Knowledge accumulates and connects without manual curation. See [`docs/components/memory-pipeline.md`](docs/components/memory-pipeline.md).
-
-The result: when I start a session on Monday, the agent already knows about the Docker stack change I made on Friday, the monitoring alert from Saturday, and the research I did on Sunday. It knows because the memory sync agent captured those events, the semantic search surfaced them as relevant context, and the knowledge graph connected them to the services they affected.
-
-## What Makes This Different
-
-Most AI homelab setups are "I use ChatGPT to write scripts." This is a persistent, context-aware system where the AI knows the infrastructure, remembers decisions, and improves over time.
-
-**Persistent context, not copy-paste.** The AI doesn't need you to explain your setup every session. It loads infrastructure docs, reads recent memory, and picks up where you left off.
-
-**Multi-user platform with purpose-built agents.** LibreChat gives the whole household or team access to specialized AI agents — not just one person's Claude Desktop session. Each agent is purpose-built: specific tools, specific context, specific job.
-
-**Multi-agent with scoped memory.** Different Claude Code agents handle different domains without context bleed. The homelab-ops agent knows about Docker and monitoring. The dev agent knows about git workflows and code standards. They share infrastructure knowledge but keep domain-specific learnings separate.
-
-**Automated knowledge accumulation.** The memory sync agent means you don't have to manually maintain documentation. Durable decisions and learnings flow from work sessions into the persistent knowledge base automatically. A temporal knowledge graph captures the relationships between infrastructure entities, so agents can query topology and dependencies — not just search text.
-
-**Tool access, not just chat.** Via MCP, the AI can directly query Netdata metrics, check Grafana dashboards, search GitHub repos, read and write files, and automate browser tasks. It's not just answering questions — it's operating.
-
-**Version-controlled infrastructure.** When AI agents have filesystem access, they will edit your config files directly — compose files, `.env` files, proxy confs. This is powerful, but it means you need version control on everything the AI can touch. All Docker compose files in this setup live in a git repo. Every change is tracked, diffable, and reversible. This isn't optional — it's the safety net that makes AI-assisted infrastructure management viable.
-
-**Per-agent tool isolation, not just trust.** Most multi-agent setups share a tool surface — any agent can call any MCP server. [scoped-mcp](docs/components/scoped-mcp.md) enforces hard per-agent boundaries: each agent runs through a manifest-driven proxy that restricts exactly which tools it can call, with argument-value filters that block credential patterns from leaking through tool parameters. Agents receive tool results, never credential values. A credential rotation in one agent's config has zero blast radius on others. For destructive operations, HITL approval gates the call before it reaches the backend. This isn't policy-as-code applied after the fact — it's capability restriction at the tool layer, before any I/O happens. Projects like OpenClaw and NemoClaw support MCP; they don't scope it.
-
-**Build automation that decouples work from attention.** The platform ships a typed build pipeline — six build types (docker-stack, script-pm2, skill-template, docs-memory, code-service, config-only) inferred at preflight from what changed, each mapped to a set of purpose-built headless agents that run the mechanical steps: SWAG conf validation, post-deploy smoke tests, skill schema checking, Plane work item closure, context pre-summarization before long builds. The interactive session handles judgment. The headless agents handle execution, writing a HEARTBEAT on every run and a `blocked.md` with a Matrix alert if they hit an ambiguity that requires a decision. This is CI/CD-style automation designed for agentic workflows — not a shell script, not a cron job, but typed, observable, interruptible pipeline stages built out of the same `claude -p` primitives the rest of the system uses. See [build-pipeline-agents](docs/components/build-pipeline-agents.md).
-
-**Model-agnostic in practice.** The core engine runs on Claude, but LibreChat supports any provider (OpenAI, Ollama, etc.). SearXNG provides self-hosted search without API keys. The architecture doesn't lock you into a single vendor.
-
-**This isn't a one-click stack.** There are polished prepackaged AI homelab solutions. This is not one of them. Every component here was chosen because it fit a specific need, and those choices are visible throughout the docs. Your version will look different — because your infrastructure is different, your workflow is different, and your brain works differently.
-
-That's the point. When you build your own version of this, the AI knows about *your* storage server, *your* monitoring setup, *your* backup schedule and why it runs when it does. You wrote that context down, and it accumulated over time. A prepackaged solution can't ship with that. You build it, and building it is what makes it work.
-
-## Planned Additions
-
-The platform model makes it straightforward to add new integrations as new use cases emerge. On the roadmap:
-
-**Home Assistant** — pulling device state and automation context into Claude's awareness. The goal is agents that understand what's happening in the house, not just on the servers.
-
-**MQTT** — event-driven triggers for agents. When something happens on the network or in the house, an agent can respond rather than waiting to be asked.
-
-
-## Using This Repo
-
-This repo has two audiences: humans and AI agents.
-
-**For humans:** Start with this README to understand the architecture, then [`docs/getting-started.md`](docs/getting-started.md) for the setup path. The docs are designed so you can stop at any layer and still have a working system. Component docs in [`docs/components/`](docs/components/) go deep on individual services.
-
-**For AI agents:** [`index.md`](index.md) is a machine-readable navigation index of the entire repo — every file, what it covers, and task-based routing so an agent can load only the context it needs. It's designed for Claude Code, but it works with any AI that can read files.
-
-This last point is worth calling out directly. If you want to build your own version of this stack, you can hand your AI assistant this repo and let it help you work through it:
+## What's In This Repo
 
 ```
-I want to build an AI-powered homelab setup similar to the one in this repo.
-Please read index.md to understand the full structure, then help me plan
-which components to adopt based on my current setup.
-
-My setup: [describe your hardware, OS, existing services]
-My goals: [what you want Claude to be able to do]
+docs/components/   — Per-service operational reference (76 docs)
+docs/phases/       — Build completion records (23 phases, what was built and when)
+docs/operations/   — Operational runbooks
+docs/diagrams/     — Architecture diagrams
+CHANGELOG.md       — Build history summary
+docker/            — Docker Compose stacks with .env.example templates
+scripts/           — Maintenance and monitoring scripts
+manifests/         — Sanitized agent manifest examples
+claude-code/       — Claude Code project configs and CLAUDE.md examples
+pm2/               — PM2 ecosystem config and process documentation
 ```
 
-The index covers every component and links to the relevant docs. Your AI can use it to ask the right questions, identify dependencies, and walk you through setup in the right order.
+**Start with [`docs/phases/`](docs/phases/)** for the build history — each phase doc explains what was added, what changed, and what security findings were resolved.
+
+**Use [`docs/components/`](docs/components/)** for operational details on any specific service — configuration, ports, dependencies, and integration points without reading the compose file.
 
 ## Prerequisites
 
-To run the full stack, you need:
+To replicate this stack:
 
-- A dedicated machine (mini PC, old desktop, VM — 16GB+ RAM recommended, 32GB if running local models via Ollama)
-- Debian/Ubuntu (or any Linux with Docker support)
-- Docker CE + Compose
-- Node.js 20+ and npm (for qmd, MCP servers)
-- Python 3.11+ (for memsearch)
-- A [Claude Pro or Max subscription](https://claude.ai) (for Claude Desktop + Claude Code)
-- An Anthropic API key (for LibreChat)
-- A domain name (for SWAG SSL — can be internal-only with DNS validation via Cloudflare)
-- Optional: NFS server for backups (TrueNAS, Unraid, or any NFS-capable host)
+- A machine with 32 GB+ RAM (96 GB if running 5 agents concurrently with local LLMs)
+- An NVIDIA GPU for local Ollama inference, or a remote Ollama API endpoint
+- Debian/Ubuntu with Docker CE + Compose
+- A domain name — SWAG uses DNS-01 validation via Cloudflare (no port forwarding required)
+- Claude Pro or Max subscription + Anthropic API key (for the Claude Code agents)
 
-You don't need all of this to get value. See [`docs/getting-started.md`](docs/getting-started.md) for clear stopping points where each layer is independently useful.
+The observability and service stacks run without the GPU. The agents run without local Ollama — they use the Anthropic API directly. Local inference matters for embedded model calls (embeddings, reranking, query expansion) and for cost when running many agent sessions concurrently.
 
-For a full file-by-file breakdown — every component doc, Docker stack, script, and PM2 entry — see [`index.md`](index.md). It's the machine-readable navigation index used by AI agents, but it works as a sitemap for humans too.
+## Related
 
-## Related Repos
-
-Third-party tools this stack depends on or was influenced by:
-
-| Repo | Description |
-|------|-------------|
-| [tobi/qmd](https://github.com/tobi/qmd) | Semantic search engine with MCP server mode — hybrid BM25 + vector + LLM reranking |
-| [siteboon/claudecodeui](https://github.com/siteboon/claudecodeui) | CloudCLI — Claude Code browser UI with file explorer, multi-session tabs, and notifications |
-| [danny-avila/LibreChat](https://github.com/danny-avila/LibreChat) | Multi-provider chat interface with agents, MCP, memory, and RAG |
-| [zilliztech/memsearch](https://github.com/zilliztech/memsearch) | Semantic memory search for markdown knowledge bases — Claude Code plugin for session recall |
-| [letta-ai/letta](https://github.com/letta-ai/letta) | Stateful AI agent framework with multi-tier memory system — discovering it prompted refinements to this stack's memory pipeline |
-
-## Contact
-
-- **Discussions:** [GitHub Discussions](https://github.com/TadMSTR/homelab-agent/discussions) — questions, ideas, and show-and-tell
-- **Email:** TadMSTR@pm.me
-- **Issues:** [GitHub Issues](https://github.com/TadMSTR/homelab-agent/issues) — bugs and doc errors
+- [Minisforum MS-A2](https://www.minisforum.com/product/ms-a2/) — the hardware forge runs on
 
 ## License
 

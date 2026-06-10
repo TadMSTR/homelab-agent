@@ -1,0 +1,80 @@
+services:
+  authentik-postgres:
+    image: postgres:16-alpine
+    container_name: authentik-postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d authentik -U authentik"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      - POSTGRES_DB=authentik
+      - POSTGRES_USER=authentik
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - /opt/appdata/authentik/postgres:/var/lib/postgresql/data
+    networks:
+      - authentik-internal
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:2026.2.1
+    container_name: authentik-server
+    restart: unless-stopped
+    command: server
+    environment:
+      - AUTHENTIK_REDIS__HOST=
+      - AUTHENTIK_POSTGRESQL__HOST=authentik-postgres
+      - AUTHENTIK_POSTGRESQL__USER=authentik
+      - AUTHENTIK_POSTGRESQL__NAME=authentik
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${POSTGRES_PASSWORD}
+      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
+      - AUTHENTIK_BOOTSTRAP_EMAIL=${AUTHENTIK_BOOTSTRAP_EMAIL}
+      - AUTHENTIK_BOOTSTRAP_PASSWORD=${AUTHENTIK_BOOTSTRAP_PASSWORD}
+      - AUTHENTIK_LOG_LEVEL=info
+    volumes:
+      - /opt/appdata/authentik/media:/media
+      - /opt/appdata/authentik/templates:/templates
+      - /opt/appdata/authentik/blueprints:/blueprints
+      - /opt/appdata/authentik/certs:/certs
+    ports:
+      - 9000:9000
+      - 9443:9443
+    depends_on:
+      authentik-postgres:
+        condition: service_healthy
+    networks:
+      - forge-net
+      - authentik-internal
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:2026.2.1
+    container_name: authentik-worker
+    restart: unless-stopped
+    command: worker
+    environment:
+      - AUTHENTIK_REDIS__HOST=
+      - AUTHENTIK_POSTGRESQL__HOST=authentik-postgres
+      - AUTHENTIK_POSTGRESQL__USER=authentik
+      - AUTHENTIK_POSTGRESQL__NAME=authentik
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${POSTGRES_PASSWORD}
+      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
+      - AUTHENTIK_LOG_LEVEL=info
+    volumes:
+      - /opt/appdata/authentik/media:/media
+      - /opt/appdata/authentik/templates:/templates
+      - /opt/appdata/authentik/blueprints:/blueprints
+      - /opt/appdata/authentik/certs:/certs
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      authentik-postgres:
+        condition: service_healthy
+    networks:
+      - forge-net
+      - authentik-internal
+
+networks:
+  forge-net:
+    external: true
+  authentik-internal:
+    internal: true

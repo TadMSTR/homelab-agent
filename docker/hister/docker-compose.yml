@@ -1,0 +1,33 @@
+services:
+  hister:
+    image: ghcr.io/asciimoo/hister@sha256:ce5e7439726b6ccb0ed9abda91a16b1034bd5be4c25abee81307c006abcd3fd8
+    container_name: hister
+    command: ["listen", "--config", "/hister/data/config.yml"]
+    user: '1000:1000'
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      - HISTER__SERVER__ADDRESS=0.0.0.0:4433
+      - HISTER__SERVER__BASE_URL=https://hister-kb.helmforge.me
+      - HISTER__APP__SEARCH_URL=https://search.helmforge.me/search?q={query}
+      - HISTER__APP__REDIRECT_ON_NO_RESULTS=true
+    volumes:
+      - /opt/appdata/hister:/hister/data
+      - /home/ted/repos/gitea/agent-platform:/mnt/agent-platform-kb:ro
+      - /home/ted/repos/gitea/host-forge:/mnt/host-forge-kb:ro
+      - /home/ted/.claude/memory/shared:/mnt/memory-shared:ro
+    networks:
+      - forge-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  forge-net:
+    external: true

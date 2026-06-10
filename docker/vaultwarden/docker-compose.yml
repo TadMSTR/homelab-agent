@@ -1,0 +1,20 @@
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    environment:
+      - DOMAIN=https://vault.${DOMAIN}
+      - ADMIN_TOKEN=${VAULTWARDEN_ADMIN_TOKEN_HASH}
+      - SIGNUPS_ALLOWED=false
+      - INVITATIONS_ALLOWED=true
+      - SHOW_PASSWORD_HINT=false
+      - LOG_LEVEL=warn
+    volumes:
+      - /opt/appdata/vaultwarden:/data
+    networks:
+      - forge-net
+
+networks:
+  forge-net:
+    external: true

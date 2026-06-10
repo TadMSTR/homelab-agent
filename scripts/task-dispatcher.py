@@ -28,7 +28,7 @@ import yaml
 
 # agent-bus client — write path for Python scripts that cannot call MCP directly
 import sys as _sys
-_sys.path.insert(0, str(__import__('pathlib').Path.home() / "scripts"))
+_sys.path.insert(0, str(__import__('pathlib').Path.home() / "repos/personal/agent-bus"))
 try:
     from agent_bus_client import log_event as bus_log
 except ImportError:
@@ -38,16 +38,25 @@ except ImportError:
 TASK_QUEUE_DIR = Path.home() / ".claude" / "task-queue"
 ARCHIVE_DIR = TASK_QUEUE_DIR / "archive"
 DEAD_LETTER_DIR = TASK_QUEUE_DIR / "dead-letters"
-MANIFEST_DIR = Path.home() / ".claude" / "agent-manifests"
+MANIFEST_DIR = Path.home() / ".claude" / "manifests"
 LOG_FILE = TASK_QUEUE_DIR / "dispatcher.log"
 MATRIX_MCP_URL = "http://127.0.0.1:8487/mcp"
-N8N_WEBHOOK_URL = os.environ.get("N8N_WEBHOOK_URL", "")  # task-submitted webhook
-N8N_APPROVED_WEBHOOK_URL = "http://localhost:5678/webhook/task-approved"
 
 RISK_ORDER = {"low": 0, "medium": 1, "high": 2}
 TERMINAL_STATES = {"completed", "failed"}
 ALERT_INTERVAL_HOURS = 24
 RETRY_BASE_SECONDS = 300  # 5 min base; backoff: 5m, 10m, 20m
+
+TEMPORAL_START_SCRIPT = Path.home() / "scripts" / "temporal-workflow-start.sh"
+
+# Hardcoded whitelist — no user-supplied paths reach subprocess.Popen
+AGENT_PROJECT_DIRS = {
+    "sysadmin":  Path.home() / ".claude/projects/sysadmin",
+    "developer": Path.home() / ".claude/projects/developer",
+    "research":  Path.home() / ".claude/projects/research",
+    "writer":    Path.home() / ".claude/projects/writer",
+    "security":  Path.home() / ".claude/projects/security",
+}
 
 # --- Logging ---
 logging.basicConfig(
@@ -177,51 +186,101 @@ def publish_nats(subject: str, payload: dict) -> None:
         pass
 
 
-# --- n8n webhook (fire-and-forget) ---
-def post_n8n_webhook(task: dict) -> None:
-    """POST task to n8n webhook — fire-and-forget, no-op if URL not configured."""
-    if not N8N_WEBHOOK_URL:
+# --- Headless agent launch ---
+def launch_agent_headless(task: dict) -> None:
+    """Launch the target agent headlessly via claude -p."""
+    target = task.get("target_agent", "")
+    project_dir = AGENT_PROJECT_DIRS.get(target)
+    if project_dir is None:
+        handle_routing_failure(
+            Path(TASK_QUEUE_DIR / f"{task.get('id', 'unknown')}.yml"),
+            task,
+            f"Unknown agent for headless launch: {target!r}"
+        )
         return
-    try:
-        subprocess.run(
-            ["curl", "-s", "-o", "/dev/null", "-w", "",
-             "-X", "POST", N8N_WEBHOOK_URL,
-             "-H", "Content-Type: application/json",
-             "-d", json.dumps({
-                 "task_id": task.get("id"),
-                 "summary": task.get("summary"),
-                 "task_type": task.get("task_type"),
-                 "target_agent": task.get("target_agent"),
-                 "risk_level": task.get("risk_level", "low"),
-                 "source_agent": task.get("submitted_by") or task.get("source_agent", ""),
-                 "requires_approval": task.get("requires_approval"),
-             })],
-            timeout=10,
-            capture_output=True,
+    if not project_dir.is_dir():
+        handle_routing_failure(
+            Path(TASK_QUEUE_DIR / f"{task.get('id', 'unknown')}.yml"),
+            task,
+            f"Project dir missing: {project_dir}"
         )
-    except Exception:
-        pass
+        return
+    task_id = task.get("id", "unknown")
+    if not re.fullmatch(r'[0-9a-f\-]{36}', task_id):
+        task_id = "invalid-id"
+    # SECURITY[resolved]: summary removed from prompt to prevent prompt injection.
+    # Agent discovers task content via task-queue tools using task_id. Audit: 2026-05-29/forge-build-workflow-infra-2026-05.
+    log_file = Path.home() / ".pm2" / "logs" / f"agent-launch-{target}-{task_id[:8]}.log"
+    with open(log_file, "a") as lf:
+        proc = subprocess.Popen(
+            ["claude", "-p",
+             "--dangerously-skip-permissions",
+             f"You have a pending task (id={task_id}). "
+             f"Check your task queue and proceed."],
+            cwd=str(project_dir),
+            stdout=lf,
+            stderr=lf,
+        )
+    log.info(f"Headless launch: {target} (pid={proc.pid}) task={task_id[:8]}")
 
 
-# --- n8n approved webhook (fire-and-forget) ---
-def post_n8n_approved_webhook(task: dict) -> None:
-    """POST approved task to n8n task-approved webhook to fire RemoteTrigger."""
-    try:
-        subprocess.run(
-            ["curl", "-s", "-o", "/dev/null",
-             "-X", "POST", N8N_APPROVED_WEBHOOK_URL,
-             "-H", "Content-Type: application/json",
-             "-d", json.dumps({
-                 "task_id": task.get("id"),
-                 "summary": task.get("summary"),
-                 "target_agent": task.get("target_agent"),
-             })],
-            timeout=10,
-            capture_output=True,
+# --- Temporal workflow launch ---
+# SECURITY[control]: workflow_type allowlisted before subprocess invocation.
+# Audit: 2026-06-02/temporal-workflow-trigger-2026-06.
+ALLOWED_WORKFLOW_TYPES = {"BuildPipelineWorkflow", "BuildPlanWorkflow"}
+
+
+def launch_temporal_workflow(path: Path, task: dict) -> bool:
+    """Submit a Temporal workflow for a task_type=workflow task.
+
+    Returns True on success, False on failure (failure already handled via
+    handle_routing_failure before returning).
+    """
+    payload = task.get("payload", {})
+    workflow_type = payload.get("workflow_type", "BuildPipelineWorkflow")
+    if workflow_type not in ALLOWED_WORKFLOW_TYPES:
+        handle_routing_failure(
+            path, task,
+            f"Unknown workflow_type: {workflow_type!r} (allowed: {ALLOWED_WORKFLOW_TYPES})"
         )
-        log.info(f"Posted approved webhook for task {task.get('id')} → {task.get('target_agent')}")
-    except Exception as e:
-        log.warning(f"n8n approved webhook failed: {e}")
+        return False
+    task_id = task.get("id", "unknown")
+    if not re.fullmatch(r'[0-9a-f\-]{36}', task_id):
+        task_id = "invalid-id"
+    plan_name = payload.get("plan_name", "")
+    if not re.fullmatch(r'[a-z0-9][a-z0-9\-]*', plan_name):
+        handle_routing_failure(
+            path, task,
+            f"Invalid plan_name for workflow submission: {plan_name!r}"
+        )
+        return False
+    workflow_id = f"{plan_name}-{task_id[:8]}"
+    input_json = json.dumps({
+        "plan_name": plan_name,
+        **{k: v for k, v in payload.items()
+           if k not in ("workflow_type", "plan_name", "task_token")}
+    })
+    log_file = Path.home() / ".pm2" / "logs" / f"temporal-start-{task_id[:8]}.log"
+    try:
+        with open(log_file, "a") as lf:
+            result = subprocess.run(
+                [str(TEMPORAL_START_SCRIPT), workflow_type, workflow_id, input_json],
+                stdout=lf, stderr=lf, timeout=30
+            )
+        if result.returncode != 0:
+            handle_routing_failure(
+                path, task,
+                f"temporal-workflow-start.sh exited {result.returncode}"
+            )
+            return False
+        log.info(f"Temporal workflow started: {workflow_type} id={workflow_id} task={task_id[:8]}")
+        return True
+    except subprocess.TimeoutExpired:
+        handle_routing_failure(
+            path, task,
+            "temporal-workflow-start.sh timed out (30s)"
+        )
+        return False
 
 
 # --- Dead-letter queue ---
@@ -234,11 +293,10 @@ def move_to_dead_letter(path: Path, task: dict, reason: str) -> None:
         "retry_count": task.get("retry_policy", {}).get("retry_count", 0),
     }
     dest = DEAD_LETTER_DIR / path.name
-    # Write updated task to dead-letter location, then remove original
     atomic_write(dest, task)
     path.unlink(missing_ok=True)
     matrix_notify(
-        "task-queue",
+        "forge",
         f"[dead-letter] {task.get('summary', path.stem)}",
         f"Task {task.get('id', path.stem)} failed after max retries.\nReason: {reason}",
     )
@@ -254,7 +312,7 @@ def load_manifests() -> dict:
             continue
         try:
             data = load_yaml(path)
-            name = data.get("name")
+            name = data.get("agent_type") or data.get("name")
             if name:
                 manifests[name] = data
         except Exception as e:
@@ -266,13 +324,11 @@ def load_manifests() -> dict:
 def find_agent(task: dict, manifests: dict) -> str | None:
     """Match task_type + scope to an agent. Returns agent name or None."""
     task_type = task.get("task_type")
-    # Prefer claudebox-scoped agents for local tasks
     for name, m in manifests.items():
         caps = m.get("capabilities", [])
         hosts = m.get("scope", {}).get("hosts", [])
-        if task_type in caps and ("all" in hosts or "claudebox" in hosts):
+        if task_type in caps and ("all" in hosts or "forge" in hosts):
             return name
-    # Fallback: any capable agent
     for name, m in manifests.items():
         if task_type in m.get("capabilities", []):
             return name
@@ -298,8 +354,12 @@ def process_submitted(manifests: dict) -> None:
             continue
 
         log.info(f"Processing submitted task: {path.name}")
-        publish_nats("tasks.submitted", {"task_id": task.get("id"), "summary": task.get("summary"), "target_agent": task.get("target_agent"), "risk_level": task.get("risk_level", "low")})
-        post_n8n_webhook(task)
+        publish_nats("tasks.submitted", {
+            "task_id": task.get("id"),
+            "summary": task.get("summary"),
+            "target_agent": task.get("target_agent"),
+            "risk_level": task.get("risk_level", "low"),
+        })
         target = task.get("target_agent", "auto")
 
         # Resolve auto-routing
@@ -324,19 +384,14 @@ def process_submitted(manifests: dict) -> None:
             max_auto = "low"
             log.warning(f"{path.name}: no manifest for agent '{target_agent}', defaulting to low")
 
-        # Check interaction_permissions on target agent's manifest for source agent.
-        # This centralizes approval policy in one place per agent and overrides
-        # the generic max_auto_risk check when the source is explicitly listed.
         source_agent = task.get("submitted_by") or task.get("source_agent", "")
         interaction_perms = (manifest or {}).get("interaction_permissions", {})
         auto_approved_agents = interaction_perms.get("auto_approved", [])
         needs_approval_agents = interaction_perms.get("needs_approval", [])
 
-        # bypass_approval: true is used by system components (e.g., rogue-agent lockdown tasks)
         bypass = task.get("bypass_approval", False)
-
-        # Override requires_approval if explicitly set in task
         explicit_approval = task.get("requires_approval")
+
         if bypass:
             needs_approval = False
             approval_reason = "bypass_approval=true (system override)"
@@ -363,7 +418,11 @@ def process_submitted(manifests: dict) -> None:
             append_history(task, "pending-approval", "dispatcher",
                            f"Needs approval: {approval_reason}")
             atomic_write(path, task)
-            publish_nats("tasks.approval-requested", {"task_id": task.get("id"), "target_agent": target_agent, "risk_level": risk})
+            publish_nats("tasks.approval-requested", {
+                "task_id": task.get("id"),
+                "target_agent": target_agent,
+                "risk_level": risk,
+            })
             bus_log("task.dispatched", source="dispatcher",
                     summary=f"Dispatched for approval: {task.get('summary', path.stem)}",
                     target=target_agent, artifact_path=str(path))
@@ -375,7 +434,7 @@ def process_submitted(manifests: dict) -> None:
                 f"`task-approve {task.get('id', path.stem)}`",
             )
             matrix_notify(
-                "task-queue",
+                "forge",
                 f"[pending-approval] {task.get('summary', path.stem)}",
                 f"Agent: {target_agent} | Risk: {risk}",
             )
@@ -384,12 +443,42 @@ def process_submitted(manifests: dict) -> None:
             append_history(task, "approved", "dispatcher",
                            f"Auto-approved: {approval_reason}")
             atomic_write(path, task)
-            publish_nats("tasks.approved", {"task_id": task.get("id"), "target_agent": target_agent, "summary": task.get("summary")})
-            if task.get("task_type") == "audit" and target_agent == "security":
-                request_path_str = task.get("payload", {}).get("request", "")
-                build_name = Path(request_path_str).parent.name if request_path_str else "unknown"
-                if not re.fullmatch(r'[a-zA-Z0-9_\-]+', build_name):
-                    handle_routing_failure(path, task, f"Invalid build_name in payload: {build_name!r}")
+            publish_nats("tasks.approved", {
+                "task_id": task.get("id"),
+                "target_agent": target_agent,
+                "summary": task.get("summary"),
+            })
+            if task.get("task_type") == "workflow":
+                if launch_temporal_workflow(path, task):
+                    task["status"] = "in-progress"
+                    append_history(task, "in-progress", "dispatcher",
+                                   "Temporal workflow submitted")
+                    atomic_write(path, task)
+                    bus_log("task.workflow_started", source="dispatcher",
+                            summary=f"Temporal workflow started: {task.get('summary', path.stem)}",
+                            target=target_agent, artifact_path=str(path))
+                    log.info(f"{path.name}: → in-progress (temporal workflow)")
+                    matrix_notify(
+                        "forge",
+                        f"[temporal] {task.get('summary', path.stem)}",
+                        f"Workflow: {task.get('payload', {}).get('workflow_type', 'BuildPipelineWorkflow')}"
+                        f" | plan: {task.get('payload', {}).get('plan_name', '?')}",
+                    )
+                continue
+            elif task.get("task_type") == "audit" and target_agent == "security":
+                payload = task.get("payload", {})
+                request_path_str = payload.get("request", "") or next(
+                    (r for r in (payload.get("context_refs") or []) if "audit-requests" in r), ""
+                )
+                build_name = (
+                    Path(request_path_str).parent.name
+                    if request_path_str else
+                    next(iter(re.findall(r'audit-requests/([a-zA-Z0-9_\-]+)', payload.get("description", ""))), "unknown")
+                )
+                # SECURITY[resolved]: reject "unknown" build_name to prevent silent non-functional audit launches.
+                # Audit: 2026-05-29/forge-build-workflow-infra-2026-05.
+                if build_name == "unknown" or not re.fullmatch(r'[a-zA-Z0-9_\-]+', build_name):
+                    handle_routing_failure(path, task, f"Invalid or missing build_name in payload: {build_name!r}")
                     continue
                 audit_root = (Path.home() / ".claude/comms/artifacts/audit-requests").resolve()
                 request_path = Path(request_path_str).expanduser().resolve() if request_path_str else (
@@ -400,24 +489,53 @@ def process_submitted(manifests: dict) -> None:
                 except ValueError:
                     handle_routing_failure(path, task, f"request_path outside audit-requests: {request_path}")
                     continue
-                proc = subprocess.Popen(
-                    ["claude", "--project", "security", "-p",
-                     f"Run security audit for build: {build_name}. "
-                     f"Request at: {request_path}"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-                log.info(f"{path.name}: headless audit launched for {build_name} (pid={proc.pid})")
+                # SECURITY[resolved]: verify request_path exists on disk before launching.
+                # Audit: 2026-05-29/forge-build-workflow-infra-2026-05.
+                if not request_path.exists():
+                    handle_routing_failure(path, task, f"request_path does not exist: {request_path}")
+                    continue
+                security_project_dir = Path.home() / ".claude" / "projects" / "security"
+                audit_log = Path.home() / ".pm2" / "logs" / f"security-audit-{build_name}.log"
+                with open(audit_log, "a") as audit_log_fh:
+                    proc = subprocess.Popen(
+                        ["claude", "-p",
+                         "--dangerously-skip-permissions",
+                         f"Run security audit for build: {build_name}. "
+                         f"Request at: {request_path}"],
+                        cwd=str(security_project_dir),
+                        stdout=audit_log_fh,
+                        stderr=audit_log_fh,
+                    )
+                log.info(f"{path.name}: headless audit launched for {build_name} (pid={proc.pid}) log={audit_log}")
             else:
-                post_n8n_approved_webhook(task)
+                workflow_mode = task.get("workflow_mode", "semi-auto")
+                if workflow_mode == "auto":
+                    # auto mode: headless launch if auto_start or auto mode implies it
+                    log.info(f"{path.name}: workflow_mode=auto — launching headless")
+                    launch_agent_headless(task)
+                else:
+                    # semi-auto mode (default): queue for operator pickup, notify agent room
+                    log.info(f"{path.name}: workflow_mode=semi-auto — queued for operator pickup")
+                    task_id = task.get("id", path.stem)
+                    # SECURITY[accepted]: summary interpolated into Matrix notification title — Markdown injection possible
+                    # but not HTML/JSON injection. Trust model: internal agents not adversarial. Pre-existing pattern.
+                    # Audit: 2026-06-08/workflow-qol-2026-06 INFO-1.
+                    summary = task.get("summary", path.stem)
+                    source = task.get("source_agent", "unknown")
+                    matrix_notify(
+                        target_agent,
+                        f"[task ready] {summary}",
+                        f"Task ID: {task_id}\nFrom: {source} | Risk: {risk}\n"
+                        f'Resume: Check task queue (id={task_id}) and run shared-build-review.',
+                    )
             bus_log("task.approved", source="dispatcher",
                     summary=task.get("summary", path.stem),
                     target=target_agent, artifact_path=str(path))
             log.info(f"{path.name}: → approved (auto)")
             matrix_notify(
-                "task-queue",
+                "forge",
                 f"[auto-approved] {task.get('summary', path.stem)}",
-                f"Agent: {target_agent} | Risk: {risk}",
+                f"Agent: {target_agent} | Risk: {risk} | Mode: {task.get('workflow_mode', 'semi-auto')}",
             )
 
 
@@ -435,7 +553,6 @@ def alert_stale_approved() -> None:
         if task.get("status") != "approved":
             continue
 
-        # Find when it was approved from history
         approved_at = None
         for entry in reversed(task.get("history", [])):
             if entry.get("status") == "approved":
@@ -449,7 +566,6 @@ def alert_stale_approved() -> None:
         if approved_at and approved_at < threshold:
             age_hours = int((datetime.now(timezone.utc) - approved_at).total_seconds() / 3600)
 
-            # Alert dedup: only re-alert after ALERT_INTERVAL_HOURS
             alert_state = task.get("alert_state", {})
             last_alerted = alert_state.get("last_alerted_at")
             should_alert = (
@@ -464,12 +580,11 @@ def alert_stale_approved() -> None:
 
             log.info(f"{path.name}: stale approved task ({age_hours}h unclaimed), sending alert")
             matrix_notify(
-                "task-queue",
+                "forge",
                 f"[stale] {task.get('summary', path.stem)}",
                 f"Approved {age_hours}h ago, unclaimed | Agent: {task.get('target_agent')}",
             )
 
-            # Update alert state
             now_str = now_iso()
             task.setdefault("alert_state", {})
             if task["alert_state"].get("first_alerted_at") is None:
@@ -498,7 +613,6 @@ def archive_expired() -> None:
         created_str = task.get("created", "")
         try:
             created = datetime.fromisoformat(str(created_str))
-            # Date-only strings (e.g. "2026-04-23") parse as naive — localize to UTC
             if created.tzinfo is None:
                 created = created.replace(tzinfo=timezone.utc)
         except (ValueError, TypeError):

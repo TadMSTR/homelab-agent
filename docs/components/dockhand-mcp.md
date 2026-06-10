@@ -1,122 +1,85 @@
 # dockhand-mcp
 
-FastMCP Python MCP server wrapping the [Dockhand](https://github.com/Finsys/dockhand)
-REST API. Gives forge's operator agents structured access to Docker container and stack
-management: listing, lifecycle actions, image update checking, pulling, CVE scanning, and
-activity log access.
+FastMCP Python MCP server wrapping the Dockhand REST API. Gives forge agents structured
+access to Docker container and stack state, with the ability to take container and
+compose stack actions.
 
-- **Source:** `~/repos/personal/dockhand-mcp/`
-- **PM2 service:** `dockhand-mcp` (forge, stdio transport)
-- **Status:** Phase 3 forge deployment in progress (helm-build)
-- **Version:** 0.1.0
-- **Dockhand version verified:** v1.0.27
+- **Version:** 0.1.1
+- **Repo:** `TadMSTR/dockhand-mcp` (public)
+- **Transport:** stdio (PM2-managed)
+- **Port:** none — stdin/stdout only
+- **Auth:** Bearer token (`DOCKHAND_API_TOKEN` from `forge.env`)
+- **Agents:** all 5 forge agents via scoped-mcp `dockhand` module
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
-| `get_health` | Dockhand health status and timestamp |
-| `list_containers` | All containers: name, image, status, environment |
-| `list_stacks` | All Compose stacks: name, status, container count |
-| `container_action` | start / stop / restart / pause / unpause / remove a container |
-| `stack_action` | start / stop / restart / deploy a stack |
-| `check_updates` | Queue an async image update check for all containers |
-| `update_container` | Pull latest image and recreate a specific container |
-| `scan_image` | Trivy/Grype CVE scan by image name |
-| `get_activity` | Recent Dockhand operations log |
+| `get_health` | Dockhand server health and version |
+| `list_containers` | List all containers with status, optionally filtered by environment |
+| `list_stacks` | List Docker Compose stacks managed by Dockhand |
+| `container_action` | Perform an action on a container: `start`, `stop`, `restart`, `pause`, `unpause`, or `remove` |
+| `stack_action` | Perform an action on a stack: `start`, `stop`, `restart`, or `deploy` |
+| `check_updates` | Check for available image updates across containers |
+| `update_container` | Pull and restart a container with the latest image |
+| `scan_image` | Run a vulnerability scan on a container image |
+| `get_activity` | Recent Dockhand activity log (deployments, restarts, etc.) |
 
-## Container Actions
+## Input Validation
 
-`container_action` accepts: `start`, `stop`, `restart`, `pause`, `unpause`, `remove`.
-`stack_action` accepts: `start`, `stop`, `restart`, `deploy`.
+`container_id` and `stack_name` parameters are validated against a safe-ID regex before
+being interpolated into URL paths:
 
-`deploy` pulls new images and recreates the stack — equivalent to
-`docker compose up -d --pull`. Use for image updates on a full stack rather than a
-single container.
-
-## Update Workflow
-
-```
-1. check_updates()
-   → queues async job; get_activity() to see when it completes
-
-2. list_containers()
-   → check which containers show update available
-
-3. scan_image("nginx:latest")
-   → review CVE count before pulling
-
-4. update_container(container_id)
-   → pulls latest image and recreates the container
+```python
+_SAFE_ID = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9_\-\.]*$')
 ```
 
-`check_updates` is async — it queues a job and returns immediately. Poll `get_activity()`
-to confirm when the check is complete before relying on update-available flags.
+Values that don't match are rejected with a clear error rather than being passed to
+the API. This prevents path traversal (e.g., `../health`) via tool parameters.
 
-## Environment Variables
+Query parameters use `httpx`'s `params=` dict rather than f-string interpolation, which
+prevents query injection via values containing `&`.
 
-| Variable | Required | Default | Purpose |
-|----------|----------|---------|---------|
-| `DOCKHAND_ENDPOINT` | yes | — | Base URL, e.g. `http://localhost:7777` |
-| `DOCKHAND_API_TOKEN` | yes | — | Bearer token from Dockhand UI (Settings → API Tokens) |
-| `DOCKHAND_DEFAULT_ENV` | no | — | Default environment ID. Required for `update_container` if not passed explicitly |
-| `LOG_LEVEL` | no | `INFO` | structlog verbosity |
-| `LOG_FILE` | no | — | Log to file path; stdout if unset |
-| `INFLUXDB_URL` | no | — | Enables InfluxDB telemetry when set |
-| `INFLUXDB_TOKEN` | no | — | InfluxDB auth token |
-| `INFLUXDB_BUCKET` | no | `dockhand-mcp` | InfluxDB bucket name |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | no | — | Enables OTEL traces when set |
-| `NATS_URL` | no | — | Enables NATS event publishing when set |
-| `NATS_SUBJECT_PREFIX` | no | `dockhand` | NATS subject prefix |
+## scoped-mcp Registration
 
-Secrets are injected at PM2 startup via `--env-file ~/.secrets/forge.env`.
+Registered in all 5 agent manifests at `~/.claude/manifests/<agent>.json` as module type
+`mcp_proxy` with Bearer token credentials sourced from the environment:
 
-**Getting the environment ID:**
-```bash
-curl -s http://localhost:7777/api/environments \
-  -H "Authorization: Bearer <token>" | python3 -m json.tool
-```
-The forge environment has `"id": 1`. Set `DOCKHAND_DEFAULT_ENV=1` in forge.env.
-
-## Deployment
-
-```bash
-cd ~/repos/personal && git clone <repo-url> dockhand-mcp
-cd dockhand-mcp
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .
-
-# Create API token: Dockhand UI → Settings → API Tokens
-# Add DOCKHAND_API_TOKEN to ~/.secrets/forge.env
-
-pm2 start ecosystem.config.js --env-file ~/.secrets/forge.env
-pm2 save
+```json
+{
+  "name": "dockhand",
+  "type": "mcp_proxy",
+  "url": "http://dockhand-mcp/mcp"
+}
 ```
 
 ## Observability
 
-| Feature | Default | Enable with |
-|---------|---------|-------------|
-| Structured JSON logging | **ON** | `LOG_LEVEL`, `LOG_FILE` |
-| InfluxDB telemetry | off | `INFLUXDB_URL` |
-| OTEL traces | off | `OTEL_EXPORTER_OTLP_ENDPOINT` |
-| NATS publishing | off | `NATS_URL` |
+Structured logging (structlog, JSON-L) is always on. Logs go to **stderr and a file simultaneously** — no configuration required.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOG_FILE` | `/opt/appdata/dockhand-mcp/logs/dockhand-mcp.log` | Log file path. Default is baked in; override to redirect. |
+| `LOG_LEVEL` | `INFO` | Structured log level. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | — | Enable OTEL tracing (`pip install dockhand-mcp[otel]`). |
+| `INFLUXDB_URL` + `INFLUXDB_TOKEN` | — | Enable InfluxDB metric emission (`pip install dockhand-mcp[influxdb]`). |
+
+The log directory is created automatically on startup.
 
 ## Security
 
-From build audit (3 findings, all resolved):
+From audit 2026-05-25 (3 findings):
 
-| ID | Finding | Resolution |
-|----|---------|------------|
-| — | SSH remote in git config exposed internal hostname | Switched to HTTPS remote before publish |
-| — | Path traversal in file-serving utility | Input validation guard added |
-| — | Query parameter encoding not sanitised | Proper URL encoding applied |
+| ID | Severity | Finding | Resolution |
+|----|----------|---------|------------|
+| M1 | Medium | GitHub PAT embedded in `.git/config` remote URL | Remote switched to SSH (`git remote set-url`); PAT rotation pending (manual) |
+| L1 | Low | `container_id` / `stack_name` unsanitized in URL paths (path traversal) | `_SAFE_ID` regex validation added to `container_action`, `stack_action`, `update_container` (commit `8b3f729`) |
+| L2 | Low | `environment_id` f-string in URL query (query injection) | Switched to `httpx params=` dict in `list_containers` and `list_stacks` (commit `8b3f729`) |
 
-API endpoint paths were verified against a live Dockhand v1.0.27 instance via SvelteKit
-manifest extraction from the running container before implementation.
+**Note on M1:** The PAT has been removed from `.git/config` by switching to SSH remote.
+PAT rotation (GitHub UI action) remains a pending manual step.
 
 ## Related Docs
 
-- [dockhand.md](dockhand.md) *(if exists)* — the Dockhand service this wraps
-- [patchmon-mcp.md](patchmon-mcp.md) — companion apt patch management MCP
-- [renovate.md](renovate.md) — companion non-Docker update scanner
+- [dockhand.md](dockhand.md) — Dockhand service (the wrapped service)
+- [forge-agent-mcp-restore.md](../phases/forge-agent-mcp-restore.md) — scoped-mcp wiring

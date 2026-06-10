@@ -1,0 +1,19 @@
+services:
+  vault:
+    image: hashicorp/vault:1.19
+    container_name: vault
+    restart: unless-stopped
+    command: server
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - /opt/appdata/vault/config:/vault/config
+      - /opt/appdata/vault/data:/vault/data
+    ports:
+      - "127.0.0.1:8200:8200"
+    networks:
+      - forge-net
+
+networks:
+  forge-net:
+    external: true

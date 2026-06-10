@@ -1,105 +1,120 @@
-# Scoped-MCP Manifests
+# Agent Manifests
 
-Template manifests for the headless `claude -p` projects in the build pipeline. Each manifest defines the exact tool surface available to a headless session — only the MCP modules listed are accessible.
+Sanitized example manifests for the five forge agents. Each manifest defines the agent's scoped tool surface — what MCP servers it can reach, what tools within each server it can call, rate limits, HITL gates, argument filters, and workspace access rules.
 
-These are framework templates. They use `<FILL_AT_DEPLOY>` placeholders for all environment-specific values (server URLs, executable paths). When deploying, copy them to `~/.claude/manifests/` and fill in the values for your setup.
+## Files
 
-## What's Here
+| File | Agent | Role |
+|------|-------|------|
+| `sysadmin-agent.yml.example` | sysadmin | Infrastructure ops — Docker, apt, PM2, service diagnostics |
+| `research-agent.yml.example` | research | Research and build planning — search, docs, handoffs |
+| `developer-agent.yml.example` | developer | Code — MCP servers, scripts, config, PRs |
+| `writer-agent.yml.example` | writer | Documentation — READMEs, runbooks, component docs |
+| `security-agent.yml.example` | security | Security audits, triage, remediation verification |
 
-| Manifest | Headless Agent | Tool Surface |
-|----------|----------------|-------------|
-| `headless-smoke-test.yml` | smoke-test | homelab-ops (run/read/write), matrix (send), task-queue (update/get) |
-| `headless-skill-validator.yml` | skill-validator | homelab-ops (read/write), task-queue (update/get) |
-| `headless-plane-updater.yml` | plane-updater, docs-build | homelab-ops (read/write), plane (update/comment/search), matrix (send), task-queue, agent-bus (log) |
-| `headless-security-precheck.yml` | security-kb-precheck | homelab-ops (read/write) only — intentionally no Matrix, no task-queue |
-| `headless-security-audit.yml` | security (headless mode) | homelab-ops (read/write/run), matrix (send), task-queue (submit/update/get), agent-bus (log) |
-| `headless-context-preloader.yml` | context-preloader | homelab-ops (read/read-dir/write), task-queue (update/get) |
+## How Manifests Work
 
-The tool allowlists are intentionally narrow. A skill-validator session cannot call `run_command`. A security-kb-precheck session has no network tools at all. The allowlist is the security boundary — not CLAUDE.md instructions, not trust.
+scoped-mcp reads the manifest at agent startup and creates a filtered MCP proxy. The agent connects to scoped-mcp as its sole MCP provider; scoped-mcp routes calls to the real backend services.
 
-## Manifest Format
+```
+Agent
+  │
+  └── scoped-mcp (reads manifest)
+        │
+        ├── system-ops      http://localhost:8282/mcp
+        ├── githost-mcp     subprocess (run-githost-mcp-<agent>.py)
+        ├── searxng-mcp     subprocess (run-searxng-mcp.sh)
+        ├── qmd             http://localhost:8181/mcp
+        ├── task-queue-mcp  http://localhost:8485/mcp
+        └── ...             (tool_denylist/allowlist applied per module)
+```
+
+No credentials appear in the manifest as literal values. All secrets are referenced as `${ENV_VAR}` and sourced from Vault at startup.
+
+## Manifest Schema Reference
+
+Key sections in each manifest:
+
+### `modules`
+
+Each module is an MCP server the agent can reach:
 
 ```yaml
-agent_type: <identifier>
-description: "<one-line purpose>"
-
 modules:
-  <module-name>:
+  searxng-mcp:
     type: mcp_proxy
     config:
-      url: <URL>            # for HTTP MCP servers
+      command: /path/to/run-searxng-mcp.sh   # subprocess launch
       # OR
-      command: <executable> # for stdio MCP servers
-      args: [<arg1>, ...]   # args for stdio command
-      tool_allowlist:
-        - <tool_name>
-        - <tool_name>
+      url: http://localhost:8181/mcp          # HTTP transport
+      tool_denylist:                          # blocked tools
+        - clear_cache
+      tool_allowlist:                         # if set, ONLY these tools are allowed
+        - search
+        - fetch_url
+      headers:                               # injected headers (for auth)
+        Authorization: "Bearer ${TOKEN}"
 ```
 
-`type: mcp_proxy` is the standard module type — it wraps any existing MCP server (HTTP or stdio) and exposes only the listed tools. See the [scoped-mcp docs](../docs/components/scoped-mcp.md) for the full module type reference and advanced options (middleware, rate limits, HITL approval gates).
+### `hitl`
 
-## Deploying
+Human-in-the-loop gates — tools that require operator approval before execution:
 
-### Step 1 — Copy templates to local manifests dir
-
-```bash
-mkdir -p ~/.claude/manifests
-cp manifests/*.yml ~/.claude/manifests/
+```yaml
+hitl:
+  timeout_seconds: 300
+  approval_required:
+    - dockhand-mcp_stack_action
+    - patchmon-mcp_approve_patch_run
+  notify:
+    type: matrix
+    room: "<room-id>"
 ```
 
-### Step 2 — Fill in `<FILL_AT_DEPLOY>` values
+### `argument_filters` / `response_filters`
 
-Each placeholder comment shows the expected value for a standard homelab-agent setup:
+Pattern-based filters applied to all tool calls and responses:
 
-| Placeholder context | Typical value |
-|--------------------|---------------|
-| `homelab-ops` url | `http://localhost:8282/mcp` |
-| `matrix` url | `http://127.0.0.1:8487/mcp` |
-| `task-queue` url | `http://127.0.0.1:8485/mcp` |
-| `plane` command | path to plane-mcp-server executable |
-| `agent-bus` command + args | path to agent-bus venv python3, then server.py |
-
-Edit each file in `~/.claude/manifests/` and replace every `<FILL_AT_DEPLOY>` with the real value. Your local paths may differ — check `pm2 list` and `pm2 show <service>` for running MCP server addresses.
-
-### Step 3 — Validate
-
-```bash
-# Replace with actual path to scoped-mcp
-~/.venv/bin/scoped-mcp validate --manifest ~/.claude/manifests/headless-smoke-test.yml
+```yaml
+argument_filters:
+  - name: "credential-leak"
+    pattern: "(password|secret|api[_.]?key)"
+    fields: ["*"]
+    action: warn   # or block
 ```
 
-Repeat for each manifest. Validation checks that the referenced servers are reachable and the tool names in the allowlist exist on the server. Fix any errors before wiring the headless projects.
+### `rate_limits`
 
-### Step 4 — Wire headless project settings.json
+Per-tool and global rate limiting:
 
-For each headless project directory (`~/.claude/projects/<name>/`), create or update `settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "scoped-mcp": {
-      "command": "uvx",
-      "args": ["scoped-mcp", "--manifest", "/home/<user>/.claude/manifests/<agent-type>.yml"]
-    }
-  }
-}
+```yaml
+rate_limits:
+  global: "60/minute"
+  per_tool:
+    "dockhand-mcp_container_action": "10/minute"
 ```
 
-Setting `mcpServers` in the project `settings.json` overrides (not merges) the global `mcpServers` — so the headless session gets only the scoped tool surface. Verify with:
+### `workspace_access`
 
-```bash
-claude --project <name> --bare -p "list your available tools"
+Directories the agent can read or write:
+
+```yaml
+workspace_access:
+  - path: ~/docker/
+    access: readwrite
+    git_backed: true
+    branch_required: false
 ```
 
-Confirm only the expected scoped tools appear and no global tools bleed through.
+## Sanitization
 
-## Security Model
+These examples have had the following replaced:
+- `192.168.1.x` → `<server-ip>`
+- Matrix room IDs (`!<hash>:helmforge.me`) → `<room-id>`
+- All credential values remain as `${ENV_VAR}` references (no real values were present)
 
-`~/.claude/manifests/` is local config — never commit it, never push it. It contains filled-in server URLs and executable paths that may vary between deployments. The templates in this directory are safe to commit because all sensitive values are replaced with `<FILL_AT_DEPLOY>`.
+Replace `<room-id>` with your actual Matrix room IDs and `<server-ip>` with your server's LAN IP before deploying.
 
-The narrow allowlists mean a compromised or misbehaving headless session is limited to the tool surface it needs. A smoke-test session that goes wrong cannot call Plane tools. A skill-validator cannot execute shell commands. The manifest is the enforcement point — scoped-mcp validates every inbound tool call against it before forwarding.
+## Deployment
 
-## Related Docs
-
-- [Build Pipeline Agents](../docs/components/build-pipeline-agents.md) — agent purposes, invocation map, blocked.md protocol
-- [scoped-mcp](../docs/components/scoped-mcp.md) — full manifest schema, module types, middleware, HITL gates
+See [`docs/components/scoped-mcp-forge.md`](../docs/components/scoped-mcp-forge.md) for the full deployment guide including PM2 config, environment setup, and Vault integration.

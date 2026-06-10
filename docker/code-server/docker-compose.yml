@@ -1,0 +1,36 @@
+services:
+  code-server:
+    # SECURITY[accepted]: s6-overlay root init + no user:/no-new-privileges — linuxserver DC-02 pattern.
+    #   cap_drop:ALL + cap_add:[SETUID,SETGID] is minimum required for s6-applyuidgid UID transition.
+    #   Audit: 2026-06-06/code-server-deploy-2026-05 F-03.
+    image: lscr.io/linuxserver/code-server@sha256:cb261a7f87674b445e0fd66d87d55900c1b823d276c727ab0d168a75e69e9992
+    container_name: code-server
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - PASSWORD=
+      - SUDO_PASSWORD=
+      - PROXY_DOMAIN=code.helmforge.me
+      - DEFAULT_WORKSPACE=/repos
+    volumes:
+      - /opt/appdata/code-server:/config
+      # SECURITY[accepted]: rw mount — design intent; code-server purpose is repo editing.
+      #   Mitigated by Authentik forward-auth + 127.0.0.1-only binding. Audit: 2026-06-06/code-server-deploy-2026-05 F-02.
+      - /home/ted/repos:/repos
+    ports:
+      - 127.0.0.1:8443:8443
+    networks:
+      - forge-net
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+    mem_limit: 2g
+    cpus: 2.0
+    restart: unless-stopped
+
+networks:
+  forge-net:
+    external: true

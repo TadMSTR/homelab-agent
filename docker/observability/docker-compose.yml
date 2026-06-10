@@ -1,0 +1,168 @@
+services:
+  loki:
+    image: grafana/loki:latest@sha256:73e905b51a7f917f7a1075e4be68759df30226e03dcb3cd2213b989cc0dc8eb4
+    container_name: loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - /opt/appdata/observability/loki:/loki
+    networks:
+      - forge-monitoring
+
+  influxdb:
+    image: influxdb:3-core@sha256:31ad94df2248134989b2cf73d965e51dd5f35dfae22d7ed8f4776b12e6f69f4e
+    container_name: influxdb
+    restart: unless-stopped
+    environment:
+      - INFLUXDB3_NODE_IDENTIFIER_PREFIX=forge
+      - INFLUXDB3_OBJECT_STORE=file
+      - INFLUXDB3_DB_DIR=/var/lib/influxdb3
+      - INFLUXDB3_HTTP_BIND_ADDR=0.0.0.0:8181
+    volumes:
+      - /opt/appdata/observability/influxdb3:/var/lib/influxdb3
+    networks:
+      - forge-monitoring
+
+  telegraf:
+    image: telegraf:latest@sha256:fb0a95f7a42958b1e7219faf075552795f7e043432a28c54baf070442b6259ee
+    container_name: telegraf
+    restart: unless-stopped
+    env_file:
+      - /home/ted/.secrets/forge.env
+    volumes:
+      - /opt/appdata/observability/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/proc:ro
+      - /sys:/sys:ro
+      - /:/rootfs:ro
+    group_add:
+      - "989"
+    depends_on:
+      - influxdb
+    networks:
+      - forge-monitoring
+
+  prometheus:
+    image: prom/prometheus:latest@sha256:e4254400b85610324913f0dc4acf92603d9984e7519414c5a12811aa6146acc3
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+    volumes:
+      - /opt/appdata/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - /opt/appdata/observability/prometheus/data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - forge-monitoring
+
+  alloy:
+    image: grafana/alloy:latest@sha256:51aeb9d829239345070619dad3edd6873186f913c84f45b365b74574fcb38ec0
+    container_name: alloy
+    restart: unless-stopped
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+    volumes:
+      - /opt/appdata/observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /opt/appdata/agents:/var/agent-logs:ro
+    group_add:
+      - "989"
+    depends_on:
+      - loki
+    networks:
+      - forge-monitoring
+
+  grafana-mcp:
+    image: grafana/mcp-grafana:latest@sha256:42f541f2206359ce7a40c8e19d96253cef4771bf00e707a760d3a7035c40e8f8
+    container_name: grafana-mcp
+    restart: unless-stopped
+    command:
+      - -address=0.0.0.0:8000
+    ports:
+      - "127.0.0.1:8014:8000"
+    env_file:
+      - /home/ted/.secrets/forge.env
+    environment:
+      - GRAFANA_URL=http://grafana:3000
+    depends_on:
+      - grafana
+    networks:
+      - forge-monitoring
+
+  renderer:
+    image: grafana/grafana-image-renderer:latest@sha256:340c91e98ccd65001a3da4d0192fcf0ed13e95609a51a0d62c35a61b6ff28dff
+    container_name: renderer
+    restart: unless-stopped
+    environment:
+      - ENABLE_METRICS=true
+      - RENDERING_MODE=clustered
+      - RENDERING_CLUSTERING_MODE=browser
+      - RENDERING_CLUSTERING_MAX_CONCURRENCY=4
+      - RENDERING_AUTH_TOKEN=${GRAFANA_RENDERER_TOKEN}
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    group_add:
+      - "992"
+    networks:
+      - forge-monitoring
+
+  grafana:
+    image: grafana/grafana:latest@sha256:2d1f9ae67c1778d33e291d4c3c759cd8b650e67491f02533499eb950e075eeb5
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3003:3000"
+    env_file:
+      - /home/ted/.secrets/forge.env
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_SERVER_ROOT_URL=https://grafana.${DOMAIN}
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_LOG_LEVEL=warn
+      # Authentik OIDC
+      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
+      - GF_AUTH_GENERIC_OAUTH_NAME=Authentik
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=${GRAFANA_OIDC_CLIENT_ID}
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OIDC_CLIENT_SECRET}
+      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid email profile
+      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://auth.${DOMAIN}/application/o/authorize/
+      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://auth.${DOMAIN}/application/o/token/
+      - GF_AUTH_GENERIC_OAUTH_API_URL=https://auth.${DOMAIN}/application/o/userinfo/
+      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(groups, 'authentik Admins') && 'Admin' || 'Viewer'
+      - GF_AUTH_GENERIC_OAUTH_AUTO_LOGIN=false
+      # Image renderer
+      - GF_RENDERING_SERVER_URL=http://renderer:8081/render
+      - GF_RENDERING_CALLBACK_URL=http://grafana:3000/
+      - GF_RENDERING_RENDERER_TOKEN=${GRAFANA_RENDERER_TOKEN}
+      - GF_LOG_FILTERS=rendering:warn
+      - GF_PLUGINS_PREINSTALL=grafana-clickhouse-datasource,redis-datasource
+    volumes:
+      - /opt/appdata/observability/grafana:/var/lib/grafana
+      - /opt/appdata/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - loki
+      - influxdb
+      - prometheus
+      - renderer
+    networks:
+      - forge-net
+      - forge-monitoring
+      - grafana-datasources
+
+networks:
+  forge-net:
+    external: true
+  forge-monitoring:
+    external: true
+  grafana-datasources:
+    external: true

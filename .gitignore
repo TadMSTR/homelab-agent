@@ -23,3 +23,26 @@ secrets.*
 *.pem
 *.p12
 *.secret
+forge.env
+*-forge.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.bak

@@ -1,0 +1,92 @@
+services:
+  synapse:
+    image: matrixdotorg/synapse:v1.153.0
+    container_name: synapse
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    ports:
+      - "127.0.0.1:8008:8008"
+    volumes:
+      - /opt/appdata/matrix/synapse:/data
+    environment:
+      - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
+    depends_on:
+      synapse-db:
+        condition: service_healthy
+    networks:
+      - forge-net
+      - matrix-internal
+
+  synapse-db:
+    image: postgres@sha256:20edbde7749f822887a1a022ad526fde0a47d6b2be9a8364433605cf65099416
+    container_name: synapse-db
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    environment:
+      - POSTGRES_DB=synapse
+      - POSTGRES_USER=synapse
+      - POSTGRES_PASSWORD=${SYNAPSE_DB_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - /opt/appdata/matrix/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synapse"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - matrix-internal
+
+  ketesa:
+    image: ghcr.io/etkecc/ketesa@sha256:6906708d747bf9611281b97a24e8a27eccb4f098bddfe5cb5a7e13b2be4882ca
+    container_name: ketesa
+    read_only: true
+    tmpfs:
+      - /tmp
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+          cpus: "0.25"
+    volumes:
+      - /opt/appdata/matrix/ketesa/config.json:/home/sws/public/config.json:ro
+    expose:
+      - "8080"
+    networks:
+      - forge-net
+
+networks:
+  forge-net:
+    external: true
+  matrix-internal:
+    driver: bridge
+    internal: true

@@ -1,0 +1,181 @@
+# Temporal server configuration — forge custom (pre-rendered static YAML)
+#
+# Source: rendered from temporalio/server:1.30.2 embedded template
+# Diverges from upstream at: global.tls.frontend.client (see FORGE-CUSTOM comment)
+#
+# Placeholders substituted at container startup by scripts/temporal-entrypoint.sh:
+#   __POSTGRES_PASSWORD__   → POSTGRES_PASSWORD env var
+#   __BROADCAST_ADDRESS__   → TEMPORAL_BROADCAST_ADDRESS (hostname-resolved container IP)
+#
+# Maintenance: on Temporal image upgrades, run:
+#   ~/docker/temporal/scripts/check-temporal-template.sh <new-version>
+# to diff against the new upstream embedded template.
+# Audit reference: temporal-mtls-2026-06 (M-02 fix, 2026-06-02)
+
+log:
+    stdout: true
+    level: info
+persistence:
+    numHistoryShards: 4
+    defaultStore: default
+    visibilityStore: visibility
+    datastores:
+        default:
+            sql:
+                pluginName: "postgres12"
+                databaseName: "temporal"
+                connectAddr: "temporal-postgresql:5432"
+                connectProtocol: "tcp"
+                user: "temporal"
+                password: "__POSTGRES_PASSWORD__"
+                maxConns: 20
+                maxIdleConns: 20
+                maxConnLifetime: 1h
+                tls:
+                    enabled: false
+                    caFile: ""
+                    certFile: ""
+                    keyFile: ""
+                    enableHostVerification: false
+                    serverName: ""
+        visibility:
+            sql:
+                pluginName: "postgres12"
+                databaseName: "temporal_visibility"
+                connectAddr: "temporal-postgresql:5432"
+                connectProtocol: "tcp"
+                user: "temporal"
+                password: "__POSTGRES_PASSWORD__"
+                maxConns: 10
+                maxIdleConns: 10
+                maxConnLifetime: 1h
+                tls:
+                    enabled: false
+                    caFile: ""
+                    certFile: ""
+                    keyFile: ""
+                    enableHostVerification: false
+                    serverName: ""
+global:
+    membership:
+        maxJoinDuration: 30s
+        broadcastAddress: "__BROADCAST_ADDRESS__"
+    pprof:
+        port: 0
+    tls:
+        refreshInterval: 0s
+        expirationChecks:
+            warningWindow: 0s
+            errorWindow: 0s
+            checkInterval: 0s
+        internode:
+            # Internode TLS: server has no cert in single-node setup; clients connect plaintext.
+            server:
+                requireClientAuth: true
+                certFile: ""
+                keyFile: ""
+                certData: ""
+                keyData: ""
+        frontend:
+            # Frontend TLS: server presents server.crt, requires client certs (mTLS).
+            # SECURITY[control]: mTLS enabled. Closes L-01 from temporal-forge-2026-06.
+            # Audit: temporal-mtls-2026-06.
+            server:
+                requireClientAuth: true
+                certFile: /etc/temporal/tls/server.crt
+                keyFile: /etc/temporal/tls/server.key
+                clientCaFiles:
+                    - /etc/temporal/tls/ca.crt
+                certData: ""
+                keyData: ""
+            # FORGE-CUSTOM: certFile/keyFile/serverName/rootCaFiles hardcoded to resolve M-02
+            # from audit temporal-mtls-2026-06. The upstream embedded template lacks certFile/keyFile;
+            # the internal Worker service needs client certs + explicit serverName to connect to the
+            # frontend with requireClientAuth=true.
+            # - serverName: matches DNS SAN on server.crt (localhost)
+            # - rootCaFiles hardcoded here so TEMPORAL_TLS_SERVER_CA_CERT is not set, which would
+            #   also populate internode.client.rootCaFiles and cause internode TLS mismatch errors
+            #   (internode servers have no cert in single-node setup).
+            # Diff against upstream on upgrades: ~/docker/temporal/scripts/check-temporal-template.sh
+            client:
+                certFile: /etc/temporal/tls/server.crt
+                keyFile: /etc/temporal/tls/server.key
+                serverName: localhost
+                disableHostVerification: false
+                rootCaFiles:
+                    - /etc/temporal/tls/ca.crt
+        # FORGE-CUSTOM: systemWorker TLS config used by SDK factory (sdk/factory.go) for
+        # the internal system worker client connecting to the frontend.
+        # Not configurable via embedded template env vars — requires static config file.
+        # WorkerTLS struct: certFile/keyFile at top level; serverName/rootCaFiles under client:.
+        # Audit: temporal-mtls-2026-06 (M-02 fix).
+        systemWorker:
+            certFile: /etc/temporal/tls/server.crt
+            keyFile: /etc/temporal/tls/server.key
+            client:
+                serverName: localhost
+                disableHostVerification: false
+                rootCaFiles:
+                    - /etc/temporal/tls/ca.crt
+services:
+    frontend:
+        rpc:
+            grpcPort: 7233
+            membershipPort: 6933
+            bindOnIP: "0.0.0.0"
+            httpPort: 7243
+    matching:
+        rpc:
+            grpcPort: 7235
+            membershipPort: 6935
+            bindOnIP: "0.0.0.0"
+    history:
+        rpc:
+            grpcPort: 7234
+            membershipPort: 6934
+            bindOnIP: "0.0.0.0"
+    worker:
+        rpc:
+            grpcPort: 7239
+            membershipPort: 6939
+            bindOnIP: "0.0.0.0"
+clusterMetadata:
+    enableGlobalNamespace: false
+    failoverVersionIncrement: 10
+    masterClusterName: "active"
+    currentClusterName: "active"
+    clusterInformation:
+        active:
+            enabled: true
+            initialFailoverVersion: 1
+            rpcName: "frontend"
+            rpcAddress: "127.0.0.1:7233"
+            httpAddress: "127.0.0.1:7243"
+dcRedirectionPolicy:
+    policy: "noop"
+archival:
+  history:
+    state: "enabled"
+    enableRead: true
+    provider:
+      filestore:
+        fileMode: "0666"
+        dirMode: "0766"
+  visibility:
+    state: "enabled"
+    enableRead: true
+    provider:
+      filestore:
+        fileMode: "0666"
+        dirMode: "0766"
+namespaceDefaults:
+  archival:
+    history:
+      state: "disabled"
+      URI: "file:///tmp/temporal_archival/development"
+    visibility:
+      state: "disabled"
+      URI: "file:///tmp/temporal_vis_archival/development"
+dynamicConfigClient:
+    filepath: "config/dynamicconfig/development-sql.yaml"
+    pollInterval: "60s"
