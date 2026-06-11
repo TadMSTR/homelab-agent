@@ -6,11 +6,13 @@
 
 ![homelab-agent banner](docs/assets/banner.png)
 
-Five AI agents share a memory system, run unattended infrastructure builds, and stay reachable from any Matrix client. Each agent gets a scoped tool surface — it can only touch what its manifest allows — backed by persistent memory that survives across sessions and a knowledge graph that tracks what changed and when.
+A platform for running a team of AI agents on a single server. Five agents — sysadmin, developer, researcher, writer, security — work semi-autonomously or fully unattended, coordinating through a task queue and communicating over Matrix. Each agent gets a scoped tool surface controlled by a manifest, persistent multi-tier memory backed by open-source infrastructure ([Milvus](docs/components/memory-stack.md) for vector search, [OpenSearch](docs/components/memory-stack.md) for full-text, [Neo4j](docs/components/graphiti.md) for knowledge graph), and an event ledger that tracks every cross-agent handoff.
 
-This repo documents every piece of that stack: the host, the 60+ Docker containers, the agent engine, and the decisions behind all of it. Use it as a reference to build your own.
+The agents build the platform. Research plans a feature, developer writes the code, writer documents it, security audits the result — then the new tool becomes available to the agents that built it. [searxng-mcp](https://github.com/TadMSTR/searxng-mcp), [scoped-mcp](https://github.com/TadMSTR/scoped-mcp), and [githost-mcp](https://github.com/TadMSTR/githost-mcp) were all built this way.
 
-The host is **forge** — a [Minisforum MS-A2](https://www.minisforum.com/product/ms-a2/) running Debian 13, and this is what runs on it.
+This repo documents every piece of that stack and the decisions behind it. Use it as a reference to build your own.
+
+The host is **forge** — a [Minisforum MS-A2](https://www.minisforum.com/product/ms-a2/) running Debian 13 with 60+ containers and 30+ PM2 background services.
 
 > The earlier claudebox-era build is archived at tag `archive/claudebox-v1`.
 
