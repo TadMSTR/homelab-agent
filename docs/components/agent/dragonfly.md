@@ -40,79 +40,55 @@ All 7 instances are visible to Grafana via the `grafana-datasources` network for
 | Auth | `--requirepass ${DRAGONFLY_PASSWORD}` |
 | Compose | `~/docker/agent-platform/docker-compose.yml` |
 
-**Thread minimum:** Dragonfly requires at least 256 MB of maxmemory per proactor thread. With `--maxmemory=8gb` and `--proactor_threads=4`, each thread gets 2 GB. Reducing maxmemory below 1 GB with 4 threads will cause startup failure.
+**Thread minimum:** Dragonfly requires at least 256 MB of maxmemory per proactor thread.
+With `--maxmemory=8gb` and `--proactor_threads=4`, each thread gets 2 GB. Reducing maxmemory
+below 1 GB with 4 threads will cause startup failure.
 
 ## Authentication
 
-Password in `~/docker/agent-platform/.env` (600) — used by the compose stack.
+Password in `~/docker/agent-platform/.env` (chmod 600) — used by the compose stack.
 
-`agent-memory-hot.sh` reads `DRAGONFLY_PASSWORD` from the environment and passes it via `-a` flag with `--no-auth-warning`.
-
-## agent-memory-hot.sh
-
-Wrapper script at `~/.helm/bin/agent-memory-hot.sh` providing typed access with automatic key prefixing:
-
-```bash
-# Get a value
-agent-memory-hot.sh get <agent-type> <key>
-
-# Set a value (default TTL: 1 hour)
-agent-memory-hot.sh set <agent-type> <key> <value> [ttl_seconds]
-
-# List all keys for an agent
-agent-memory-hot.sh keys <agent-type>
-```
-
-Key format: `helm:agent:<agent-type>:<key>`
-
-Examples:
-```bash
-agent-memory-hot.sh get security last-cisa-check
-agent-memory-hot.sh set platform task-cursor abc123 7200
-agent-memory-hot.sh keys update
-```
-
-## Key Namespace
-
-```
-helm:agent:security:*           ← The Watch working state
-helm:agent:update:*             ← The Engineers working state
-helm:agent:docs:*               ← The Archivists working state
-helm:agent:platform:*           ← Platform agent state
-helm:agent:<type>:*             ← Any agent type
-```
-
-All keys are TTL-bound (default 1 hour). Dragonfly does not persist between restarts unless the data volume is intact.
+Agents access Dragonfly through scoped-mcp, which reads the connection URL from the agent's
+`.env` file (`DRAGONFLY_URL=redis://:<password>@127.0.0.1:6380`). Only the sysadmin agent
+currently uses Dragonfly directly (for HITL state).
 
 ## What It's Used For
 
-Hot memory is appropriate for:
-- Cursors and watermarks between scheduled invocations (e.g., "last checked at X")
-- Dedup state (e.g., "already alerted on finding Y")
-- Lightweight caches that are cheap to rebuild
+agent-dragonfly stores:
+- **HITL gate state** — pending approval records for sysadmin high-impact tool calls
+- **Domain caching** — searxng-mcp domain metadata from web search results
+- **Session cursors** — watermarks and dedup state between scheduled agent invocations
 
 It is **not** appropriate for:
 - Anything that must survive a restart
 - Secrets or credentials
-- Data that should be auditable (use NATS or the transit log)
+- Data that should be auditable (use NATS or the agent-bus event log)
+
+All keys are TTL-bound. Dragonfly does not persist between restarts unless the data volume
+is intact.
+
+## Container Hardening
+
+- Runs as `user: "1000:1000"` (matches host `ted` uid)
+- `cap_drop: [ALL]` — no Linux capabilities
+- `security_opt: [no-new-privileges: "true"]`
+- Data directory (`/opt/appdata/agent-platform/dragonfly`) owned by `ted:ted`
 
 ## Backup
 
-Not backed up. Dragonfly is a hot cache — all values have TTLs and are rebuildable on next invocation. If the container restarts, agents will recompute their state on the next run.
-
-## Security Notes
-
-From `forge-q2-sync-deploy` (2026-05-28) security audit (L2, fixed):
-- Container hardened with `user: "1000:1000"`, `cap_drop: [ALL]`, `security_opt: [no-new-privileges: "true"]`
-- Data directory (`/opt/appdata/dragonfly`) rechowned to `ted:ted` to match container uid
+Not backed up. Dragonfly is a hot cache — all values have TTLs and are rebuildable on next
+invocation. If the container restarts, agents recompute their state on the next run.
 
 ## Gotchas
 
-- `--proactor_threads=4` with `--maxmemory=8gb` gives 2 GB per thread. Minimum viable: 256 MB per thread. Fewer threads or less memory will fail at startup.
-- The `healthcheck` in the compose file uses `redis-cli -p 6379` (container-internal port), not 6380.
-- `forge-net` membership means other forge containers can reach Dragonfly — auth is the only protection for non-localhost access.
+- `--proactor_threads=4` with `--maxmemory=8gb` gives 2 GB per thread. Minimum viable:
+  256 MB per thread. Fewer threads or less memory will fail at startup.
+- The `healthcheck` in the compose file uses `redis-cli -p 6379` (container-internal port),
+  not 6380.
+- `forge-net` membership means other forge containers can reach Dragonfly — auth is the only
+  protection for non-localhost access.
 
 ## Related Docs
 
-- system-agents — agents that use hot memory
-- [phase-7-agent-infrastructure.md](../../phases/phase-7-agent-infrastructure.md) — Phase 7 context
+- [scoped-mcp.md](scoped-mcp.md) — HITL state backend configuration
+- [phase-7-agent-infrastructure.md](../../phases/phase-7-agent-infrastructure.md) — Phase 7 build context
