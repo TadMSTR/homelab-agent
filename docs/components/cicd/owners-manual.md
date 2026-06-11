@@ -95,6 +95,6 @@ Installed via pipx: `~/.local/bin/mkdocs`
 
 ## Related Docs
 
-- [system-agents.md](../../design/system-agents.md) — docs agent (The Archivists) role and constraints
+- system-agents — docs agent (The Archivists) role and constraints
 - [phase-6-system-agents.md](../../phases/phase-6-system-agents.md) — Phase 6 context
 - [authentik.md](../foundation/authentik.md) — forward auth configuration

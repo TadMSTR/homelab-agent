@@ -58,4 +58,4 @@ task-queue:
 ## Related Docs
 
 - [agent-bus.md](agent-bus.md) — event logging alongside task state transitions
-- [system-agents.md](../../design/system-agents.md) — agents that consume and update the queue
+- system-agents — agents that consume and update the queue

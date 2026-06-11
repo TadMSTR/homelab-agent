@@ -47,4 +47,4 @@ ls ~/.local/state/git-drift/            # view per-repo state hashes
 
 ## Related Docs
 
-- [platform-health.md](../../design/platform-health.md) — other health monitoring
+- platform-health — other health monitoring

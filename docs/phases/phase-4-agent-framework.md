@@ -47,7 +47,7 @@ Each agent type has a manifest at `~/.helm/manifests/<agent-type>.yaml` declarin
 
 Three manifests deployed: `helm-build` (burst tier), `platform` (resident tier), `temporal-worker` (default tier).
 
-See [SCHEMA.md](../../.helm/manifests/SCHEMA.md) for full field reference.
+See SCHEMA for full field reference.
 
 ### cgroup v2 Resource Pools
 
@@ -77,7 +77,7 @@ See [nats.md](../components/agent/nats.md) for full configuration.
 
 `~/.helm/bin/helm-launch` — the agent launch entrypoint. Reads a manifest, resolves the cgroup slice, injects NATS credentials and API key, and launches Claude Code under `systemd-run`. Supports `--dry-run` for inspection without execution.
 
-See [helm-launch.md](../../design/helm-launch.md) for usage and internals.
+See helm-launch for usage and internals.
 
 ### NATS CLI
 

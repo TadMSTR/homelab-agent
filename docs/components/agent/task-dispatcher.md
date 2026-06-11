@@ -88,4 +88,4 @@ grep -l "status: approved" ~/.claude/task-queue/*.yml
 
 - [task-queue-mcp.md](task-queue-mcp.md) — the MCP server that manages task state
 - [agent-bus.md](agent-bus.md) — event bus for agent coordination
-- [system-agents.md](../../design/system-agents.md) — agents dispatched by this service
+- system-agents — agents dispatched by this service

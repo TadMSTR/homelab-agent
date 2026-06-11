@@ -5,7 +5,7 @@ Synapse is the Matrix homeserver for the homelab-agent platform, running on forg
 agents — the same role that claudebox's Synapse plays for claudebox agents, but scoped to
 the forge environment.
 
-See [matrix.md](../../../homelab-agent/docs/components/matrix.md) for the claudebox homeserver. This doc covers the forge
+See matrix for the claudebox homeserver. This doc covers the forge
 deployment only.
 
 - **Version:** v1.153.0

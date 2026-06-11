@@ -177,8 +177,8 @@ cross-agent event router. `agent-security` is the only agent-type user with an
 
 ## Related Docs
 
-- [helm-launch.md](../../design/helm-launch.md) — how NATS credentials are injected at agent launch
-- [agent-isolation.md](../../design/agent-isolation.md) — Unix agent users and file permissions
-- [platform-health.md](platform-health.md) — helm-health agent and what it publishes
+- helm-launch — how NATS credentials are injected at agent launch
+- agent-isolation — Unix agent users and file permissions
+- platform-health — helm-health agent and what it publishes
 - [phase-4-agent-framework.md](../../phases/phase-4-agent-framework.md) — Phase 4 context
 - [phase-5-agent-isolation.md](../../phases/phase-5-agent-isolation.md) — Phase 5 context

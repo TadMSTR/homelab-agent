@@ -117,7 +117,7 @@ Full report: `~/repos/audits/security-audits/helm-phase7-agent-infrastructure/re
 
 - [dragonfly.md](../components/agent/dragonfly.md) — hot memory stack
 - [pool-manager.md](../components/agent/pool-manager.md) — btrfs clone pool
-- [agent-routing.md](../../design/agent-routing.md) — task routing and transit log
-- [agent-registry.md](../../design/agent-registry.md) — agent registry and observability
-- [helm-launch.md](../../design/helm-launch.md) — ephemeral clone integration
+- agent-routing — task routing and transit log
+- agent-registry — agent registry and observability
+- helm-launch — ephemeral clone integration
 - [phase-6-system-agents.md](phase-6-system-agents.md) — Phase 6 context

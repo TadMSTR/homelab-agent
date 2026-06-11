@@ -49,4 +49,4 @@ ls /tmp/agent-sessions/                   # current pool state
 ## Related Docs
 
 - [task-dispatcher.md](task-dispatcher.md) — dispatches tasks to agent sessions
-- [system-agents.md](../../design/system-agents.md) — agent types that use the pool
+- system-agents — agent types that use the pool

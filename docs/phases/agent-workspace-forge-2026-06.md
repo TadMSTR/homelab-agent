@@ -109,7 +109,7 @@ Skill ported from claudebox to `~/repos/gitea/agent-platform-skills/agent-worksp
 ## Related Docs
 
 - [forge-configs component](../components/foundation/forge-configs.md) — config tracking repo and deploy script
-- [AGENT_WORKSPACE.md schema](../../AGENT_WORKSPACE.md) — marker file schema reference
+- AGENT_WORKSPACE.md schema — marker file schema reference
 - Audit report: `host-forge/build-reports/agent-workspace-forge-2026-06/audit.md`
 - Build plan: `~/.claude/comms/artifacts/build-plans/archive/agent-workspace-forge-2026-06/plan.md`
 - Prerequisite for: `memory-eval-poisoning-2026-06`

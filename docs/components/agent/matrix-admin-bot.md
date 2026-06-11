@@ -4,7 +4,7 @@ The forge instance of matrix-admin-bot provisions and manages Matrix accounts fo
 5 operator agents on the `helmforge.me` homeserver. It is a separate PM2 process
 from the claudebox instance — different homeserver, different bot account, different config.
 
-See [homelab-agent matrix-admin-bot doc](../../../homelab-agent/docs/components/matrix-admin-bot.md)
+See homelab-agent matrix-admin-bot doc
 for the claudebox instance and full command reference. This doc covers the forge deployment only.
 
 - **Source:** `~/repos/personal/matrix-admin-bot/`
@@ -48,7 +48,7 @@ with a dedicated service account token.
 
 ## Commands
 
-Same command set as the claudebox instance. See [homelab-agent matrix-admin-bot doc](../../../homelab-agent/docs/components/matrix-admin-bot.md)
+Same command set as the claudebox instance. See homelab-agent matrix-admin-bot doc
 for the full command reference (`!create-account`, `!rotate-token`, `!audit-memberships`, etc.).
 
 ## Related Docs

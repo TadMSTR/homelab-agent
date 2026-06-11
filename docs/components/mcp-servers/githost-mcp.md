@@ -182,5 +182,5 @@ From audit 2026-05-27 (4 findings, all resolved in commit `2edef93`):
 
 ## Related Docs
 
-- [scoped-mcp-forge.md](scoped-mcp-forge.md) — agent proxy that will load githost-mcp
+- scoped-mcp-forge — agent proxy that will load githost-mcp
 - [forge-agent-setup.md](../../phases/forge-agent-setup.md) — agent framework context

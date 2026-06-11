@@ -114,5 +114,5 @@ From `forge-q2-sync-deploy` (2026-05-28) security audit (L2, fixed):
 
 ## Related Docs
 
-- [system-agents.md](../../design/system-agents.md) — agents that use hot memory
+- system-agents — agents that use hot memory
 - [phase-7-agent-infrastructure.md](../../phases/phase-7-agent-infrastructure.md) — Phase 7 context

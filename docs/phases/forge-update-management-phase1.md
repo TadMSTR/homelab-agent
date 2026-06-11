@@ -76,5 +76,5 @@ begins only after the PR is merged.
 
 ## Related Docs
 
-- [patchpilot.md](../components/patchpilot.md)
+- patchpilot
 - [renovate.md](../components/cicd/renovate.md)

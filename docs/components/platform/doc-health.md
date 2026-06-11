@@ -94,4 +94,4 @@ head -20 ~/.claude/memory/shared/doc-health-targeted-report.md
 
 ## Related Docs
 
-- [system-agents.md](../../design/system-agents.md) — agents that act on doc-health findings
+- system-agents — agents that act on doc-health findings

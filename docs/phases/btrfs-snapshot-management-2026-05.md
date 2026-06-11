@@ -105,4 +105,4 @@ Two findings resolved, two accepted, one deferred:
 ## Related Docs
 
 - [influxdb.md](../components/observability/influxdb.md) — InfluxDB 3 Core write target
-- [grafana.md](../components/grafana.md) — dashboard for snapshot usage
+- grafana — dashboard for snapshot usage
