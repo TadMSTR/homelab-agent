@@ -89,7 +89,7 @@ covers all forward-auth-protected subdomains. Requires:
 
 ## Static Content
 
-The owners manual static site (`helm-owners-manual/site/`) is mounted read-only at
+The Owner's Manual static site (`~/repos/personal/helm-owners-manual/site/`) is mounted read-only at
 `/config/www/owners-manual` and served at `docs.helmforge.me`.
 
 ## Network Placement

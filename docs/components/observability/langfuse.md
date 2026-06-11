@@ -143,14 +143,14 @@ Password is set via `DFLY_requirepass` environment variable, not `--requirepass`
 On a fresh deploy:
 1. Navigate to `https://langfuse.helmforge.me`
 2. Click "Sign up" — create the admin account (email + password, before wiring Authentik)
-3. Create organization: `Helm`
-4. Create default project: `helm-default`
+3. Create organization (named `Helm` on forge — legacy, functional)
+4. Create default project (named `helm-default` on forge — legacy, functional)
 5. After confirming the app works: wire Authentik SSO (populate `AUTH_CUSTOM_*` vars, restart stack)
 6. Sign in via Authentik to link accounts
 
 ## Agent Project: forge-agents
 
-The `forge-agents` project is the Langfuse project used for LLM observability across operator agents (Dockhand, Hister, CloudCLI, and any future agent stack on forge). It is a separate project from `helm-default` so agent traces are scoped and keys can be rotated independently.
+The `forge-agents` project is the Langfuse project used for LLM observability across all five resident agents. It is a separate project from the default project so agent traces are scoped and keys can be rotated independently.
 
 ### LANGFUSE_INIT_* Workaround
 
@@ -171,7 +171,7 @@ INSERT INTO "ApiKey" ("id", "projectId", "createdAt", "publicKey", "hashedSecret
 VALUES (gen_random_uuid(), 'forge-agents-proj-001', NOW(), 'pk-lf-<value>', '<sha256-of-secret>', '<fast-hash>', 'sk-lf-***');
 ```
 
-After seeding, verify the project appears in the Langfuse UI under the `helm-default` organization before distributing keys to agents.
+After seeding, verify the project appears in the Langfuse UI before distributing keys to agents.
 
 ### Secrets Isolation
 

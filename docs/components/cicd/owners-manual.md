@@ -1,6 +1,6 @@
 # Owner's Manual
 
-The Owner's Manual is a living reference document for the homelab-agent platform, auto-generated from live system state by the docs agent (The Archivists). It covers hardware specs, running services, agent inventory, networking, backups, secrets layout, PM2 processes, update history, security posture, and troubleshooting.
+The Owner's Manual is a living reference document for the homelab-agent platform, auto-generated from live system state by the writer agent. It covers hardware specs, running services, agent inventory, networking, backups, secrets layout, PM2 processes, update history, security posture, and troubleshooting.
 
 ## Infrastructure
 
@@ -21,7 +21,7 @@ The Owner's Manual is a living reference document for the homelab-agent platform
 |------|---------|--------|
 | `system-specs.md` | CPU, RAM, disks, NICs, GPU | `/proc/cpuinfo`, `lscpu`, `lsblk`, `ip addr`, `free`, `uname` |
 | `docker-stacks.md` | Running containers, ports, health, image versions | Docker API via docker-socket-proxy |
-| `agent-inventory.md` | System and user agents, tiers, schedules, NATS subjects | `~/.helm/manifests/*.yaml` |
+| `agent-inventory.md` | System and user agents, tiers, schedules, NATS subjects | `~/.claude/manifests/*.yml` |
 | `network.md` | IPs, NICs, DNS, reverse proxy routes | `ip`, SWAG proxy confs |
 | `backup-status.md` | Last backup timestamps, next scheduled, coverage | Backup logs |
 | `secrets-inventory.md` | Secret names and paths only (NEVER values) | Filesystem inspection |
@@ -95,6 +95,5 @@ Installed via pipx: `~/.local/bin/mkdocs`
 
 ## Related Docs
 
-- system-agents — docs agent (The Archivists) role and constraints
 - [phase-6-system-agents.md](../../phases/phase-6-system-agents.md) — Phase 6 context
 - [authentik.md](../foundation/authentik.md) — forward auth configuration

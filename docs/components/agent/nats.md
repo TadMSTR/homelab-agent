@@ -99,11 +99,11 @@ nats -s nats://platform:<password>@localhost:4222 server info
 # List streams
 nats -s nats://platform:<password>@localhost:4222 stream ls
 
-# Test subject ACLs for a user
-nats -s nats://helm-build:<password>@localhost:4222 pub tasks.helm-build.test "hello"
+# Test subject ACLs for an agent user
+nats -s nats://agent-sysadmin:<password>@localhost:4222 pub tasks.sysadmin.test "hello"
 
-# Verify helm-health can publish
-nats -s nats://helm-health:<password>@localhost:4222 pub events.platform.health '{"status":"ok"}'
+# Verify task-queue can publish
+nats -s nats://task-queue:<password>@localhost:4222 pub tasks.writer.doc-update "test"
 ```
 
 ## Subject Topology
@@ -137,9 +137,9 @@ flowchart LR
     subgraph "Publishes to"
         pub_bus["events.>"]
         pub_tq["tasks.>"]
-        pub_agent["tasks.&lt;type&gt;.>\nevents.&lt;type&gt;.>"]
+        pub_agent["tasks.[type].>\nevents.[type].>"]
         pub_security_extra["tasks.security.>\nevents.security.>\nalerts.security.>"]
-        pub_platform["&gt; (all)"]
+        pub_platform["all subjects"]
     end
 
     subgraph "Users"
@@ -177,8 +177,7 @@ cross-agent event router. `agent-security` is the only agent-type user with an
 
 ## Related Docs
 
-- helm-launch — how NATS credentials are injected at agent launch
-- agent-isolation — Unix agent users and file permissions
-- platform-health — helm-health agent and what it publishes
+- [scoped-mcp.md](scoped-mcp.md) — how agent credentials are injected at session start
+- [agent-bus.md](agent-bus.md) — event routing over NATS
 - [phase-4-agent-framework.md](../../phases/phase-4-agent-framework.md) — Phase 4 context
 - [phase-5-agent-isolation.md](../../phases/phase-5-agent-isolation.md) — Phase 5 context

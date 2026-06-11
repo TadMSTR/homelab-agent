@@ -32,10 +32,10 @@ The writer agent maintains all public and internal documentation:
 | Type | Repo | Path |
 |------|------|------|
 | `mcp-readme` | `TadMSTR/<repo>` (GitHub) | `README.md` |
-| `component` | `helm-platform` | `docs/components/<service>.md` |
-| `phase-doc` | `helm-platform` | `docs/phases/<build>.md` |
+| `component` | `homelab-agent` | `docs/components/<category>/<service>.md` |
+| `phase-doc` | `homelab-agent` | `docs/phases/<build>.md` |
 | `services` | `host-forge` | `services.md` |
-| `runbook` | `helm-platform` | `docs/operations/runbooks.md` |
+| `runbook` | `homelab-agent` | `docs/operations/runbooks.md` |
 
 ## Rules
 

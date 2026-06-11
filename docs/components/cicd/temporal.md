@@ -65,7 +65,7 @@ Config: `/opt/appdata/swag/nginx/proxy-confs/temporal.subdomain.conf`
 
 | Depends on Temporal | Why |
 |---------------------|-----|
-| `temporal-build-worker` (PM2) | Processes `helm-build` task queue |
+| `temporal-build-worker` (PM2) | Processes build workflow task queue |
 | `task-dispatcher.py` (PM2) | Routes `task_type: workflow` tasks to Temporal |
 
 ---

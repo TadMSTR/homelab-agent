@@ -74,20 +74,14 @@ Agent bot accounts on the forge homeserver:
 - Agent MXIDs follow the pattern `@agent.<type>:helmforge.me`
 
 8 rooms created at build time: sysadmin, research, developer, writer, security,
-announcements, monitoring, helm-build.
+announcements, monitoring, alerts.
 
-## Security
+## Container Hardening
 
-From audit 2026-05-24:
-
-| Finding | Status |
-|---------|--------|
-| M1: `homeserver.yaml` world-readable (644) with embedded secrets | Fixed — `chmod 600` (commit `c150af2`) |
-| L1: `postgres:16-alpine` tag-only (no digest) | Fixed — SHA-pinned in compose (commit `c150af2`) |
-| L2: `matrix-dispatcher` git history contained internal MXID | Fixed — `git filter-repo` history scrub + force-push (`eb0f5ad`) |
-
-Container hardening applied to all three containers: `no-new-privileges:true`, `cap_drop: ALL`
-with minimal `cap_add`, memory limits (Synapse 2 GB, PostgreSQL 1 GB, Ketesa 64 MB).
+All three containers run with `no-new-privileges:true`, `cap_drop: ALL` with minimal
+`cap_add`, and memory limits (Synapse 2 GB, PostgreSQL 1 GB, Ketesa 64 MB).
+`homeserver.yaml` is chmod 600 (contains embedded secrets). PostgreSQL image is
+SHA-pinned in compose.
 
 ## Related Docs
 
