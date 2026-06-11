@@ -12,9 +12,17 @@ homelab-agent/
 ├── index.md                     # THIS FILE — navigation index
 ├── docs/
 │   ├── components/              # Per-service operational reference (76 docs)
+│   │   ├── foundation/          # Host, reverse proxy, auth, secrets, backups (10)
+│   │   ├── observability/       # Grafana, Loki, SigNoz, Langfuse, exporters (13)
+│   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (10)
+│   │   ├── memory/              # Memory architecture, Milvus, memsearch, Graphiti (8)
+│   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (14)
+│   │   ├── mcp-servers/         # system-ops, githost, dockhand, patchmon, pm2 (7)
+│   │   ├── cicd/                # Woodpecker, Temporal, Renovate, CloudCLI (7)
+│   │   └── platform/            # Doc health, disk probes, drift detection (7)
 │   ├── phases/                  # Build history docs (23 phases)
 │   ├── operations/              # Runbooks and operational procedures
-│   └── diagrams/                # Architecture diagrams (drawio/svg)
+│   └── diagrams/                # Architecture diagrams
 ├── docker/                      # Docker Compose stacks + .env.example templates
 ├── scripts/                     # Maintenance and monitoring scripts
 ├── manifests/                   # Sanitized agent manifest examples
@@ -80,12 +88,14 @@ homelab-agent/
 
 | Doc | Topic |
 |-----|-------|
-| `docs/components/memory/memory-stack.md` | Milvus + OpenSearch |
-| `docs/components/memory/graphiti.md` | Knowledge graph |
 | `docs/components/memory/memory-architecture.md` | Full memory system overview |
+| `docs/components/memory/memory-stack.md` | Milvus + OpenSearch |
 | `docs/components/memory/memory-services.md` | PM2 indexing services and promotion pipeline |
+| `docs/components/memory/memsearch.md` | Hybrid vector+BM25 search library |
+| `docs/components/memory/memsearch-mcp.md` | memsearch MCP server (:8493) |
 | `docs/components/memory/memsearch-summarize.md` | Session transcript summarizer |
 | `docs/components/memory/memory-expire.md` | Expired note eviction |
+| `docs/components/memory/graphiti.md` | Knowledge graph |
 
 **Agent Infrastructure:**
 
@@ -106,6 +116,7 @@ homelab-agent/
 | `docs/components/cicd/temporal.md` | Workflow engine |
 | `docs/components/cicd/renovate.md` | Dependency updates |
 | `docs/components/cicd/patchmon.md` | Apt patch management |
+| `docs/components/cicd/cloudcli.md` | Browser Claude Code UI |
 
 ### Layer 3 — Multi-Agent Engine
 
@@ -116,18 +127,16 @@ homelab-agent/
 | `docs/components/agent/scoped-mcp.md` | Per-agent MCP proxy, manifest schema, Phase 7 hardening |
 | `docs/components/agent/agent-bus.md` | Inter-agent event log, HMAC signing, NATS federation |
 | `docs/components/agent/task-queue-mcp.md` | Task queue MCP server |
+| `docs/components/agent/task-queue-widget.md` | Task queue dashboard widget (React, Matrix) |
 | `docs/components/agent/task-dispatcher.md` | Task routing and headless agent launch |
 | `docs/components/agent/pool-manager.md` | Ephemeral agent session pre-warming |
 | `docs/components/agent/matrix-dispatcher.md` | Matrix dispatch loop |
+| `docs/components/agent/matrix-mcp.md` | Matrix send/receive MCP |
 | `docs/components/agent/matrix-admin-bot.md` | Matrix room admin bot |
+| `docs/components/agent/matrix-task-queue-bot.md` | Matrix task queue notification bot |
+| `docs/components/agent/nats-mcp.md` | NATS publish/subscribe MCP |
 | `manifests/` | Sanitized agent manifest examples |
 | `claude-code/` | Claude Code project configs |
-
-**MCP servers — search & web:**
-
-| Doc | Topic |
-|-----|-------|
-| `docs/components/ai-search/searxng-mcp.md` | Web search + fetch cascade MCP |
 
 **MCP servers — infrastructure:**
 
@@ -138,19 +147,23 @@ homelab-agent/
 | `docs/components/mcp-servers/dockhand-mcp.md` | Docker container/stack management MCP |
 | `docs/components/mcp-servers/patchmon-mcp.md` | Apt patch management MCP |
 | `docs/components/mcp-servers/pm2-mcp.md` | PM2 process management MCP |
-| `docs/components/observability/loki-mcp.md` | Loki log query MCP |
-| `docs/components/observability/grafana-mcp.md` | Grafana query MCP |
-| `docs/components/agent/nats-mcp.md` | NATS publish/subscribe MCP |
 | `docs/components/mcp-servers/code-server-mcp.md` | code-server management MCP |
+| `docs/components/mcp-servers/plane-mcp.md` | Plane issue tracking MCP |
 
-**MCP servers — knowledge & comms:**
+**MCP servers — observability:**
 
 | Doc | Topic |
 |-----|-------|
-| `docs/components/agent/matrix-mcp.md` | Matrix send/receive MCP |
-| `docs/components/observability/langfuse-mcp.md` | LLM trace query MCP |
+| `docs/components/observability/grafana-mcp.md` | Grafana query MCP |
 | `docs/components/observability/signoz-mcp.md` | APM trace/metric query MCP |
-| `docs/components/mcp-servers/plane-mcp.md` | Plane issue tracking MCP |
+| `docs/components/observability/langfuse-mcp.md` | LLM trace query MCP |
+| `docs/components/observability/loki-mcp.md` | Loki log query MCP |
+
+**MCP servers — search & knowledge:**
+
+| Doc | Topic |
+|-----|-------|
+| `docs/components/ai-search/searxng-mcp.md` | Web search + fetch cascade MCP |
 | `docs/components/memory/memsearch-mcp.md` | Hybrid memory search MCP |
 
 **Memory system:**
@@ -160,24 +173,18 @@ homelab-agent/
 | `docs/components/memory/memory-architecture.md` | Three-tier memory system overview |
 | `docs/components/memory/memsearch.md` | Hybrid memory search library |
 
-**Documentation & monitoring:**
+**Monitoring probes (PM2 cron jobs):**
 
 | Doc | Topic |
 |-----|-------|
 | `docs/components/platform/doc-health.md` | Documentation audit system |
-| `docs/operations/runbooks.md` | Operational runbooks |
-
-### Monitoring Probes (PM2 cron jobs)
-
-| Doc | Topic |
-|-----|-------|
+| `docs/components/platform/doc-sync-daily.md` | Daily doc sync cron |
 | `docs/components/platform/disk-space-probe.md` | Disk usage monitoring + alerts |
 | `docs/components/platform/snapshot-space-probe.md` | Btrfs snapshot space monitoring |
-| `docs/components/observability/nvidia-exporter.md` | GPU metrics to InfluxDB |
 | `docs/components/platform/drift-detector-scan.md` | Config drift detection |
-| `docs/components/platform/doc-sync-daily.md` | Daily doc sync cron |
 | `docs/components/platform/build-unblock-scan.md` | Stalled build detection |
 | `docs/components/platform/git-drift-alert.md` | Uncommitted git drift alerting |
+| `docs/operations/runbooks.md` | Operational runbooks |
 
 ## By Task
 
@@ -185,7 +192,7 @@ homelab-agent/
 → Read `README.md`, then `docs/phases/` in order
 
 ### "I want to deploy a specific service"
-→ `docs/components/<service>.md`, then `docker/<service>/`
+→ `docs/components/<category>/<service>.md`, then `docker/<service>/`
 
 ### "I want to set up the agent system"
 → `docs/components/agent/scoped-mcp.md`, then `manifests/`, then `claude-code/`
