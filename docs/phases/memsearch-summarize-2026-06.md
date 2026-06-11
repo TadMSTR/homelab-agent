@@ -48,4 +48,4 @@ No critical or high findings.
 
 - Script: `~/repos/gitea/host-forge-scripts/scripts/memsearch-summarize.py`
 - Launcher: `~/repos/gitea/host-forge-scripts/scripts/run-memsearch-summarize.py`
-- Component doc: `docs/components/memsearch-summarize.md`
+- Component doc: `docs/components/memory/memsearch-summarize.md`

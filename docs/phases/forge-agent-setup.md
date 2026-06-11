@@ -30,7 +30,7 @@ Claude Code project path.
 
 Each agent has a manifest at `~/.claude/manifests/<agent>-agent.yml` (YAML). All 5
 manifests use `mcp_proxy` module type to route tool calls to forge's MCP services.
-See [scoped-mcp.md](../components/scoped-mcp.md) for the current full tool
+See [scoped-mcp.md](../components/agent/scoped-mcp.md) for the current full tool
 surface per agent — scope has evolved significantly since initial setup.
 
 Initial wiring at build time:
@@ -89,6 +89,6 @@ restarted. Follow-up task for helm-build.
 
 ## Related Docs
 
-- [scoped-mcp.md](../components/scoped-mcp.md) — forge scoped-mcp deployment
+- [scoped-mcp.md](../components/agent/scoped-mcp.md) — forge scoped-mcp deployment
 - [phase-matrix-synapse.md](phase-matrix-synapse.md) — Matrix homeserver (forge)
 - [forge-operator-agents.md](forge-operator-agents.md) — prior phase: MCP services deployed

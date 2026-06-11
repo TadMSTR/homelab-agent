@@ -23,7 +23,7 @@ Five agents run as scoped Claude Code projects on forge. Each has a dedicated Ma
 
 ## scoped-mcp Architecture
 
-Each agent's tool surface is controlled by a manifest file. [scoped-mcp](docs/components/scoped-mcp.md) reads the manifest and proxies only the allowed tools — agents never hold credentials directly.
+Each agent's tool surface is controlled by a manifest file. [scoped-mcp](docs/components/agent/scoped-mcp.md) reads the manifest and proxies only the allowed tools — agents never hold credentials directly.
 
 ```
 operator message → Matrix room → matrix-dispatcher → agent project dir
@@ -33,7 +33,7 @@ operator message → Matrix room → matrix-dispatcher → agent project dir
                                      agent ↔ MCP proxy ↔ backend service
 ```
 
-Sanitized manifest examples are in [`manifests/`](manifests/). The full manifest schema is documented in [`docs/components/scoped-mcp.md`](docs/components/scoped-mcp.md).
+Sanitized manifest examples are in [`manifests/`](manifests/). The full manifest schema is documented in [`docs/components/agent/scoped-mcp.md`](docs/components/agent/scoped-mcp.md).
 
 ## Key Docs
 

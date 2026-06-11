@@ -121,7 +121,7 @@ exactly — trailing whitespace in the YAML value causes silent auth failures in
 
 ## Related Docs
 
-- [synapse.md](../components/synapse.md) *(homelab-agent — sanitized)*
-- [matrix-mcp.md](../components/matrix-mcp.md) *(homelab-agent — sanitized)*
-- [matrix-dispatcher.md](../components/matrix-dispatcher.md) *(homelab-agent — sanitized)*
-- [matrix-admin-bot.md](../components/matrix-admin-bot.md) *(homelab-agent — sanitized)*
+- [synapse.md](../components/agent/synapse.md) *(homelab-agent — sanitized)*
+- [matrix-mcp.md](../components/agent/matrix-mcp.md) *(homelab-agent — sanitized)*
+- [matrix-dispatcher.md](../components/agent/matrix-dispatcher.md) *(homelab-agent — sanitized)*
+- [matrix-admin-bot.md](../components/agent/matrix-admin-bot.md) *(homelab-agent — sanitized)*

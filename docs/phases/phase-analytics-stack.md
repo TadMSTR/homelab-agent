@@ -91,5 +91,5 @@ Audit performed 2026-04-15 after Phase 2. Scope: Langfuse stack, SigNoz stack, A
 
 ## Component Docs
 
-- [langfuse.md](../components/langfuse.md)
-- [signoz.md](../components/signoz.md)
+- [langfuse.md](../components/observability/langfuse.md)
+- [signoz.md](../components/observability/signoz.md)

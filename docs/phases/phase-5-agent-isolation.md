@@ -74,7 +74,7 @@ Automated credential rotation added (`rotate-nats-creds.sh`, root-owned):
 - Regenerates `nats.conf` and hot-reloads via `SIGHUP`
 - Per-agent files at `/home/<agent-user>/.helm/credentials/nats.env` updated atomically
 
-See [nats.md](../components/nats.md) for full details.
+See [nats.md](../components/agent/nats.md) for full details.
 
 ### Platform Health Agent
 

@@ -6,7 +6,7 @@
 
 ![homelab-agent banner](docs/assets/banner.png)
 
-A platform for running a team of AI agents on a single server. Five agents — sysadmin, developer, researcher, writer, security — work semi-autonomously or fully unattended, coordinating through a task queue and communicating over Matrix. Each agent gets a scoped tool surface controlled by a manifest, persistent multi-tier memory backed by open-source infrastructure ([Milvus](docs/components/memory-stack.md) for vector search, [OpenSearch](docs/components/memory-stack.md) for full-text, [Neo4j](docs/components/graphiti.md) for knowledge graph), and an event ledger that tracks every cross-agent handoff.
+A platform for running a team of AI agents on a single server. Five agents — sysadmin, developer, researcher, writer, security — work semi-autonomously or fully unattended, coordinating through a task queue and communicating over Matrix. Each agent gets a scoped tool surface controlled by a manifest, persistent multi-tier memory backed by open-source infrastructure ([Milvus](docs/components/memory/memory-stack.md) for vector search, [OpenSearch](docs/components/memory/memory-stack.md) for full-text, [Neo4j](docs/components/memory/graphiti.md) for knowledge graph), and an event ledger that tracks every cross-agent handoff.
 
 The agents build the platform. Research plans a feature, developer writes the code, writer documents it, security audits the result — then the new tool becomes available to the agents that built it. [searxng-mcp](https://github.com/TadMSTR/searxng-mcp), [scoped-mcp](https://github.com/TadMSTR/scoped-mcp), and [githost-mcp](https://github.com/TadMSTR/githost-mcp) were all built this way.
 
@@ -67,12 +67,12 @@ Three layers, each independently useful. You can run just the Docker services wi
 
 | Category | Key Services | Count |
 |----------|-------------|-------|
-| **Foundation** | [SWAG](docs/components/swag.md) (reverse proxy + SSL), [Authentik](docs/components/authentik.md) (SSO), [Vault](docs/components/vault.md) (secrets) | 5 |
-| **Observability** | [Grafana](docs/components/grafana-alloy.md) + Loki + Alloy, [SigNoz](docs/components/signoz.md) (APM), [Langfuse](docs/components/langfuse.md) (LLM traces) | 13 |
-| **AI & Search** | [Ollama](docs/components/ollama.md) (local inference), [SearXNG](docs/components/searxng.md), [Firecrawl](docs/components/firecrawl.md), [Reranker](docs/components/reranker.md) | 10 |
-| **Memory** | [Milvus](docs/components/memory-stack.md) (vector), [OpenSearch](docs/components/memory-stack.md) (full-text), [Graphiti + Neo4j](docs/components/graphiti.md) (knowledge graph) | 8 |
-| **Agent Infra** | [Synapse](docs/components/synapse.md) (Matrix), [NATS](docs/components/nats.md) (event bus), [task-queue-mcp](docs/components/task-queue-mcp.md) | 13 |
-| **CI/CD** | [Woodpecker CI](docs/components/woodpecker.md), [Temporal](docs/components/temporal.md) (workflow engine) | 6 |
+| **Foundation** | [SWAG](docs/components/foundation/swag.md) (reverse proxy + SSL), [Authentik](docs/components/foundation/authentik.md) (SSO), [Vault](docs/components/foundation/vault.md) (secrets) | 5 |
+| **Observability** | [Grafana](docs/components/observability/grafana-alloy.md) + Loki + Alloy, [SigNoz](docs/components/observability/signoz.md) (APM), [Langfuse](docs/components/observability/langfuse.md) (LLM traces) | 13 |
+| **AI & Search** | [Ollama](docs/components/ai-search/ollama.md) (local inference), [SearXNG](docs/components/ai-search/searxng.md), [Firecrawl](docs/components/ai-search/firecrawl.md), [Reranker](docs/components/ai-search/reranker.md) | 10 |
+| **Memory** | [Milvus](docs/components/memory/memory-stack.md) (vector), [OpenSearch](docs/components/memory/memory-stack.md) (full-text), [Graphiti + Neo4j](docs/components/memory/graphiti.md) (knowledge graph) | 8 |
+| **Agent Infra** | [Synapse](docs/components/agent/synapse.md) (Matrix), [NATS](docs/components/agent/nats.md) (event bus), [task-queue-mcp](docs/components/agent/task-queue-mcp.md) | 13 |
+| **CI/CD** | [Woodpecker CI](docs/components/cicd/woodpecker.md), [Temporal](docs/components/cicd/temporal.md) (workflow engine) | 6 |
 
 Deployment order and stack dependencies are documented in [`docker/README.md`](docker/README.md).
 
@@ -105,15 +105,15 @@ flowchart TB
 
 **How it works:**
 
-- **[scoped-mcp](docs/components/scoped-mcp.md)** reads each agent's manifest and proxies only the allowed tools. Agents never see credentials — secrets are injected from Vault at proxy level. Rate limits, argument filters, and response redaction are enforced per-agent.
+- **[scoped-mcp](docs/components/agent/scoped-mcp.md)** reads each agent's manifest and proxies only the allowed tools. Agents never see credentials — secrets are injected from Vault at proxy level. Rate limits, argument filters, and response redaction are enforced per-agent.
 
-- **[Matrix dispatch](docs/components/matrix-dispatcher.md)** polls each agent's room for operator messages and routes them into the right Claude Code project. Send a message from any Matrix client; the agent picks it up and replies in-thread.
+- **[Matrix dispatch](docs/components/agent/matrix-dispatcher.md)** polls each agent's room for operator messages and routes them into the right Claude Code project. Send a message from any Matrix client; the agent picks it up and replies in-thread.
 
-- **[Persistent memory](docs/components/memory-architecture.md)** — a three-tier system (session → working → distilled) with four search paths: hybrid vector+BM25 via [memsearch](docs/components/memsearch.md), full-text keyword via [OpenSearch](docs/components/memory-stack.md), structured metadata queries, and a temporal [knowledge graph](docs/components/graphiti.md) for entity relationships.
+- **[Persistent memory](docs/components/memory/memory-architecture.md)** — a three-tier system (session → working → distilled) with four search paths: hybrid vector+BM25 via [memsearch](docs/components/memory/memsearch.md), full-text keyword via [OpenSearch](docs/components/memory/memory-stack.md), structured metadata queries, and a temporal [knowledge graph](docs/components/memory/graphiti.md) for entity relationships.
 
-- **[agent-bus](docs/components/agent-bus.md)** logs every cross-agent event (handoffs, task completions, audit requests) to a JSONL trail, federated to NATS JetStream.
+- **[agent-bus](docs/components/agent/agent-bus.md)** logs every cross-agent event (handoffs, task completions, audit requests) to a JSONL trail, federated to NATS JetStream.
 
-- **[task-queue](docs/components/task-queue-mcp.md)** handles cross-agent work — research hands off build plans to developer, developer hands off doc updates to writer, writer files tickets back when gaps are found.
+- **[task-queue](docs/components/agent/task-queue-mcp.md)** handles cross-agent work — research hands off build plans to developer, developer hands off doc updates to writer, writer files tickets back when gaps are found.
 
 ---
 

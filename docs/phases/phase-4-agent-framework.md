@@ -71,7 +71,7 @@ NATS migrated from single shared token to per-user authorization block in `nats.
 | `helm-build` | `tasks.helm-build.>`, `events.helm-build.>` | `tasks.helm-build.>`, `_INBOX.>` |
 | `temporal-worker` | `tasks.temporal.>`, `events.temporal.>` | `tasks.>`, `_INBOX.>` |
 
-See [nats.md](../components/nats.md) for full configuration.
+See [nats.md](../components/agent/nats.md) for full configuration.
 
 ### helm-launch v1
 

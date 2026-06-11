@@ -65,7 +65,7 @@ claude
 # matrix-dispatcher routes messages from #forge Matrix room to the sysadmin project dir
 ```
 
-The [matrix-dispatcher](../docs/components/matrix-dispatcher.md) polls each agent's Matrix room and injects messages into the agent's stdin stream, enabling async operation from any Matrix client.
+The [matrix-dispatcher](../docs/components/agent/matrix-dispatcher.md) polls each agent's Matrix room and injects messages into the agent's stdin stream, enabling async operation from any Matrix client.
 
 ## Agent Isolation
 
@@ -76,4 +76,4 @@ Each agent has its own:
 - Memory path — `~/.claude/memory/agents/<agent>/`
 
 Agents share `~/.claude/memory/shared/` for cross-agent communication.
-See [`docs/components/scoped-mcp.md`](../docs/components/scoped-mcp.md) for architecture details.
+See [`docs/components/agent/scoped-mcp.md`](../docs/components/agent/scoped-mcp.md) for architecture details.

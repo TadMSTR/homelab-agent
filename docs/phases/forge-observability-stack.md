@@ -93,8 +93,8 @@ Security audit returned 3 findings. 2 fixed, 1 accepted.
 
 ## Related Docs
 
-- [influxdb.md](../components/influxdb.md)
-- [telegraf.md](../components/telegraf.md)
-- [grafana-alloy.md](../components/grafana-alloy.md)
-- [grafana-mcp.md](../components/grafana-mcp.md)
-- [grafana-image-renderer.md](../components/grafana-image-renderer.md)
+- [influxdb.md](../components/observability/influxdb.md)
+- [telegraf.md](../components/observability/telegraf.md)
+- [grafana-alloy.md](../components/observability/grafana-alloy.md)
+- [grafana-mcp.md](../components/observability/grafana-mcp.md)
+- [grafana-image-renderer.md](../components/observability/grafana-image-renderer.md)

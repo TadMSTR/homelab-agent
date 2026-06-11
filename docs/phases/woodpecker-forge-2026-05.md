@@ -71,6 +71,6 @@ All 3 medium findings resolved:
 
 ## Related Docs
 
-- [woodpecker.md](../components/woodpecker.md) — component reference
-- [githost-mcp.md](../components/githost-mcp.md) — githost-mcp tool access details
+- [woodpecker.md](../components/cicd/woodpecker.md) — component reference
+- [githost-mcp.md](../components/mcp-servers/githost-mcp.md) — githost-mcp tool access details
 - [agent-manifests.md](../../gitea/agent-platform/agent-manifests.md) — manifest HITL gate config

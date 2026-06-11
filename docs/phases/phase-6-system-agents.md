@@ -127,8 +127,8 @@ Phase 6 completes the agent isolation and operational autonomy stack. Potential 
 ## Related Docs
 
 - [system-agents.md](../../design/system-agents.md) — agent architecture, golden masters, team model
-- [owners-manual.md](../components/owners-manual.md) — mkdocs infrastructure and regeneration model
+- [owners-manual.md](../components/cicd/owners-manual.md) — mkdocs infrastructure and regeneration model
 - [agent-isolation.md](../../design/agent-isolation.md) — Unix users, AppArmor, seccomp, sudoers (Phase 5 base)
 - [helm-launch.md](../../design/helm-launch.md) — launch entrypoint (v3 adds headless mode)
-- [nats.md](../components/nats.md) — NATS users and ACLs
+- [nats.md](../components/agent/nats.md) — NATS users and ACLs
 - [phase-5-agent-isolation.md](phase-5-agent-isolation.md) — Phase 5 context

@@ -80,7 +80,7 @@ research-plan-queue (task_type: workflow)
 
 ## Related Docs
 
-- [Temporal component](../components/temporal.md) — server stack details
+- [Temporal component](../components/cicd/temporal.md) — server stack details
 - [temporal-build-worker README](https://github.com/TadMSTR/temporal-build-worker) — worker documentation
 - Build plan: `~/.claude/comms/artifacts/build-plans/temporal-workflow-trigger-2026-06/plan.md`
 - PR: host-forge-scripts#2 (merged)

@@ -62,7 +62,7 @@ Python scanner at `~/repos/gitea/host-forge-scripts/scripts/agent-workspace-scan
 
 ### forge-configs repo
 
-New Gitea repo (`host-forge/forge-configs`) tracking non-secret config files. See [forge-configs component doc](../components/forge-configs.md).
+New Gitea repo (`host-forge/forge-configs`) tracking non-secret config files. See [forge-configs component doc](../components/foundation/forge-configs.md).
 
 ### agent-workspace-check skill
 
@@ -108,7 +108,7 @@ Skill ported from claudebox to `~/repos/gitea/agent-platform-skills/agent-worksp
 
 ## Related Docs
 
-- [forge-configs component](../components/forge-configs.md) — config tracking repo and deploy script
+- [forge-configs component](../components/foundation/forge-configs.md) — config tracking repo and deploy script
 - [AGENT_WORKSPACE.md schema](../../AGENT_WORKSPACE.md) — marker file schema reference
 - Audit report: `host-forge/build-reports/agent-workspace-forge-2026-06/audit.md`
 - Build plan: `~/.claude/comms/artifacts/build-plans/archive/agent-workspace-forge-2026-06/plan.md`
