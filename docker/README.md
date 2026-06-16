@@ -48,7 +48,7 @@ Deploy in this order to satisfy network and service dependencies:
 5. **matrix** — homeserver; agent communication depends on it
 6. **agent-platform** — NATS, DragonflyDB, Ollama queue proxy
 7. **ollama** — local LLM inference; needed by memsearch and embedding services
-8. **memory-stack** — Milvus + OpenSearch; memsearch depends on these
+8. **memory-stack** — Milvus + OpenSearch; memsearch depends on Milvus
 9. **graphiti** — knowledge graph; depends on Neo4j (included in compose)
 10. **task-queue-mcp** — inter-agent task routing
 11. All remaining stacks — can be deployed in any order after the above
