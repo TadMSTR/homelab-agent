@@ -74,6 +74,32 @@ Forge runtime configuration:
 | `[chunking]` | `overlap_lines` | `2` | Overlap between chunks |
 | `[compact]` | `llm_provider` | `anthropic` | LLM for compaction |
 | `[compact]` | `llm_model` | `claude-sonnet-4-6` | Compaction model |
+| `[llm.providers.ollama]` | `type` | `openai-compatible` | Provider type for local LLM calls |
+| `[llm.providers.ollama]` | `base_url` | `http://127.0.0.1:11435/v1` | OQP OpenAI-compat endpoint (`/v1` suffix required) |
+| `[llm.providers.ollama]` | `api_key` | (from forge.env) | OQP API key for LLM provider calls |
+| `[plugins.claude-code.summarize]` | `enabled` | `true` | Enable session transcript summarizer |
+| `[plugins.claude-code.summarize]` | `provider` | `ollama` | Routes to `[llm.providers.ollama]` |
+| `[plugins.claude-code.summarize]` | `model` | `memsearch-summarize` | Custom Ollama modelfile (see below) |
+| `[prompts]` | `summarize` | `~/.memsearch/prompts/summarize-local.txt` | Custom system prompt for summarize plugin |
+
+## Summarize plugin
+
+The `plugins.claude-code.summarize` plugin ingests raw session transcripts from `.memsearch/spool/` and compresses them into bullet summaries, then writes the result back so later searches hit the condensed form rather than raw tool output.
+
+**Model:** `memsearch-summarize` — a custom Ollama modelfile built on `qwen3:14b` with the `/no_think` template suffix (disables chain-of-thought output), `temperature 0.1`, and `num_predict 400`. Keeps summaries tight and deterministic.
+
+**Routing:** LLM calls go through `[llm.providers.ollama]` which points at OQP (`http://127.0.0.1:11435/v1`, OpenAI-compat endpoint). This gives the summarize plugin the same priority queuing and concurrency caps as other OQP consumers. Embedding calls (`[embedding]`) continue to use the Ollama native API on the same OQP port (`http://127.0.0.1:11435`, no `/v1`).
+
+**Custom prompt:** `~/.memsearch/prompts/summarize-local.txt` overrides the default system prompt. Edit this file to tune summary style without touching the memsearch library.
+
+```bash
+# Check the active summarize model
+/opt/venvs/memsearch/bin/python3 -c "
+from memsearch.config import resolve_config
+c = resolve_config()
+print(c.plugins['claude-code']['summarize'])
+"
+```
 
 ## Dependencies
 
