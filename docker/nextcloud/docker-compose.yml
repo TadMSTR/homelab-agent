@@ -1,0 +1,166 @@
+services:
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud:latest
+    container_name: nextcloud
+    restart: unless-stopped
+    # F-06: LSIO s6-overlay uses setuid at init — user: and no-new-privileges both break it.
+    # PUID/PGID=1000 drop is the LSIO mitigation. Leave hardening as-is per audit 2026-06-20.
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - DOCKER_MODS=lscr.io/linuxserver/mods:nextcloud-notify-push
+    volumes:
+      - /opt/appdata/nextcloud/config:/config
+      - /opt/appdata/nextcloud/data:/data
+      - /home/ted/.claude/comms/artifacts:/agent-workspace
+      - /home/ted/repos:/ted-personal/repos
+      - /home/ted/Documents:/ted-personal/Documents
+    extra_hosts:
+      - "nextcloud.helmforge.me:172.20.1.29"
+      - "collabora.helmforge.me:172.20.1.29"
+      - "whiteboard.helmforge.me:172.20.1.29"
+    networks:
+      - nextcloud-internal
+      - forge-net
+    depends_on:
+      nextcloud-db:
+        condition: service_healthy
+      nextcloud-valkey:
+        condition: service_started
+    mem_limit: 2g
+    cpus: '2.0'
+    healthcheck:
+      test: ["CMD", "curl", "-fk", "https://localhost:443/status.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  nextcloud-db:
+    image: postgres:16-alpine
+    container_name: nextcloud-db
+    restart: unless-stopped
+    # F-06: cap_drop:[ALL] breaks postgres — init runs as root, uses chown/chmod on data dir before
+    # dropping to postgres user. security_opt only; upstream constraint documented per audit 2026-06-20.
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      POSTGRES_USER: ${NC_DB_USER:-nextcloud}
+      POSTGRES_PASSWORD: ${NC_DB_PASSWORD}
+      POSTGRES_DB: nextcloud
+    volumes:
+      - /opt/appdata/nextcloud/db:/var/lib/postgresql/data
+    mem_limit: 1g
+    cpus: '1.0'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NC_DB_USER:-nextcloud}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nextcloud-internal
+
+  nextcloud-valkey:
+    image: valkey/valkey:8
+    container_name: nextcloud-valkey
+    restart: unless-stopped
+    # F-06: cap_drop:[ALL] breaks valkey — init chowns /data as root before dropping to valkey user.
+    security_opt:
+      - no-new-privileges:true
+    command: >
+      valkey-server
+      --requirepass ${NC_VALKEY_PASSWORD}
+    mem_limit: 512m
+    cpus: '0.5'
+    networks:
+      - nextcloud-internal
+
+  nextcloud-opensearch:
+    image: opensearchproject/opensearch:2
+    container_name: nextcloud-opensearch
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - IPC_LOCK
+    environment:
+      - discovery.type=single-node
+      # SECURITY[accepted]: OpenSearch security plugin disabled (no auth/TLS). Internal-only —
+      # nextcloud-internal network only, no host port, no forge-net access.
+      # Single-tenant forge; TLS cert overhead exceeds risk. Audit: 2026-06-20/nextcloud-2026-06 F-09.
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - cluster.name=nextcloud-opensearch
+    volumes:
+      - /opt/appdata/nextcloud/opensearch:/usr/share/opensearch/data
+    mem_limit: 1g
+    cpus: '1.0'
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    networks:
+      - nextcloud-internal
+
+  nextcloud-clamav:
+    image: clamav/clamav:latest
+    container_name: nextcloud-clamav
+    restart: unless-stopped
+    # F-06: cap_drop:[ALL] may break clamd/freshclam init — keeping security_opt only per upstream constraint.
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /opt/appdata/nextcloud/clamav:/var/lib/clamav
+    mem_limit: 2g
+    cpus: '1.0'
+    networks:
+      - nextcloud-internal
+
+  nextcloud-collabora:
+    image: collabora/code:latest
+    container_name: nextcloud-collabora
+    restart: unless-stopped
+    # F-06: no-new-privileges NOT added — CODE uses chroot/setuid sandbox (breaks if set).
+    # cap_drop:[ALL] breaks coolforkit — needs SYS_CHROOT/SETUID/SETGID/FOWNER for sandbox init.
+    # Upstream constraint; default Docker cap set required. Audit 2026-06-20.
+    environment:
+      - domain=nextcloud\\.helmforge\\.me
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=true
+      - username=${NC_COLLABORA_ADMIN_USER:-admin}
+      - password=${NC_COLLABORA_ADMIN_PASSWORD}
+    mem_limit: 1g
+    cpus: '2.0'
+    networks:
+      - nextcloud-internal
+      - forge-net
+
+  nextcloud-whiteboard:
+    image: ghcr.io/nextcloud/whiteboard:latest
+    container_name: nextcloud-whiteboard
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      - NEXTCLOUD_URL=https://nextcloud.helmforge.me
+      - JWT_SECRET_KEY=${NC_WHITEBOARD_JWT_SECRET}
+    extra_hosts:
+      - "nextcloud.helmforge.me:172.20.1.29"
+    mem_limit: 512m
+    cpus: '0.5'
+    networks:
+      - nextcloud-internal
+      - forge-net
+
+networks:
+  nextcloud-internal:
+    name: nextcloud-internal
+  forge-net:
+    external: true
