@@ -22,7 +22,7 @@ The host is **forge** — a [Minisforum MS-A2](https://www.minisforum.com/produc
 
 Three entry points depending on what you're after.
 
-**Building your own?** Read this page for the architecture, then follow [`docs/phases/`](docs/phases/) in order — each phase doc explains what was deployed, why, and what went wrong. The Docker stacks in [`docker/`](docker/) have `.env.example` files ready to copy.
+**Building your own?** Read this page for the architecture, then explore [`docs/components/`](docs/components/) for per-service configuration detail. The Docker stacks in [`docker/`](docker/) have `.env.example` files ready to copy — the component docs are structured so you can feed them to an AI agent and adapt to your setup.
 
 **Operating or extending an existing setup?** Jump straight to [`docs/components/`](docs/components/) — 76 per-service docs covering config, ports, dependencies, health checks, and restart procedures.
 
@@ -121,7 +121,6 @@ flowchart TB
 
 ```
 docs/components/   — Per-service operational reference (76 docs)
-docs/phases/       — Build completion records (23 phases)
 docs/operations/   — Operational runbooks
 CHANGELOG.md       — Build history summary
 docker/            — Docker Compose stacks with .env.example templates
@@ -130,8 +129,6 @@ manifests/         — Sanitized agent manifest examples
 claude-code/       — Claude Code project configs and CLAUDE.md examples
 pm2/               — PM2 ecosystem config and process documentation
 ```
-
-The build phases in [`docs/phases/`](docs/phases/) tell the story of how this platform was assembled — what was deployed in what order, what broke, and what design decisions came out of it. If you're planning a similar build, start there.
 
 ## Prerequisites
 
