@@ -18,7 +18,7 @@ Ollama provides GPU-accelerated LLM inference on forge. It runs on the RTX 2000 
 
 ## GPU
 
-RTX 2000 Ada (8 GB VRAM). All model layers offloaded to GPU. The NVIDIA Container Toolkit is installed on the forge host; `runtime: nvidia` in the compose file grants the container GPU access.
+RTX 2000 Ada (16 GB VRAM). All model layers offloaded to GPU. The NVIDIA Container Toolkit is installed on the forge host; `runtime: nvidia` in the compose file grants the container GPU access.
 
 **Note:** Secure Boot is disabled on forge — required for NVIDIA DKMS open kernel modules. This is an accepted, documented risk for this host.
 
