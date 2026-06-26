@@ -87,4 +87,3 @@ From the Phase 7 GPU build security audit:
 - [nvidia-exporter.md](../observability/nvidia-exporter.md) — GPU metrics
 - [authentik.md](../foundation/authentik.md) — forward auth configuration
 - [swag.md](../foundation/swag.md) — SWAG proxy and auth model
-- [phase-7-agent-infrastructure.md](../../phases/phase-7-agent-infrastructure.md) — Phase 7 context (same build)
