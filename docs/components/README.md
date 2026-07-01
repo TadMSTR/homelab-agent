@@ -1,6 +1,6 @@
 # docs/components
 
-Per-service operational reference for the homelab-agent platform. 76 docs covering every service, MCP server, and background job running on forge, organized into 8 categories.
+Per-service operational reference for the homelab-agent platform. 80 docs covering every service, MCP server, and background job running on forge, organized into 9 categories.
 
 Each doc covers: what the service is, where it runs, configuration, dependencies, how to restart/check health/view logs, and scoped-mcp integration where applicable.
 
@@ -121,3 +121,12 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`drift-detector-scan.md`](platform/drift-detector-scan.md) | Configuration drift detection |
 | [`build-unblock-scan.md`](platform/build-unblock-scan.md) | Stalled build detection |
 | [`git-drift-alert.md`](platform/git-drift-alert.md) | Uncommitted git change alerting |
+
+## [`apps/`](apps/) — Productivity & Self-Hosted Services (4)
+
+| Doc | Service |
+|-----|---------|
+| [`nextcloud.md`](apps/nextcloud.md) | File sync, collaboration suite |
+| [`proton-bridge.md`](apps/proton-bridge.md) | Proton Mail SMTP relay (native) |
+| [`stunnel.md`](apps/stunnel.md) | TLS wrapper for Proton Mail Bridge |
+| [`tools-stack.md`](apps/tools-stack.md) | 8 stateless browser utilities (PDF, diagrams, dev tools, image edit) |
