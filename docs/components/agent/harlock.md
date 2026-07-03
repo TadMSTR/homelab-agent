@@ -20,18 +20,41 @@ Harlock wraps the `personal-agent` manager in a long-running PM2 process. The ma
 
 ```
 Matrix room (#harlock:<homeserver>)
-        │
-        ▼
+        │  ▲
+        │  │ manager posts subprocess output back to the room
+        ▼  │ as the bot user (auto-relay)
 manager.py  (personal-agent, runs as operator user)
-        │  polls via Matrix client
+        │  polls via Matrix client, owns the only Matrix connection
         │  launches subprocess
         ▼
-claude CLI  (runs as agent-harlock)
-        │
+claude CLI  (runs as agent-harlock)  — no Matrix send tool
+        │  emits stream-json; final text is captured, not sent
         ├─ Project:       /home/agent-harlock/.claude/projects/harlock/
         ├─ Working notes: ~/.claude/memory/agents/harlock/working/
         └─ Session notes: ~/.claude/memory/agents/harlock/session/
 ```
+
+## Matrix integration (auto-relay)
+
+Harlock's Claude subprocess has **no Matrix send tool** — its scoped-mcp manifest
+carries no `matrix-mcp` module and no built-in Matrix module. The subprocess never
+posts to Matrix directly.
+
+Instead, `manager.py` owns the sole Matrix connection (the bot's `AsyncClient`). Each
+turn, the manager runs the subprocess, parses its stream-json output, and posts the
+final text back to the room as the bot user (`@harlock`), threaded as a reply to the
+triggering message and split into `max_message_length` chunks. Turn errors and
+timeouts are surfaced the same way, while verbose detail (stderr, paths) stays in the
+PM2 logs only.
+
+Consequences of this model:
+
+- Harlock cannot address arbitrary rooms or users; every reply lands in its own room,
+  in-thread with the message that prompted it.
+- There is no in-band "send a Matrix message" action for the agent to invoke — output
+  is a side effect of finishing a turn, not a tool call.
+- Built-in room commands (`!help`, `!recap`, `!sessions`, `!cancel`, `!mirror`) are
+  handled directly by the manager and likewise reply via the same relay path.
 
 ## Configuration (config.harlock.yml)
 
@@ -141,4 +164,17 @@ pm2 stop personal-agent-harlock
 
 ## scoped-mcp integration
 
-Harlock has a dedicated scoped-mcp manifest separate from task-queue agents. The manifest reflects personal assistant use — broader read access, no destructive system operations.
+Harlock has a dedicated scoped-mcp manifest separate from task-queue agents. The manifest reflects personal assistant use — broad read access, no destructive system operations, and **no Matrix send capability** (see [Matrix integration](#matrix-integration-auto-relay)).
+
+Modules exposed to the subprocess:
+
+| Module | Access | Notes |
+|--------|--------|-------|
+| `searxng-mcp` | search + fetch | `clear_cache` denied |
+| `memsearch-mcp` | hybrid memory search | bearer-token auth |
+| `memory-metadata-mcp` | list/filter notes | read-only |
+| `graphiti` | knowledge graph | `clear_graph` denied |
+| `qmd` | doc search | read-only |
+| `githost-mcp` | git read | `git_add`/`git_commit`/`git_push` denied |
+
+There is deliberately no `matrix-mcp` module: Harlock's replies reach Matrix only through the manager's auto-relay, not through a tool the agent can call.
