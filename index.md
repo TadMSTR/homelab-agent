@@ -118,6 +118,15 @@ homelab-agent/
 | `docs/components/cicd/patchmon.md` | Apt patch management |
 | `docs/components/cicd/cloudcli.md` | Browser Claude Code UI |
 
+**Apps:**
+
+| Doc | Topic |
+|-----|-------|
+| `docs/components/apps/nextcloud.md` | Nextcloud file/collaboration suite |
+| `docs/components/apps/proton-bridge.md` | Proton Mail IMAP/SMTP bridge |
+| `docs/components/apps/stunnel.md` | TLS tunnel for Proton Bridge |
+| `docs/components/apps/tools-stack.md` | 8-tool browser utilities stack |
+
 ### Layer 3 — Multi-Agent Engine
 
 **Agent platform:**
@@ -135,6 +144,7 @@ homelab-agent/
 | `docs/components/agent/matrix-admin-bot.md` | Matrix room admin bot |
 | `docs/components/agent/matrix-task-queue-bot.md` | Matrix task queue notification bot |
 | `docs/components/agent/nats-mcp.md` | NATS publish/subscribe MCP |
+| `docs/components/agent/harlock.md` | Harlock personal agent |
 | `manifests/` | Sanitized agent manifest examples |
 | `claude-code/` | Claude Code project configs |
 
@@ -149,6 +159,7 @@ homelab-agent/
 | `docs/components/mcp-servers/pm2-mcp.md` | PM2 process management MCP |
 | `docs/components/mcp-servers/code-server-mcp.md` | code-server management MCP |
 | `docs/components/mcp-servers/plane-mcp.md` | Plane issue tracking MCP |
+| `docs/components/nextcloud-mcp.md` | Nextcloud file/calendar/notes MCP |
 
 **MCP servers — observability:**
 
@@ -184,6 +195,8 @@ homelab-agent/
 | `docs/components/platform/drift-detector-scan.md` | Config drift detection |
 | `docs/components/platform/build-unblock-scan.md` | Stalled build detection |
 | `docs/components/platform/git-drift-alert.md` | Uncommitted git drift alerting |
+| `docs/components/dep-update-check.md` | Dependency update scanner |
+| `docs/components/forge-reboot-gate.md` | Reboot-required gate check |
 | `docs/operations/runbooks.md` | Operational runbooks |
 
 ## By Task
