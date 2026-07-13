@@ -15,7 +15,7 @@ matrix_notify() {
     local msg="$1"
     local payload
     payload=$(jq -n --arg msg "$msg" \
-        '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"send_matrix_message","arguments":{"room_name":"forge","message":$msg}},"id":1}')
+        '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"send_matrix_message","arguments":{"room_name":"agents","message":$msg}},"id":1}')
     curl -s -X POST "$MATRIX_MCP_URL" \
         -H "Content-Type: application/json" \
         -d "$payload" \
