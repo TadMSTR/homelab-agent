@@ -100,16 +100,11 @@ fi
 echo "[$(date)] Starting doc-health audit (model=$MODEL, targeted=$TARGETED)..." | tee -a "$LOG_FILE"
 
 matrix_notify() {
-    # SECURITY[resolved]: use jq to construct JSON payload — prevents injection from unescaped $SUMMARY content.
-    # Audit: 2026-05-29/forge-build-workflow-infra-2026-05.
+    # Uses send-matrix.sh (Matrix client API + bearer token) rather than matrix-mcp
+    # directly — matrix-mcp's streamable-http transport requires a session handshake
+    # that a one-shot curl can't satisfy.
     local msg="$1"
-    local payload
-    payload=$(jq -n --arg msg "$msg" \
-        '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"send_matrix_message","arguments":{"room_name":"agents","message":$msg}},"id":1}')
-    curl -s -X POST "http://127.0.0.1:8487/mcp" \
-        -H "Content-Type: application/json" \
-        -d "$payload" \
-        > /dev/null 2>&1 || true
+    "$HOME/scripts/send-matrix.sh" agents "$msg" >> "$LOG_FILE" 2>&1 || true
 }
 
 echo "$PROMPT" | \

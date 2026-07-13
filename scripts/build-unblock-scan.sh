@@ -3,23 +3,17 @@ set -euo pipefail
 
 LOG="$HOME/logs/build-unblock-scan.log"
 PLANS_DIR="$HOME/.claude/comms/artifacts/build-plans"
-MATRIX_MCP_URL="http://127.0.0.1:8487/mcp"
 
 mkdir -p "$HOME/logs"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
 
 matrix_notify() {
-    # SECURITY[resolved]: use jq to construct JSON payload — prevents injection from unescaped message content.
-    # Audit: 2026-05-29/forge-build-workflow-infra-2026-05.
+    # Uses send-matrix.sh (Matrix client API + bearer token) rather than matrix-mcp
+    # directly — matrix-mcp's streamable-http transport requires a session handshake
+    # that a one-shot curl can't satisfy.
     local msg="$1"
-    local payload
-    payload=$(jq -n --arg msg "$msg" \
-        '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"send_matrix_message","arguments":{"room_name":"agents","message":$msg}},"id":1}')
-    curl -s -X POST "$MATRIX_MCP_URL" \
-        -H "Content-Type: application/json" \
-        -d "$payload" \
-        > /dev/null 2>&1 || true
+    "$HOME/scripts/send-matrix.sh" agents "$msg" >> "$LOG" 2>&1 || true
 }
 
 log "Build unblock scan starting"
