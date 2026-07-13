@@ -20,7 +20,7 @@ Each run executes three phases:
    is sent to Ted. Auto-approved tasks trigger a headless `claude -p` launch for the target agent.
 
 2. **Alert stale approved tasks** — any task in `approved` state for >24 hours triggers a
-   Matrix notification to `#forge:helmforge.me`. Re-alerts every 24 hours until claimed.
+   Matrix notification to the `alerts` room. Re-alerts every 24 hours until claimed.
 
 3. **Archive expired tasks** — moves `completed` or `failed` tasks past their `ttl_days`
    into `~/.claude/task-queue/archive/`.
@@ -45,6 +45,13 @@ The launch runs in the agent's project directory from a hardcoded whitelist:
 | security | `~/.claude/projects/security` |
 
 Launch logs go to `~/.pm2/logs/agent-launch-<agent>-<task_id_prefix>.log`.
+
+Headless launches authenticate from the target agent's environment, trying
+`ANTHROPIC_API_KEY`, then `ANTHROPIC_AUTH_TOKEN`, then `CLAUDE_CODE_OAUTH_TOKEN`
+(any one is sufficient), and falling back to `~/.claude/.credentials.json` as a last
+resort. If none yields a usable credential, the dispatcher refuses the launch and routes
+the task to failure rather than starting a session that would immediately error on an
+expired or missing token.
 
 ## Configuration
 
