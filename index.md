@@ -123,6 +123,7 @@ homelab-agent/
 | Doc | Topic |
 |-----|-------|
 | `docs/components/apps/nextcloud.md` | Nextcloud file/collaboration suite |
+| `docs/components/apps/plane.md` | Plane project/issue tracking app stack |
 | `docs/components/apps/proton-bridge.md` | Proton Mail IMAP/SMTP bridge |
 | `docs/components/apps/stunnel.md` | TLS tunnel for Proton Bridge |
 | `docs/components/apps/tools-stack.md` | 8-tool browser utilities stack |
@@ -159,6 +160,8 @@ homelab-agent/
 | `docs/components/mcp-servers/pm2-mcp.md` | PM2 process management MCP |
 | `docs/components/mcp-servers/code-server-mcp.md` | code-server management MCP |
 | `docs/components/mcp-servers/plane-mcp.md` | Plane issue tracking MCP |
+| `docs/components/mcp-servers/datastore-mcp.md` | Multi-backend datastore query MCP |
+| `docs/components/mcp-servers/librechat-mcp.md` | LibreChat agent-management MCP |
 | `docs/components/nextcloud-mcp.md` | Nextcloud file/calendar/notes MCP |
 
 **MCP servers — observability:**
