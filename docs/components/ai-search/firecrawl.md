@@ -56,3 +56,5 @@ No API key header required (auth disabled). Response is markdown-formatted page 
 
 - [phase-5-user-stack-infra.md](../../phases/phase-5-user-stack-infra.md) — build narrative, web search pipeline overview
 - [crawl4ai.md](crawl4ai.md) — companion browser-rendering service
+- [searxng-mcp.md](searxng-mcp.md#adblock-proxy-container) — `crawler-adblock-proxy-1` fronts
+  Firecrawl/Crawl4AI fetch tiers but runs in its own `~/docker/crawler/` stack, not this one

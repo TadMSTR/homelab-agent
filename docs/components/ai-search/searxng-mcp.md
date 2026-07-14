@@ -97,6 +97,17 @@ flowchart TD
 Robots.txt compliance is enforced on tiers 1–3. Adblock filtering is available via
 `ADBLOCK_PROXY_URL` (applied to tiers 2 and 3).
 
+### Adblock proxy container
+
+`ADBLOCK_PROXY_URL` points at `crawler-adblock-proxy-1` — a standalone HTTP proxy (built
+from `searxng-mcp/docker/adblock-proxy`, `@ghostery/adblocker` filter lists) deployed in its
+own `~/docker/crawler/docker-compose.yml` stack (compose project `crawler`, network
+`fetch-net`), not part of the Firecrawl or Crawl4AI stacks it fronts. It listens on
+`127.0.0.1:8118` (host-bound, since searxng-mcp runs as a host stdio process, not a
+container) and blocks plain-HTTP ad/tracker requests with an empty `200` response;
+HTTPS `CONNECT` is tunneled without MITM. Filter lists (EasyList + EasyPrivacy) refresh
+every 168 hours (`ADBLOCK_REFRESH_HOURS`).
+
 ## Environment Variables
 
 | Variable | Required | Purpose |
