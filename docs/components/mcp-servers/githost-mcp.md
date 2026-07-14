@@ -1,27 +1,36 @@
 # githost-mcp
 
-Unified local git + multi-provider remote MCP server (32 tools) with a per-agent HMAC-signed
+Unified local git + multi-provider remote MCP server (45 tools) with a per-agent HMAC-signed
 JSONL audit trail as a first-class architectural feature. Covers local git operations via
 gitpython (no subprocess), GitHub, Gitea, and GitLab APIs, plus release orchestration across
 all three providers simultaneously.
 
-- **Version:** 0.1.0 (deployed 2026-05-28, forge-q2-sync-deploy)
+- **Version:** 0.5.0 (2026-07-13) — Baseline compliance (LICENSE, badges, GitHub Actions CI
+  replacing Woodpecker for this repo's own pipeline, ruff/coverage config, 80% coverage
+  floor), plus GitHub/GitLab PR/MR create-get-merge tool parity with Gitea and two new
+  README architecture diagrams (provider dispatch → audit log; `ALLOWED_REPO_ROOTS`
+  resolution)
 - **Repo:** `TadMSTR/githost-mcp` (public)
 - **Transport:** stdio (per-agent launcher script)
-- **Agents:** developer (primary), security (read tools)
+- **Agents:** all six agent manifests (developer, sysadmin, research, security, writer,
+  harlock) — see scoped-mcp Registration below for per-agent tool restrictions
 
-## Tools (32 total)
+## Tools (45 total)
 
 | Category | Tools |
 |----------|-------|
 | Local git (11) | `git_status`, `git_diff`, `git_log`, `git_show`, `git_branch`, `git_checkout`, `git_add`, `git_commit`, `git_push`, `git_pull`, `git_tag` |
-| GitHub (7) | `github_create_release`, `github_get_release`, `github_list_releases`, `github_workflow_list`, `github_workflow_status`, `github_pr_list`, `github_pr_comments` |
-| Gitea (4) | `gitea_create_release`, `gitea_get_release`, `gitea_list_releases`, `gitea_pr_list` |
-| GitLab (4) | `gitlab_create_release`, `gitlab_get_release`, `gitlab_list_releases`, `gitlab_mr_list` |
+| GitHub (10) | `github_create_release`, `github_get_release`, `github_list_releases`, `github_workflow_list`, `github_workflow_status`, `github_pr_list`, `github_pr_comments`, `github_pr_create`, `github_pr_get`, `github_pr_merge` |
+| Gitea (8) | `gitea_create_release`, `gitea_get_release`, `gitea_list_releases`, `gitea_pr_list`, `gitea_pr_create`, `gitea_pr_get`, `gitea_pr_comment`, `gitea_pr_merge` |
+| GitLab (7) | `gitlab_create_release`, `gitlab_get_release`, `gitlab_list_releases`, `gitlab_mr_list`, `gitlab_mr_create`, `gitlab_mr_get`, `gitlab_mr_merge` |
 | Release orchestration (1) | `release` — coordinated multi-target release with rollback |
 | Registry (2) | `pypi_publish`, `npm_publish` |
-| Woodpecker CI (2) | `woodpecker_trigger`, `woodpecker_status` |
+| Woodpecker CI (5) | `woodpecker_trigger`, `woodpecker_list_pipelines`, `woodpecker_get_logs`, `woodpecker_pipeline_cancel`, `woodpecker_status` |
 | Audit (1) | `audit_log_query` — query and verify JSONL audit log |
+
+`github_pr_create/merge` and `gitlab_mr_create/merge` shipped in v0.5.0 (build
+`githost-mcp-baseline-and-ci-2026-07`) alongside the existing Gitea PR tools — see
+Security below for the same-day HITL gating fix.
 
 ## Audit Architecture
 
@@ -52,8 +61,21 @@ Credential fields are filtered before write — token values never appear in JSO
 
 **Repo path allowlist:** Write tools (`git_add`, `git_commit`, `git_push`, `git_tag`,
 `git_checkout`, `git_branch create/delete`, `git_pull`, `release`, `pypi_publish`,
-`npm_publish`) validate `repo_path` against `ALLOWED_REPO_ROOTS` before execution.
-When `ALLOWED_REPO_ROOTS` is not set, write operations are disabled — fail-closed, not open.
+`npm_publish`) validate `repo_path` against the resolved allowlist before execution. An
+explicit `ALLOWED_REPO_ROOTS` always wins; when unset, `config.py` falls back (v0.4.0,
+GHOST-7/5/2) to the `git_backed: true` `workspace_access` entries in the agent's manifest at
+`AGENT_MANIFEST_PATH` (default `~/.claude/manifests/{AGENT_ID}-agent.yml`). When neither
+source yields a root, write operations are disabled — fail-closed, not open.
+
+**Merge-tool HITL gate (2026-07-13):** `githost-mcp-baseline-and-ci-2026-07`'s audit filed a
+HIGH finding — `github_pr_merge` and `gitlab_mr_merge` shipped live and ungated in all 6
+manifests, reachable with zero HITL despite writer/research manifests stating "no PRs" /
+"not appropriate" intent. Same-day fix (task `3c848078`): `developer-agent.yml` and
+`sysadmin-agent.yml` now require HITL approval on `githost-mcp_github_pr_merge` and
+`githost-mcp_gitlab_mr_merge` (mirroring the pre-existing `githost-mcp_gitea_pr_merge`
+entry); `writer-agent.yml`, `research-agent.yml`, and `security-agent.yml` denylist
+`github_pr_create`, `github_pr_merge`, `gitlab_mr_create`, and `gitlab_mr_merge` outright;
+`harlock-agent.yml` denylists all three providers' merge tools.
 
 **No subprocess git:** All local operations use gitpython (Python library), not subprocess.
 This eliminates command injection via crafted `repo_path` or `branch` values.
@@ -111,12 +133,14 @@ Install all observability extras: `pip install "githost-mcp[observability]"`
 
 ## Launcher Pattern (forge)
 
-Uses a Python launcher (not bash) — forge.env contains credentials with special characters
-that bash `source` misinterprets. Single shared launcher for both developer and sysadmin:
+Uses a Python launcher (not bash) — the secrets files contain credentials with special
+characters that bash `source` misinterprets. As of the per-agent `ALLOWED_REPO_ROOTS`
+scoping work, each agent gets its own launcher script rather than one shared script:
 
 ```python
 #!/usr/bin/env python3
-# ~/scripts/run-githost-mcp.sh
+# run-githost-mcp-writer.py — Launch githost-mcp for writer agent.
+# Loads writer-scoped config: ALLOWED_REPO_ROOTS restricted to doc repos only.
 import os
 
 env = os.environ.copy()
@@ -127,11 +151,11 @@ with open(os.path.expanduser("~/.secrets/forge.env")) as f:
         line = line.strip()
         if "=" in line and not line.startswith("#"):
             k, _, v = line.partition("=")
-            if k.strip() in ("GITHUB_TOKEN", "GITEA_TOKEN", "GITLAB_TOKEN"):
+            if k.strip() in ("GITHUB_TOKEN", "GITEA_TOKEN"):
                 env[k.strip()] = v.strip()
 
-# Load githost-mcp config (ALLOWED_REPO_ROOTS, AUDIT_SIGNING_KEY, log paths)
-with open(os.path.expanduser("~/.secrets/githost-mcp.env")) as f:
+# Load agent-scoped githost-mcp config (ALLOWED_REPO_ROOTS, AUDIT_SIGNING_KEY, log paths)
+with open(os.path.expanduser("~/.secrets/githost-mcp-writer.env")) as f:
     for line in f:
         line = line.strip()
         if "=" in line and not line.startswith("#"):
@@ -144,32 +168,46 @@ os.execve(python, [python, "-m", "githost_mcp.server"], env)
 
 **Paths:**
 - Venv: `/opt/venvs/githost-mcp/`
-- Launcher: `~/scripts/run-githost-mcp.sh` (chmod +x)
-- Secrets: `~/.secrets/githost-mcp.env` (chmod 600)
-- Appdata: `/opt/appdata/githost-mcp/{logs,audit}/` (chmod 750)
+- Launchers: `~/repos/gitea/host-forge-scripts/scripts/run-githost-mcp-<agent>.py` (one per
+  agent: developer, sysadmin, research, security, writer, harlock)
+- Secrets: `~/.secrets/githost-mcp-<agent>.env` (chmod 600, per-agent `ALLOWED_REPO_ROOTS`)
+- Appdata: `/opt/appdata/githost-mcp/{logs,audit}/` (chmod 750, shared across agents)
 
-`AGENT_ID` is injected per-agent via the manifest `env:` block (not the launcher), so the
-same launcher script serves both developer and sysadmin agents.
+`AGENT_ID` is injected per-agent via the manifest `env:` block; the per-agent launcher and
+secrets file additionally scope `ALLOWED_REPO_ROOTS` so, e.g., writer and research can only
+touch doc repos regardless of what the manifest's `env:` block sets.
 
 ## scoped-mcp Registration
 
-Registered in developer and sysadmin manifests (`~/.claude/manifests/<agent>-agent.yml`):
+Registered in all 6 agent manifests (`~/.claude/manifests/<agent>-agent.yml`), each with its
+own launcher script (`run-githost-mcp-<agent>.py`) and `AGENT_ID` injected via the manifest
+`env:` block, giving per-agent attribution in audit log entries without needing shared
+credentials:
 
 ```yaml
 githost-mcp:
   type: mcp_proxy
   config:
-    command: /home/ted/scripts/run-githost-mcp.sh
+    command: /home/ted/repos/gitea/host-forge-scripts/scripts/run-githost-mcp-<agent>.py
     env:
-      AGENT_ID: developer   # or: sysadmin
+      AGENT_ID: <agent>
 ```
 
-`AGENT_ID` in the manifest `env:` block overrides any `AGENT_ID` in the process environment,
-giving per-agent attribution in audit log entries without needing per-agent launchers.
+| Agent | Notable restrictions |
+|-------|----------------------|
+| `developer` | Full tool surface; `github_pr_merge`/`gitlab_mr_merge` require HITL approval |
+| `sysadmin` | Full tool surface; `github_pr_merge`/`gitlab_mr_merge` require HITL approval |
+| `research` | `ALLOWED_REPO_ROOTS` restricted to doc repos; denylists `git_tag`, `release`, registry publish, all provider `create_release`/CI-trigger/merge tools |
+| `security` | Denylists `git_tag`, `git_checkout` (main-only), `release`, registry publish, all provider `create_release`/merge tools, `woodpecker_trigger` |
+| `writer` | `ALLOWED_REPO_ROOTS` restricted to doc repos; commits directly to `main` only — denylists `git_tag`, `git_checkout`, `release`, registry publish, all provider `create_release`/merge tools |
+| `harlock` | Denylists all local write tools and every provider's PR/MR create + merge tools |
+
+The `github_pr_create`/`github_pr_merge`/`gitlab_mr_create`/`gitlab_mr_merge` denylist
+entries above were added 2026-07-13 as the HITL-gate fix described in Security Model.
 
 ## Security
 
-From audit 2026-05-27 (4 findings, all resolved in commit `2edef93`):
+**Audit 2026-05-27** (4 findings, all resolved in commit `2edef93`):
 
 | ID | Severity | Finding | Resolution |
 |----|----------|---------|------------|
@@ -179,6 +217,15 @@ From audit 2026-05-27 (4 findings, all resolved in commit `2edef93`):
 | L3 | Low | `_rollback()` ignored `created`/`urls` — provider releases not cleaned up on failure | Rollback rewrites to use `created` list; GitHub/GitLab releases deleted on rollback |
 
 35/35 tests pass post-remediation.
+
+**Audit `githost-mcp-allowlist-and-coverage-2026-07`** (3 findings, severity_max=medium):
+root-caused the GHOST-7/5/2 allowlist-drift pattern, fixed by the `AGENT_MANIFEST_PATH`
+fallback in v0.4.0 (see Security Model above).
+
+**Audit `githost-mcp-baseline-and-ci-2026-07`** (2 findings, severity_max=high): the HIGH
+finding was the live, ungated `github_pr_merge`/`gitlab_mr_merge` exposure fixed same-day by
+task `3c848078` (see Security Model above); a LOW finding (`IV-01`, repo/project format
+validation on GitHub/GitLab tool inputs) was fixed in the repo itself (commit `043d681`).
 
 ## Related Docs
 
