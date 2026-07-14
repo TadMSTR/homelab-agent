@@ -1,8 +1,9 @@
 # memsearch-summarize
 
-Session transcript summarizer that polls memsearch spool directories, calls the Anthropic API
-to generate bullet-point summaries, and replaces raw transcripts in memory files. Also exposes
-a FastMCP MCP server for on-demand summarization.
+Session transcript summarizer that polls memsearch spool directories, calls a configured LLM
+provider (Anthropic, or a local Ollama/OpenAI-compatible endpoint) to generate bullet-point
+summaries, and replaces raw transcripts in memory files. Also exposes a FastMCP MCP server
+for on-demand summarization.
 
 ## Service
 
@@ -24,7 +25,12 @@ under the memsearch venv interpreter.
 
 1. Polls `~/.memsearch/spool/` and all `~/.claude/projects/*/.memsearch/spool/` directories every 10 seconds
 2. Each spool entry is a JSON file pointing to a memory file and a transcript block
-3. Calls Anthropic Messages API (claude-sonnet-4-6) to summarize the transcript into 3–6 bullet points
+3. Calls the configured LLM provider (`plugins.claude-code.summarize.provider` in
+   `~/.memsearch/config.toml`) to summarize the transcript into 3–6 bullet points. Supports
+   `anthropic` (hits `https://api.anthropic.com/v1/messages` directly, hardcoded URL) or any
+   named OpenAI-compatible provider under `[llm.providers.<name>]` (e.g. Ollama). **Live
+   config as of 2026-07-13: `provider = "ollama"`, `model = "summarize"`** (resolves to the
+   Ollama tag `summarize:latest` via ollama-queue-proxy, `http://127.0.0.1:11435/v1`).
 4. Replaces the raw transcript in the memory file with the summary
 5. Marks the spool entry as `ok` (success), `retry` (transient failure), or `error` (permanent failure)
 
@@ -48,15 +54,18 @@ Config values from `~/.memsearch/config.toml`:
 
 | Key | Default | Purpose |
 |-----|---------|---------|
-| `plugins.claude-code.summarize.model` | `claude-sonnet-4-6` | LLM model for summarization |
+| `plugins.claude-code.summarize.provider` | `anthropic` | Selects `anthropic` or a named `[llm.providers.<name>]` OpenAI-compatible provider (e.g. `ollama`). **Live value: `ollama`.** |
+| `plugins.claude-code.summarize.model` | `claude-sonnet-4-6` | LLM model for summarization. **Live value: `summarize`** (Ollama tag `summarize:latest`, qwen3:14b + `/no_think` template) |
 | `plugins.claude-code.summarize.enabled` | `true` | Enable/disable summarization |
-| `prompts.summarize` | built-in | Path to custom prompt file (optional) |
+| `llm.providers.ollama.base_url` | — | OpenAI-compatible endpoint base URL, only read when provider ≠ `anthropic`. Live: `http://127.0.0.1:11435/v1` (ollama-queue-proxy) |
+| `llm.providers.ollama.api_key` | — | Auth token for the OpenAI-compatible endpoint; only read when provider ≠ `anthropic` |
+| `prompts.summarize` | built-in | Path to custom prompt file. Live: `~/.memsearch/prompts/summarize-local.txt` |
 
 ## Environment Variables
 
 | Variable | Required | Default | Purpose |
 |----------|----------|---------|---------|
-| `ANTHROPIC_API_KEY` | yes | — | API access (injected by launcher from forge.env) |
+| `ANTHROPIC_API_KEY` | conditional — only when `plugins.claude-code.summarize.provider = "anthropic"` | — | API access (injected by launcher from forge.env) |
 | `MEMSEARCH_SUMMARIZE_PORT` | no | `8494` | Override listen port |
 | `MEMSEARCH_POLL_INTERVAL` | no | `10` | Poll cycle in seconds |
 | `LOG_LEVEL` | no | `INFO` | Logging verbosity |
@@ -70,7 +79,9 @@ Config values from `~/.memsearch/config.toml`:
 
 ## Dependencies
 
-- Anthropic API (external) — for summarization calls
+- LLM provider for summarization calls — either the Anthropic API (external), or, with the
+  live `provider = "ollama"` config, [ollama-queue-proxy](../ai-search/ollama-queue-proxy.md)
+  at `127.0.0.1:11435`
 - memsearch venv at `/opt/venvs/memsearch/` — Python runtime and FastMCP
 - SigNoz OTEL collector (optional) — telemetry spans with model, token counts, latency
 
@@ -83,6 +94,11 @@ pm2 restart memsearch-summarize            # restart service
 
 Check spool status via MCP or by inspecting JSON files in spool directories directly.
 Spool entries in `error` state need manual investigation — check the `error` field in the JSON.
+
+Verified 2026-07-13: `~/logs/memsearch-summarize.log` shows recent `summarized` events and
+all spool directories at 0 pending entries (caught up, not stuck) — an earlier research pass
+the same day had flagged apparent inactivity since 2026-06-27, but the log has since resumed
+writing.
 
 ## Related Docs
 
