@@ -8,6 +8,7 @@ Background jobs that watch for drift, resource exhaustion, and documentation sta
 |-----|---------|----------|
 | [doc-health.md](doc-health.md) | Documentation audit — weekly full scan + nightly targeted | Weekly / Nightly |
 | [doc-sync-daily.md](doc-sync-daily.md) | Daily documentation sync | Daily |
+| [writer-doc-queue.md](writer-doc-queue.md) | Processes doc-update-queue.jsonl via headless writer agent | Daily |
 | [disk-space-probe.md](disk-space-probe.md) | Disk usage monitoring → Matrix alerts | Every 5 min |
 | [snapshot-space-probe.md](snapshot-space-probe.md) | Btrfs snapshot space monitoring | Every 5 min |
 | [drift-detector-scan.md](drift-detector-scan.md) | Configuration drift detection | Every 6 hours |
