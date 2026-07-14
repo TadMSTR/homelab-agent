@@ -163,6 +163,15 @@ Events published to NATS subjects `events.searxng.*` when configured. OpenTeleme
 traces sent to SigNoz via `OTEL_EXPORTER_OTLP_ENDPOINT`. Grafana dashboard
 "SearXNG-MCP Operations" tracks search/fetch/cache metrics.
 
+### Domain-capability database maintenance
+
+The per-domain fetch-tier success tracking (§ Fetch Cascade) persists to a domain-capability
+database, schema v4 as of v3.14.0. A PM2 cron, `searxng-domain-db-maintenance` (`30 5 * * *`,
+in `~/repos/personal/searxng-mcp`), runs the `domain-db-maintenance` CLI daily: emits OTel
+gauges for the current domain-db state, writes a durable JSON snapshot
+(`DOMAIN_DB_SNAPSHOT_DIR`), and prunes entries past `DOMAIN_DB_SNAPSHOT_RETENTION`. A
+companion `restore-domain-db` CLI restores from the latest snapshot if the live db is lost.
+
 ## Security Notes
 
 - Runs as stdio subprocess — no network listener, no authentication surface
