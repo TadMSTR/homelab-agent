@@ -18,6 +18,7 @@ Domain-specific MCP servers (observability, memory, search) live in their respec
 | [datastore-mcp.md](datastore-mcp.md) | datastore-mcp | Read-only queries across 8 database backends | not yet wired |
 | [librechat-mcp.md](librechat-mcp.md) | librechat-mcp | LibreChat agent management (CRUD) | not yet wired |
 | [vikunja-mcp.md](vikunja-mcp.md) | vikunja-mcp | Vikunja task/project management (71 tools, token passthrough) | All agents |
+| [doc-cache-mcp.md](doc-cache-mcp.md) | doc-cache-mcp | Docs cache list/add/sync with source-URL allowlist | research |
 
 ## Access Control
 
