@@ -52,6 +52,32 @@ qmd mcp --http --port 8181 --host 127.0.0.1
 - **Endpoint:** `http://127.0.0.1:8181`
 - **Collections:** see `qmd status` for the full list and per-collection doc counts
 
+## qmd-webhook
+
+Small always-on HTTP listener that reacts to [agent-bus](../agent/agent-bus.md) events by
+triggering targeted `qmd embed` reindexing — an event-driven complement to the hourly
+`qmd-refresh` cron, so newly created build artifacts become searchable within seconds
+instead of waiting for the next hourly pass.
+
+```bash
+python3 ~/scripts/qmd-webhook.py
+```
+
+- **Endpoint:** `http://127.0.0.1:8499` (HTTP POST, no auth — localhost-only)
+- **Transport:** plain `http.server`, not MCP — receives agent-bus webhook POSTs, not agent tool calls
+
+Maps event types to qmd collections and reindexes only the affected collection:
+
+| Event | Collection reindexed |
+|-------|----------------------|
+| `build-plan.created` | `comms-artifacts` |
+| `handoff.created` | `comms-artifacts` |
+| `audit.requested` | `comms-artifacts` |
+| `artifact.untracked` | `comms-artifacts` |
+
+Unrecognized event types are logged and ignored. Reindex calls are fire-and-forget
+(`subprocess.Popen`, not awaited) so a slow `qmd embed` never blocks the next webhook POST.
+
 ## memory-metadata-mcp
 
 Read-only MCP server exposing a SQLite metadata index over `~/.claude/memory/` notes.
