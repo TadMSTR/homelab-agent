@@ -11,3 +11,4 @@ User-facing applications and productivity services running on forge.
 | [proton-bridge.md](proton-bridge.md) | Proton Mail SMTP relay (native) | `127.0.0.1:1025` → stunnel |
 | [stunnel.md](stunnel.md) | TLS wrapper for Proton Mail Bridge | `forge.helmforge.me:1587` |
 | [tools-stack.md](tools-stack.md) | 8 stateless browser utilities (PDF, diagrams, dev tools, image edit) | `pdf` / `draw` / `excalidraw` / `it-tools` / `omni` / `cyberchef` / `paint` / `convert`.helmforge.me |
+| [vikunja.md](vikunja.md) | Task/project management (2-container stack + webhook bridge) | `vikunja.helmforge.me` |
