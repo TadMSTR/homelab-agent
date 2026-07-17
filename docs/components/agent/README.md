@@ -16,6 +16,7 @@ The services that make the multi-agent engine work: tool scoping, inter-agent me
 | [matrix-mcp.md](matrix-mcp.md) | Matrix send/receive MCP server | 8487 |
 | [matrix-dispatcher.md](matrix-dispatcher.md) | Matrix → agent task dispatch loop | — (PM2) |
 | [matrix-admin-bot.md](matrix-admin-bot.md) | Matrix room administration bot | — (PM2) |
+| [matrix-hitl-bot.md](matrix-hitl-bot.md) | Matrix front end for scoped-mcp HITL approve/deny | — (PM2, outbound only) |
 | [matrix-task-queue-bot.md](matrix-task-queue-bot.md) | Matrix task queue notification bot | — (PM2) |
 | [nats.md](nats.md) | NATS JetStream event bus | 4222 |
 | [nats-mcp.md](nats-mcp.md) | NATS publish/subscribe MCP server | 8497 |

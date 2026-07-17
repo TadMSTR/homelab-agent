@@ -311,3 +311,5 @@ manifests at `~/.claude/manifests/`. Safe to delete once confirmed no tooling re
 - [vault.md](../foundation/vault.md) — Vault AppRole auth and KV setup
 - [agent-bus.md](agent-bus.md) — Inter-agent event log and signature verification
 - [dragonfly.md](dragonfly.md) — HITL state backend
+- [matrix-hitl-bot.md](matrix-hitl-bot.md) — Matrix front end for the in-session
+  `/hitl/approve`/`/hitl/deny` HTTP routes (SMCP-14 Phase C)
