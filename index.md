@@ -125,6 +125,7 @@ homelab-agent/
 | `docs/components/apps/nextcloud.md` | Nextcloud file/collaboration suite |
 | `docs/components/apps/plane.md` | Plane project/issue tracking app stack |
 | `docs/components/apps/proton-bridge.md` | Proton Mail IMAP/SMTP bridge |
+| `docs/components/apps/vikunja.md` | Vikunja task/project management app |
 | `docs/components/apps/stunnel.md` | TLS tunnel for Proton Bridge |
 | `docs/components/apps/tools-stack.md` | 8-tool browser utilities stack |
 
@@ -144,6 +145,7 @@ homelab-agent/
 | `docs/components/agent/matrix-mcp.md` | Matrix send/receive MCP |
 | `docs/components/agent/matrix-admin-bot.md` | Matrix room admin bot |
 | `docs/components/agent/matrix-task-queue-bot.md` | Matrix task queue notification bot |
+| `docs/components/agent/matrix-hitl-bot.md` | Matrix HITL approval bot (scoped-mcp in-session approvals) |
 | `docs/components/agent/nats-mcp.md` | NATS publish/subscribe MCP |
 | `docs/components/agent/harlock.md` | Harlock personal agent |
 | `manifests/` | Sanitized agent manifest examples |
@@ -160,6 +162,8 @@ homelab-agent/
 | `docs/components/mcp-servers/pm2-mcp.md` | PM2 process management MCP |
 | `docs/components/mcp-servers/code-server-mcp.md` | code-server management MCP |
 | `docs/components/mcp-servers/plane-mcp.md` | Plane issue tracking MCP |
+| `docs/components/mcp-servers/vikunja-mcp.md` | Vikunja task tracking MCP |
+| `docs/components/mcp-servers/doc-cache-mcp.md` | Documentation cache MCP |
 | `docs/components/mcp-servers/datastore-mcp.md` | Multi-backend datastore query MCP |
 | `docs/components/mcp-servers/librechat-mcp.md` | LibreChat agent-management MCP |
 | `docs/components/nextcloud-mcp.md` | Nextcloud file/calendar/notes MCP |
@@ -194,7 +198,8 @@ homelab-agent/
 | `docs/components/platform/doc-health.md` | Documentation audit system |
 | `docs/components/platform/doc-sync-daily.md` | Daily doc sync cron |
 | `docs/components/platform/disk-space-probe.md` | Disk usage monitoring + alerts |
-| `docs/components/platform/snapshot-space-probe.md` | Btrfs snapshot space monitoring |
+| `docs/components/platform/snapshot-monitoring.md` | Btrfs snapshot space monitoring (bloat + capacity probes, retention) |
+| `docs/components/platform/writer-doc-queue.md` | Writer doc-queue cron (headless doc drafting) |
 | `docs/components/platform/drift-detector-scan.md` | Config drift detection |
 | `docs/components/platform/build-unblock-scan.md` | Stalled build detection |
 | `docs/components/platform/git-drift-alert.md` | Uncommitted git drift alerting |
