@@ -2,7 +2,7 @@
 
 A stack of eight stateless, browser-based web utilities on forge — PDF editing, diagramming, developer tooling, and image editing/conversion. Every service is a static single-page app served by nginx (or an equivalent static server); none has a database, a volume, or any write path. They exist purely as convenient LAN-accessible tools.
 
-Because the apps store nothing and are only used from the local network, access is gated by a SWAG IP allow-list (`192.168.1.0/24`) rather than Authentik — no login screen. SWAG still terminates TLS with the wildcard `*.helmforge.me` cert, so each tool gets a clean HTTPS subdomain.
+Because the apps store nothing and are only used from the local network, access is gated by a SWAG IP allow-list (`<lan-subnet>/24`) rather than Authentik — no login screen. SWAG still terminates TLS with the wildcard `*.helmforge.me` cert, so each tool gets a clean HTTPS subdomain.
 
 ---
 
@@ -66,11 +66,11 @@ Every service joins only `forge-net`. There are no host port bindings — SWAG i
 Each tool has a `<sub>.subdomain.conf` in `/opt/appdata/swag/nginx/proxy-confs/`. The confs use the LAN allow-list gate instead of the Authentik includes:
 
 ```nginx
-allow 192.168.1.0/24;
+allow <lan-subnet>/24;
 deny all;
 ```
 
-No `authentik-server.conf` / `authentik-location.conf` includes. SWAG sees direct client IPs (no Cloudflare / `real_ip`), so the allow-list is what actually keeps these off the public internet even though `*.helmforge.me` resolves publicly and SWAG listens on `0.0.0.0:443`. To grant access from the storage/management subnet, add `allow 10.10.1.0/24;`.
+No `authentik-server.conf` / `authentik-location.conf` includes. SWAG sees direct client IPs (no Cloudflare / `real_ip`), so the allow-list is what actually keeps these off the public internet even though `*.helmforge.me` resolves publicly and SWAG listens on `0.0.0.0:443`. To grant access from the storage/management subnet, add `allow <storage-subnet>/24;`.
 
 ---
 

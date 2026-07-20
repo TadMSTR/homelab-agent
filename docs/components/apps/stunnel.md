@@ -49,10 +49,10 @@ sudo systemctl restart stunnel4
 
 | Rule | Command | Why |
 |------|---------|-----|
-| LAN hosts | `ufw allow from 192.168.1.0/24 to any port 1587 proto tcp` | Allows LAN devices to relay |
-| Docker containers | `ufw route allow from 172.20.1.0/24 to 192.168.1.12 port 1587 proto tcp` | Docker FORWARD chain (INPUT rule has no effect for container→host traffic) |
+| LAN hosts | `ufw allow from <lan-subnet>/24 to any port 1587 proto tcp` | Allows LAN devices to relay |
+| Docker containers | `ufw route allow from <docker-bridge-subnet>/24 to <host-lan-ip> port 1587 proto tcp` | Docker FORWARD chain (INPUT rule has no effect for container→host traffic) |
 
-Docker container traffic to the host's LAN IP (`192.168.1.12`) goes through the nftables FORWARD chain, not INPUT. `ufw route allow` is required; `ufw allow from` alone is not sufficient.
+Docker container traffic to the host's LAN IP (`<host-lan-ip>`) goes through the nftables FORWARD chain, not INPUT. `ufw route allow` is required; `ufw allow from` alone is not sufficient.
 
 ---
 
