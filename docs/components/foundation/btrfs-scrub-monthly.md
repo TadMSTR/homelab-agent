@@ -51,4 +51,4 @@ sudo btrfs scrub status /
 ## Related Docs
 
 - [btrbk-daily.md](btrbk-daily.md) — daily snapshot automation
-- [snapshot-space-probe.md](../platform/snapshot-space-probe.md) — snapshot disk usage monitoring
+- [snapshot-monitoring.md](../platform/snapshot-monitoring.md) — snapshot capacity/bloat monitoring and retention

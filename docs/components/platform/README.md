@@ -14,6 +14,7 @@ Background jobs that watch for drift, resource exhaustion, and documentation sta
 | [drift-detector-scan.md](drift-detector-scan.md) | Configuration drift detection | Every 6 hours |
 | [build-unblock-scan.md](build-unblock-scan.md) | Stalled build detection | Every 15 min |
 | [git-drift-alert.md](git-drift-alert.md) | Uncommitted git change alerting | Every 6 hours |
+| [git-remote-cred-check.md](git-remote-cred-check.md) | Embedded-credential leak scan on git remotes | Daily |
 
 ## Alert Flow
 

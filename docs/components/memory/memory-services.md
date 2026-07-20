@@ -4,25 +4,43 @@ PM2-managed services that form the agent memory layer on top of the
 [memory-stack](memory-stack.md) Docker containers (Milvus + OpenSearch). Two groups:
 **indexing and search** (always-on) and **promotion pipeline** (scheduled).
 
-## memsearch-watch
+## memsearch-watch-fast
 
-Polls all memory directories every 300 seconds and re-indexes changed files into Milvus.
-Uses content-hash checking so unchanged files are skipped — full scans are fast.
+Polls the working and session memory directories every 60 seconds and re-indexes changed
+files into Milvus. Fast tier — these directories change constantly during active sessions.
 
-**Script:** `~/scripts/memsearch-watch.sh`
+**Script:** `~/scripts/memsearch-watch-fast.sh`
 
 Directories indexed:
 
 | Directory | Tier |
 |-----------|------|
 | `~/.claude/memory/` | working |
-| `~/.claude/templates/` | templates |
 | `~/.claude/projects/*/.memsearch/memory/` | session (per-project) |
 
-Logs to `~/logs/memsearch/watch-<timestamp>.log` (30-day retention).
+Logs to `~/logs/memsearch/watch-fast-<timestamp>.log` (30-day retention).
 
-Note: an earlier version used `memsearch watch` (inotify-based). It had a threading bug where
-concurrent file changes caused silent indexing failures. Replaced with polling in May 2026.
+## memsearch-watch-templates
+
+Event-driven watcher (`inotifywait`) for `~/.claude/templates/`. Indexes only when files
+actually change, debounced 30 seconds to absorb bulk writes. Always runs one index pass on
+startup to catch anything missed while the process was down.
+
+**Script:** `~/scripts/memsearch-watch-templates.sh`
+
+Directories indexed:
+
+| Directory | Tier |
+|-----------|------|
+| `~/.claude/templates/` | templates |
+
+Logs to `~/logs/memsearch/watch-templates-<timestamp>.log` (30-day retention).
+
+Note: an earlier version used a single polling `memsearch-watch` service across all three
+directories (itself a replacement for an inotify-based version with a threading bug — concurrent
+file changes caused silent indexing failures). Split into two PM2 services in July 2026: a 60s
+poller for the working/session tiers, which change constantly during active sessions, and an
+event-driven `inotifywait` watcher for templates, which change rarely and don't need polling.
 See [memsearch.md](memsearch.md) for full details.
 
 ## memsearch-mcp
@@ -166,8 +184,10 @@ flowchart TD
     summarize <--> anthropic["Anthropic API\nclaude-sonnet-4-6"]
     summarize --> files
 
-    files --> watch["memsearch-watch\npoll 300s"]
-    watch --> milvus[("Milvus\nvectors :19530")]
+    files --> watch_fast["memsearch-watch-fast\npoll 60s"]
+    files --> watch_tmpl["memsearch-watch-templates\nevent-driven"]
+    watch_fast --> milvus[("Milvus\nvectors :19530")]
+    watch_tmpl --> milvus
     milvus --> memsearch_mcp["memsearch-mcp\n:8493"]
     milvus --> qmd_svc["qmd\n:8181"]
 

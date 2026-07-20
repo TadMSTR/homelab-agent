@@ -53,4 +53,4 @@ sudo btrbk list
 ## Related Docs
 
 - [btrfs-scrub-monthly.md](btrfs-scrub-monthly.md) — monthly integrity scrub
-- [snapshot-space-probe.md](../platform/snapshot-space-probe.md) — snapshot disk usage monitoring
+- [snapshot-monitoring.md](../platform/snapshot-monitoring.md) — snapshot capacity/bloat monitoring and retention

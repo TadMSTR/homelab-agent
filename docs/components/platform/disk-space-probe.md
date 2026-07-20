@@ -51,5 +51,5 @@ pm2 restart disk-space-probe
 
 ## Related Docs
 
-- [snapshot-space-probe.md](snapshot-space-probe.md) — snapshot-specific disk monitoring
+- [snapshot-monitoring.md](snapshot-monitoring.md) — snapshot capacity/bloat monitoring and retention
 - [influxdb.md](../observability/influxdb.md) — InfluxDB service

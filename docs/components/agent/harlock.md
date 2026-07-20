@@ -134,6 +134,26 @@ When input tokens reach `rollover_budget`, the manager:
 
 When the session is idle, the manager calls memsearch to index the session notes into the memsearch session tier. This makes recent conversation context retrievable in future sessions.
 
+## Rollover QC
+
+A weekly PM2 cron job, `harlock-rollover-qc` (`0 13 * * 0`, Sundays 08:00 EST), scores the past
+7 days of rollover notes for quality — a safety net that catches thin or generic summaries before
+they degrade Harlock's cross-session continuity.
+
+**Script:** `~/.claude/scripts/harlock-rollover-qc.sh`
+
+1. Skips the Claude QC pass entirely if no `rollover-*.md` notes exist in
+   `~/.claude/memory/agents/harlock/working/` for the window — cheap pre-check, no LLM call.
+2. Otherwise launches a headless `claude -p` session that reads each rollover note and scores it
+   on three dimensions (good / acceptable / poor): topic coverage, decision capture, and detail
+   level.
+3. Posts a PASS/FAIL summary to `#harlock` via `matrix-mcp`, and maintains a streak counter at
+   `~/.claude/memory/agents/sysadmin/harlock-rollover-qc-streak.md` (increments on PASS, resets to
+   0 on FAIL or no notes found).
+
+Lock file: `~/.claude/harlock-rollover-qc.lock` (stale after 30 min). Logs to
+`~/.claude/logs/harlock-rollover-qc-<date>.log` (60-day retention).
+
 ## Isolation
 
 - Claude subprocess runs as `agent-harlock` (dedicated system user, no login shell)

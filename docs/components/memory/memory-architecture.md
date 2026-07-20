@@ -43,8 +43,10 @@ serve different query needs:
 flowchart TD
     notes["**~/.claude/memory/**\nmarkdown files (working + distilled)"]
 
-    notes --> mw["memsearch-watch\npoll 300s"]
-    mw --> milvus[("**Milvus** :19530\nvector index\n(BGE-M3 embeddings)")]
+    notes --> mw_fast["memsearch-watch-fast\npoll 60s"]
+    notes --> mw_tmpl["memsearch-watch-templates\nevent-driven"]
+    mw_fast --> milvus[("**Milvus** :19530\nvector index\n(BGE-M3 embeddings)")]
+    mw_tmpl --> milvus
     milvus --> mm["**memsearch-mcp** :8493\nhybrid vector+BM25+reranker"]
 
     milvus --> qmd_svc["**qmd** :8181\nsemantic + BM25 + HyDE\n(9k docs, 40+ collections)"]
@@ -159,8 +161,10 @@ flowchart TD
     anthropic -- "⑤ returns digest summary\nwritten back as new note" --> summarize
     summarize -- "⑥ summary note enters\nnext promotion cycle" --> spool
 
-    working -- "⑦ watches for new/changed\nmarkdown files (300s poll)" --> watch["memsearch-watch\n(file-change detector)"]
+    working -- "⑦ watches for new/changed\nworking+session files (60s poll)" --> watch["memsearch-watch-fast\n(polling)"]
+    working -- "⑦b watches for new/changed\ntemplate files (event-driven)" --> watch_tmpl["memsearch-watch-templates\n(inotifywait)"]
     watch -- "⑧ embeds with BGE-M3\nupserts into vector index" --> milvus[("Milvus :19530\n(vector index)")]
+    watch_tmpl --> milvus
     milvus -- "⑨ hybrid vector+BM25+reranker\nbest semantic recall" --> memsearch_mcp["memsearch-mcp :8493"]
     milvus -- "⑩ semantic search backend\nfor forge-wide doc corpus" --> qmd["qmd :8181\n(9k docs, 40+ collections)"]
     working -- "⑪ hourly re-index of\nall memory collections" --> qr["qmd-refresh\n(hourly cron)"]
@@ -192,7 +196,7 @@ flowchart TD
 | ③ | working/distilled → NFS | `memory-archive-mirror` takes a daily snapshot of all tiers to atlas — append-only, retains change history |
 | ④–⑤ | working ↔ Anthropic | `memsearch-summarize` chunks a project's spool, calls Claude to write a digest, and saves the result |
 | ⑥ | summarize → spool | The new summary re-enters the spool so it gets scored and promoted by the next ① cycle |
-| ⑦–⑧ | working → Milvus | `memsearch-watch` polls for changed files, embeds them with BGE-M3, and upserts vectors into Milvus |
+| ⑦–⑧ | working → Milvus | `memsearch-watch-fast` polls the working/session tiers every 60s; `memsearch-watch-templates` watches the templates tier via `inotifywait`. Both embed changed files with BGE-M3 and upsert vectors into Milvus |
 | ⑨ | Milvus → memsearch-mcp | Agents query via hybrid vector + BM25 + cross-encoder reranker — highest-recall recall path |
 | ⑩–⑪ | working/Milvus → qmd | `qmd-refresh` re-indexes all memory collections hourly; qmd also uses Milvus as its vector backend |
 | ⑫ | working → .metadata.db | `memory-metadata-mcp` parses frontmatter (tier, tags, dates) into a local SQLite file on each write |
