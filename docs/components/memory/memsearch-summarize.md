@@ -36,6 +36,28 @@ under the memsearch venv interpreter.
 
 Rate limit handling: on HTTP 429, backs off to 3× the poll interval before retrying.
 
+## Anti-Regurgitation
+
+Mid-session skill/template dumps (e.g. a skill's `<name>`, `<specific step>` placeholder
+text) used to leak into `.memsearch/memory/*.md` and get "summarized" verbatim instead of
+described. Fixed in two layers:
+
+- **Root cause (upstream):** `parse-transcript.sh` in the memsearch plugin (forge fork,
+  `zilliztech/memsearch` PR #1) now skips `isMeta` turns in `format_turn()`, so skill/template
+  content never reaches a memory file or the summarizer at all.
+- **Defense-in-depth (this service):** `detect_contamination()` rejects a summary that
+  contains an unresolved `<...>` placeholder token, a known template/skill signature (e.g. a
+  `### Phase N` heading), or ≥3 consecutive lines copied verbatim from the raw transcript.
+  On rejection it retries once with a stronger anti-copy reminder appended to the prompt; if
+  the retry also trips the filter, it falls back to `build_fallback_note()` — a minimal
+  deterministic note (first user line, re-checked against the same filter and dropped if it
+  also trips, plus a suppression marker) instead of the model's output. The `summarize:latest`
+  Ollama model also carries an anti-copy `SYSTEM` directive.
+
+Rejections emit a `memsearch.summarize_rejected` OTel span (signal + attempt number) for
+visibility in SigNoz. Expected to rarely trigger once the upstream `isMeta` fix is live —
+it's a backstop, not the primary defense.
+
 ## MCP Tools
 
 | Tool | Description |
