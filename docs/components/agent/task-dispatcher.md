@@ -12,18 +12,20 @@ sessions, alerts on stale tasks, and archives completed work.
 
 ## How It Works
 
-Each run executes three phases:
+Each run executes two phases:
 
 1. **Process submitted tasks** — scans `~/.claude/task-queue/*.yml` for `status: submitted`.
    Loads agent manifests to validate target agents. Auto-approves tasks where
    `requires_approval: false`; others are set to `pending-approval` and a Matrix notification
    is sent to Ted. Auto-approved tasks trigger a headless `claude -p` launch for the target agent.
 
-2. **Alert stale approved tasks** — any task in `approved` state for >24 hours triggers a
-   Matrix notification to the `alerts` room. Re-alerts every 24 hours until claimed.
-
-3. **Archive expired tasks** — moves `completed` or `failed` tasks past their `ttl_days`
+2. **Archive expired tasks** — moves `completed` or `failed` tasks past their `ttl_days`
    into `~/.claude/task-queue/archive/`.
+
+Per-task stale-approval alerting (a Matrix notification to the `alerts` room for any task
+`approved` >24h) was removed — it was a notification firehose. Status visibility for
+non-terminal tasks now comes from the matrix-task-queue-bot's per-agent pinned board (see
+[matrix-task-queue-bot.md](matrix-task-queue-bot.md)) instead of per-task dispatcher alerts.
 
 ## Headless Agent Launch
 
