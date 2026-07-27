@@ -203,6 +203,8 @@ homelab-agent/
 | `docs/components/platform/drift-detector-scan.md` | Config drift detection |
 | `docs/components/platform/build-unblock-scan.md` | Stalled build detection |
 | `docs/components/platform/git-drift-alert.md` | Uncommitted git drift alerting |
+| `docs/components/platform/git-remote-cred-check.md` | Plaintext credentials in git remote URLs |
+| `docs/components/memory/memory-compact-qc.md` | Weekly QC on `memsearch compact` output |
 | `docs/components/dep-update-check.md` | Dependency update scanner |
 | `docs/components/forge-reboot-gate.md` | Reboot-required gate check |
 | `docs/operations/runbooks.md` | Operational runbooks |
