@@ -14,8 +14,8 @@ SearXNG for a web search fallback.
 
 | Mount | Content |
 |-------|---------|
-| `/mnt/agent-platform-kb` | `~/repos/gitea/agent-platform` (read-only) |
-| `/mnt/host-forge-kb` | `~/repos/gitea/host-forge` (read-only) |
+| `/mnt/agent-platform-kb` | `~/repos/gitea/agent-platform-knowledge-base` (read-only) |
+| `/mnt/host-forge-kb` | `~/repos/gitea/host-forge-knowledge-base` (read-only) |
 | `/mnt/memory-shared` | `~/.claude/memory/shared/` (read-only) |
 
 The agent-platform and host-forge KB repos are the primary reference material for forge

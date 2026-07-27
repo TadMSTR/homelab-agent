@@ -17,8 +17,8 @@ services:
       - HISTER__APP__REDIRECT_ON_NO_RESULTS=true
     volumes:
       - /opt/appdata/hister:/hister/data
-      - /home/ted/repos/gitea/agent-platform:/mnt/agent-platform-kb:ro
-      - /home/ted/repos/gitea/host-forge:/mnt/host-forge-kb:ro
+      - /home/ted/repos/gitea/agent-platform-knowledge-base:/mnt/agent-platform-kb:ro
+      - /home/ted/repos/gitea/host-forge-knowledge-base:/mnt/host-forge-kb:ro
       - /home/ted/.claude/memory/shared:/mnt/memory-shared:ro
     networks:
       - forge-net

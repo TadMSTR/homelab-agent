@@ -18,8 +18,8 @@ declare -A REPOS=(
   ["$HOME/.claude/skills"]="agent-platform/skills"
   ["$HOME/repos/gitea/host-forge-scripts"]="host-forge/scripts"
   ["$HOME/repos/gitea/host-forge-build-reports"]="host-forge/build-reports"
-  ["$HOME/repos/gitea/agent-platform"]="agent-platform/kb"
-  ["$HOME/repos/gitea/host-forge"]="host-forge/docs"
+  ["$HOME/repos/gitea/agent-platform-knowledge-base"]="agent-platform/kb"
+  ["$HOME/repos/gitea/host-forge-knowledge-base"]="host-forge/docs"
 )
 
 DIRTY_REPOS=()
