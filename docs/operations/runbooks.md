@@ -11,8 +11,8 @@ Two types of runbooks exist on forge:
 
 ### Repository
 
-Gitea: `host-forge/forge-runbooks`  
-Local: `/home/ted/repos/gitea/forge-runbooks/`  
+Gitea: `host-forge/runbooks`  
+Local: `/home/ted/repos/gitea/host-forge-runbooks/`  
 QMD collection: `forge-runbooks` (refreshed hourly by `qmd-refresh` PM2 cron)
 
 ### Invoking a runbook
@@ -48,7 +48,7 @@ Each runbook file has YAML frontmatter (`name`, `description`, `scope`, `severit
 
 ### Adding a runbook
 
-1. Create `/home/ted/repos/gitea/forge-runbooks/<name>.md` following the format above
+1. Create `/home/ted/repos/gitea/host-forge-runbooks/<name>.md` following the format above
 2. Add a row to `forge-runbooks/index.md`
 3. Add a row to the skill's available runbooks table: `agent-platform-skills/runbook/SKILL.md`
 4. Commit both repos to main; QMD will index on the next hourly refresh
@@ -230,6 +230,6 @@ See [appdata-layout.md](appdata-layout.md) for the full `/opt/appdata/` director
 2. Add secrets to `~/.secrets/forge.env` if needed
 3. Add to NFS backup scope in Atlas config
 4. Add to `~/docs/doc-sync.yml` if official docs exist
-5. Update `~/repos/gitea/host-forge/stacks/stack-inventory.md`
-6. Update `~/repos/gitea/host-forge/services.md` port registry
+5. Update `~/repos/gitea/host-forge-knowledge-base/stacks/stack-inventory.md`
+6. Update `~/repos/gitea/host-forge-knowledge-base/services.md` port registry
 7. Deploy: `cd ~/docker/<stack-name> && docker compose up -d`

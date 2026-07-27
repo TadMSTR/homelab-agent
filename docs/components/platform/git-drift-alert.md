@@ -21,8 +21,8 @@ alerts. Re-alerts only when drift state changes — not on every scan.
 | `~/.claude/skills` | agent-platform/skills |
 | `~/repos/gitea/host-forge-scripts` | host-forge/scripts |
 | `~/repos/gitea/host-forge-build-reports` | host-forge/build-reports |
-| `~/repos/gitea/agent-platform` | agent-platform/kb |
-| `~/repos/gitea/host-forge` | host-forge/docs |
+| `~/repos/gitea/agent-platform-knowledge-base` | agent-platform/kb |
+| `~/repos/gitea/host-forge-knowledge-base` | host-forge/docs |
 
 ## How It Works
 

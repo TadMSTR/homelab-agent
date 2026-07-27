@@ -6,7 +6,7 @@ Version-controlled non-secret config files for forge Docker services, with Vault
 
 ## What it is
 
-`forge-configs` is a Gitea repo (`host-forge/forge-configs`) that tracks SWAG nginx configuration and Grafana provisioning files from `/opt/appdata`. It separates non-secret configs (version-controlled in git) from secrets (stored in Vault KV at `secret/data/forge/docker/<service>`). The deploy script merges both — pulling configs from the repo and secrets from Vault — to produce the live service configuration.
+`forge-configs` is a Gitea repo (`host-forge/configs`) that tracks SWAG nginx configuration and Grafana provisioning files from `/opt/appdata`. It separates non-secret configs (version-controlled in git) from secrets (stored in Vault KV at `secret/data/forge/docker/<service>`). The deploy script merges both — pulling configs from the repo and secrets from Vault — to produce the live service configuration.
 
 The repo also serves as the source of truth for Phase 2f of `agent-workspace-scan`: the scanner checksums all tracked files hourly against the repo copies and alerts on divergence, catching out-of-band edits to `/opt/appdata` that bypass the git workflow.
 
@@ -16,8 +16,8 @@ The repo also serves as the source of truth for Phase 2f of `agent-workspace-sca
 
 | Item | Value |
 |------|-------|
-| Repo path | `~/repos/gitea/forge-configs/` |
-| Gitea remote | `gitea.tadmstr.me/host-forge/forge-configs` |
+| Repo path | `~/repos/gitea/host-forge-configs/` |
+| Gitea remote | `gitea.tadmstr.me/host-forge/configs` |
 | Deploy script | `~/scripts/forge-configs-deploy.sh` |
 | Log | `~/.claude/logs/forge-configs-deploy.log` |
 | Vault KV mount | `secret/data/forge/docker/<service>` (KV v2) |
@@ -63,7 +63,7 @@ Vault AppRole policy scope: `secret/data/forge/docker/*` (read only).
 
 - **Vault** at `http://127.0.0.1:8200` — must be unsealed for `.env` deployment; use `--skip-env` flag to deploy config files only when Vault is unavailable
 - **git** — deploy script requires clean `main` branch before deploying
-- **agent-workspace-scan** — Phase 2f reads this repo; scanner must have `~/repos/gitea/forge-configs/` accessible
+- **agent-workspace-scan** — Phase 2f reads this repo; scanner must have `~/repos/gitea/host-forge-configs/` accessible
 
 ---
 
