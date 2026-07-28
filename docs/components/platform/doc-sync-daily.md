@@ -29,7 +29,7 @@ source-URL allowlist at fetch time (see Configuration).
 3. Converts to markdown and chunks into sized segments (150–4000 chars)
 4. Writes chunks to `~/.claude/memory/docs/<service>/`
 5. Updates state in `~/docs/doc-sync-state.json` to avoid re-fetching unchanged docs
-6. memsearch-watch picks up new/changed files on its next polling cycle
+6. `memsearch-watch-fast` picks up new/changed files on its next 60s polling cycle (split from `memsearch-watch` 2026-07-20)
 
 ## Configuration
 

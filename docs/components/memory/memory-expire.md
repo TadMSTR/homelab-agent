@@ -15,7 +15,7 @@ files to a dated archive directory and prunes the metadata database.
 2. Moves matched files to `~/.claude/memory/.expired/YYYY-MM-DD/` preserving relative paths
 3. Runs `memory-metadata-index.py --prune` to remove stale DB rows
 4. Sends summary to `#sysadmin` Matrix room via `send-matrix.sh`
-5. memsearch-watch drops evicted files from Milvus on its next 60-second polling cycle
+5. `memsearch-watch-fast` drops evicted files from Milvus on its next 60-second polling cycle (split from `memsearch-watch` 2026-07-20)
 
 ## Configuration
 
@@ -32,7 +32,7 @@ files to a dated archive directory and prunes the metadata database.
 ## Dependencies
 
 - **memory-metadata-index.py** — SQLite indexer, provides the `--prune` flag
-- **memsearch-watch** — picks up file deletions and updates Milvus index
+- **memsearch-watch-fast** — picks up file deletions and updates Milvus index (60s poll, working/session tiers — split from `memsearch-watch` 2026-07-20)
 - **send-matrix.sh** — Matrix notifications
 - **.metadata.db** — SQLite database with note metadata including `expires` field
 

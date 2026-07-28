@@ -23,6 +23,6 @@ The memory system gives agents recall across sessions. Notes flow through three 
 | Need | MCP Server | Backend |
 |------|-----------|---------|
 | Semantic / fuzzy recall | memsearch-mcp | Milvus (vector + BM25 + reranker) |
-| Keyword / phrase search | memory-search-mcp | OpenSearch (BM25) |
+| Keyword / phrase search | memory-fulltext-mcp | OpenSearch (BM25) |
 | Filter by tag, date, tier | memory-metadata-mcp | SQLite |
 | Entity relationships, temporal facts | graphiti-mcp | Neo4j |

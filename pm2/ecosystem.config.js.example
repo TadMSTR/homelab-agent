@@ -41,8 +41,8 @@ module.exports = {
     },
 
     {
-      name: "memory-search-mcp",
-      script: `${HOME}/repos/personal/memory-search-mcp/server.py`,
+      name: "memory-fulltext-mcp",
+      script: `${HOME}/repos/personal/memory-fulltext-mcp/server.py`,
       autorestart: true,
     },
 
@@ -296,9 +296,18 @@ module.exports = {
     },
 
     {
-      name: "snapshot-space-probe",
-      script: `${HOME}/scripts/snapshot-space-probe.sh`,
+      name: "snapshot-capacity-probe",
+      // whole-filesystem free-space metrics; replaces the retired snapshot-space-probe
+      script: `${HOME}/scripts/snapshot-capacity-probe.sh`,
       cron_restart: "*/15 * * * *",
+      autorestart: false,
+    },
+
+    {
+      name: "snapshot-bloat-probe",
+      // per-snapshot exclusive-space trend + retention drift detection
+      script: `${HOME}/scripts/snapshot-bloat-probe.sh`,
+      cron_restart: "45 3 * * *",   // nightly
       autorestart: false,
     },
 

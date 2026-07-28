@@ -44,7 +44,7 @@ Data at `/opt/appdata/memory-stack/milvus/`.
 | `memsearch-watch-fast` | `~/.claude/memory/` + session dirs (poll 60s) | Milvus |
 | `memsearch-watch-templates` | `~/.claude/templates/` (event-driven) | Milvus |
 | `qmd` | 8 000+ markdown docs across all collections | Milvus |
-| `memory-search-mcp` | Memory notes full-text | OpenSearch |
+| `memory-fulltext-mcp` | Memory notes full-text | OpenSearch |
 | `memory-metadata-mcp` | Memory note metadata (SQLite) | — (local file) |
 
 See [memory-services.md](memory-services.md) for the PM2 layer on top of this stack.

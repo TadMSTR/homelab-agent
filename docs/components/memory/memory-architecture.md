@@ -57,7 +57,7 @@ flowchart TD
     meta --> sqlite[("**.metadata.db**\nSQLite")]
     sqlite --> os_sync["memory-os-sync\nalways-on 30s"]
     os_sync --> opensearch[("**OpenSearch** :9202\nfull-text BM25")]
-    opensearch --> search["**memory-search-mcp** :8491\nfull-text body search"]
+    opensearch --> search["**memory-fulltext-mcp** :8491\nfull-text body search"]
 ```
 
 ### Choosing a query path
@@ -67,7 +67,7 @@ flowchart TD
 | Semantic / fuzzy recall across memory notes | `memsearch-mcp` | Hybrid vector+BM25 with local reranker — best recall |
 | Semantic search across all forge docs (not just notes) | `qmd` | Covers 9k docs across 40+ collections |
 | Filter notes by tag, date, tier, or category | `memory-metadata-mcp` | Structured frontmatter queries without reading bodies |
-| Find notes containing a specific phrase or term | `memory-search-mcp` | Full-text BM25 over note bodies |
+| Find notes containing a specific phrase or term | `memory-fulltext-mcp` | Full-text BM25 over note bodies |
 
 ---
 
@@ -173,7 +173,7 @@ flowchart TD
     working -- "⑫ parses frontmatter tags,\ntier, dates into SQLite" --> metadb[(".metadata.db\n(SQLite frontmatter index)")]
     metadb -- "⑬ syncs fields/tags\nfor full-text indexing" --> os_sync["memory-os-sync\n(always-on, 30s poll)"]
     os_sync --> opensearch[("OpenSearch :9202\n(full-text BM25 index)")]
-    opensearch -- "⑭ full-text phrase/\nkeyword search" --> search_mcp["memory-search-mcp :8491"]
+    opensearch -- "⑭ full-text phrase/\nkeyword search" --> search_mcp["memory-fulltext-mcp :8491"]
     metadb -- "⑮ structured queries on\ntags, dates, tiers" --> meta_mcp["memory-metadata-mcp :8490"]
 
     neo4j[("Neo4j :7687\n(entity + relationship graph)")] -- "⑯ temporal entity queries\nwhat changed and when" --> graphiti_mcp["graphiti-mcp :8000"]
@@ -201,7 +201,7 @@ flowchart TD
 | ⑩–⑪ | working/Milvus → qmd | `qmd-refresh` re-indexes all memory collections hourly; qmd also uses Milvus as its vector backend |
 | ⑫ | working → .metadata.db | `memory-metadata-mcp` parses frontmatter (tier, tags, dates) into a local SQLite file on each write |
 | ⑬ | .metadata.db → OpenSearch | `memory-os-sync` watches the SQLite file and pushes changes to OpenSearch for full-text indexing |
-| ⑭ | OpenSearch → memory-search-mcp | Agents search note *bodies* by phrase or keyword via BM25 |
+| ⑭ | OpenSearch → memory-fulltext-mcp | Agents search note *bodies* by phrase or keyword via BM25 |
 | ⑮ | .metadata.db → memory-metadata-mcp | Agents filter notes by structured fields (tag, date range, tier) without reading file bodies |
 | ⑯ | Neo4j → graphiti-mcp | Agents query entities, relationships, and when facts changed — the relational/temporal layer |
 

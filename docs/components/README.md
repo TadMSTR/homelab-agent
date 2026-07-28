@@ -86,7 +86,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`nats-mcp.md`](agent/nats-mcp.md) | NATS publish/subscribe MCP server |
 | [`dragonfly.md`](agent/dragonfly.md) | Agent state backend (Redis-compatible) |
 
-## [`mcp-servers/`](mcp-servers/) — Infrastructure MCP Servers (7)
+## [`mcp-servers/`](mcp-servers/) — Infrastructure MCP Servers (8)
 
 | Doc | Service |
 |-----|---------|
@@ -97,6 +97,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`pm2-mcp.md`](mcp-servers/pm2-mcp.md) | PM2 process management MCP |
 | [`code-server-mcp.md`](mcp-servers/code-server-mcp.md) | code-server management MCP |
 | [`plane-mcp.md`](mcp-servers/plane-mcp.md) | Plane issue tracking MCP |
+| [`backrest-mcp.md`](mcp-servers/backrest-mcp.md) | Backup plan status, snapshots, restore MCP (Backrest) |
 
 ## [`cicd/`](cicd/) — CI/CD & Dev Tools (7)
 
@@ -117,16 +118,17 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`doc-health.md`](platform/doc-health.md) | Documentation audit system (weekly full scan + nightly targeted) |
 | [`doc-sync-daily.md`](platform/doc-sync-daily.md) | Daily documentation sync cron |
 | [`disk-space-probe.md`](platform/disk-space-probe.md) | Disk usage monitoring + Matrix alerts |
-| [`snapshot-space-probe.md`](platform/snapshot-space-probe.md) | Btrfs snapshot space monitoring |
+| [`snapshot-monitoring.md`](platform/snapshot-monitoring.md) | Btrfs snapshot capacity + bloat monitoring |
 | [`drift-detector-scan.md`](platform/drift-detector-scan.md) | Configuration drift detection |
 | [`build-unblock-scan.md`](platform/build-unblock-scan.md) | Stalled build detection |
 | [`git-drift-alert.md`](platform/git-drift-alert.md) | Uncommitted git change alerting |
 
-## [`apps/`](apps/) — Productivity & Self-Hosted Services (4)
+## [`apps/`](apps/) — Productivity & Self-Hosted Services (5)
 
 | Doc | Service |
 |-----|---------|
 | [`nextcloud.md`](apps/nextcloud.md) | File sync, collaboration suite |
+| [`librechat.md`](apps/librechat.md) | Self-hosted multi-provider AI chat web app |
 | [`proton-bridge.md`](apps/proton-bridge.md) | Proton Mail SMTP relay (native) |
 | [`stunnel.md`](apps/stunnel.md) | TLS wrapper for Proton Mail Bridge |
 | [`tools-stack.md`](apps/tools-stack.md) | 8 stateless browser utilities (PDF, diagrams, dev tools, image edit) |

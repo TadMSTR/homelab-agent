@@ -22,7 +22,7 @@ Ollama Queue Proxy (OQP) is a queuing, auth, and routing layer in front of Ollam
 | Port | Purpose |
 |------|---------|
 | `127.0.0.1:11435` | Main proxy port — queued Ollama API requests |
-| `127.0.0.1:11436` | Client injection port — memsearch-watch connects here and is injected as its own client identity |
+| `127.0.0.1:11436` | Client injection port — `memsearch-watch-fast` and `memsearch-watch-templates` (split from `memsearch-watch` 2026-07-20) connect here and are injected under the same client identity |
 
 No SWAG proxy — both ports are localhost-only.
 
@@ -43,9 +43,9 @@ API key auth is required. Keys are stored in `~/.claude-secrets/oqp-forge.env`. 
 | `searxng-mcp` | normal | SearXNG MCP LLM calls (expand + summarize) |
 | `graphiti` | normal | Graphiti knowledge graph embeddings |
 | `hister` | low | Hister semantic search embeddings |
-| `memsearch-watch` | low | Embedding indexer — max 2 concurrent, uses injection port |
+| `memsearch-watch` | low | Embedding indexer — shared client identity for `memsearch-watch-fast` and `memsearch-watch-templates` (split from `memsearch-watch` 2026-07-20); max 2 concurrent, uses injection port |
 
-`memsearch-watch` connects on port 11436 (injection port) and is automatically identified as `memsearch-watch` client — no API key needed on that port. The injection port is the isolation layer; `allow_public_injection: true` in the config reflects this.
+`memsearch-watch-fast` and `memsearch-watch-templates` connect on port 11436 (injection port) and are automatically identified as the `memsearch-watch` client — no API key needed on that port. The injection port is the isolation layer; `allow_public_injection: true` in the config reflects this.
 
 ## Embedding Cache
 

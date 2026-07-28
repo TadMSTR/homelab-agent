@@ -15,6 +15,7 @@ Domain-specific MCP servers (observability, memory, search) live in their respec
 | [pm2-mcp.md](pm2-mcp.md) | pm2-mcp | PM2 process management | sysadmin |
 | [code-server-mcp.md](code-server-mcp.md) | code-server-mcp | code-server session management | developer |
 | [plane-mcp.md](plane-mcp.md) | plane-mcp | Plane issue tracking | All agents |
+| [backrest-mcp.md](backrest-mcp.md) | backrest-mcp | Backup plan status, snapshots, restore (Backrest) | sysadmin |
 | [datastore-mcp.md](datastore-mcp.md) | datastore-mcp | Read-only queries across 8 database backends | not yet wired |
 | [librechat-mcp.md](librechat-mcp.md) | librechat-mcp | LibreChat agent management (CRUD) | not yet wired |
 | [vikunja-mcp.md](vikunja-mcp.md) | vikunja-mcp | Vikunja task/project management (71 tools, token passthrough) | All agents |
