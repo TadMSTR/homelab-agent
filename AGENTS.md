@@ -35,6 +35,27 @@ operator message → Matrix room → matrix-dispatcher → agent project dir
 
 Sanitized manifest examples are in [`manifests/`](manifests/). The full manifest schema is documented in [`docs/components/agent/scoped-mcp.md`](docs/components/agent/scoped-mcp.md).
 
+## Recent Agent Framework Changes
+
+- **HITL interactive-mode contract (2026-07-21):** scoped-mcp v1.11.0 added an
+  `hitl.mode: interactive` option, currently enabled for the developer and sysadmin
+  manifests. Under this contract the operator can verbally authorize a gated action in
+  the same conversation, and the agent self-approves the HITL gate rather than requiring
+  a separate out-of-band CLI approval step. See
+  [`docs/components/agent/scoped-mcp.md`](docs/components/agent/scoped-mcp.md) for the
+  gate mechanics.
+- **Graphiti "Read when" companion section (2026-07-25):** every resident agent's
+  CLAUDE.md now carries a "Read when" companion section alongside its Graphiti write
+  guidance — short rules of thumb for when to query the knowledge graph (relational,
+  temporal questions) versus flat memory notes (session/working detail), so agents don't
+  default to one at the expense of the other.
+- **githost-mcp per-agent launchers (v0.5.0):** each of the six agent manifests
+  (developer, sysadmin, research, security, writer, harlock) launches its own
+  githost-mcp process via a dedicated per-agent launcher script and env file, rather
+  than sharing one process — giving each agent its own `ALLOWED_REPO_ROOTS` scope and
+  clean per-agent attribution in the audit log. See
+  [`docs/components/mcp-servers/githost-mcp.md`](docs/components/mcp-servers/githost-mcp.md).
+
 ## Key Docs
 
 - `README.md` — Architecture overview, layer descriptions, component tables

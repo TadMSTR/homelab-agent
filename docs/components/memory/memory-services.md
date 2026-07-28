@@ -109,11 +109,16 @@ by category, tier, tag, or date — without reading note bodies.
 - **Endpoint:** `http://127.0.0.1:8490`
 - **Transport:** streamable-http
 
-## memory-search-mcp
+## memory-fulltext-mcp
 
 Full-text search MCP over memory notes via OpenSearch. Returns body excerpts alongside
 metadata, enabling queries that require matching note content rather than just frontmatter.
 Scope: personal-agent use only (not in the global scoped-mcp manifest).
+
+> **Renamed 2026-07-23** (commit `0e649ad`, agent-platform-agents) from `memory-search-mcp`
+> to `memory-fulltext-mcp` — the old name was easily confused with `memsearch-mcp`
+> (a different, vector+BM25 service). Same service, same port, same PM2 process name
+> under the hood; only the name changed.
 
 ```bash
 /home/ted/repos/personal/memory-search-mcp/server.py
@@ -198,7 +203,7 @@ flowchart TD
     meta_mcp --> sqlite[("SQLite\n.metadata.db")]
     sqlite --> os_sync["memory-os-sync\nalways-on 30s"]
     os_sync --> opensearch[("OpenSearch\n:9202")]
-    opensearch --> search_mcp["memory-search-mcp\n:8491"]
+    opensearch --> search_mcp["memory-fulltext-mcp\n:8491"]
 
     files --> archive["memory-archive-mirror\n02:30 daily"]
     archive --> nfs[("NFS — atlas\n<nas-ip>")]
@@ -221,6 +226,10 @@ flowchart TD
 All always-on services depend on the [memory-stack](memory-stack.md) containers being healthy.
 If Milvus or OpenSearch is down, the respective MCP server will fail silently on search
 but will not crash.
+
+**Note:** `memory-metadata-mcp` (SQLite, `:8490`) has zero overlap with `memory-fulltext-mcp`
+(OpenSearch, `:8491`) — the metadata server queries structured note frontmatter (tier,
+tags, dates), the fulltext server queries note bodies.
 
 ## Related Docs
 

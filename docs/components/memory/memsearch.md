@@ -3,46 +3,41 @@
 memsearch is the semantic memory indexing and search library for forge. It ingests agent memory
 files into [Milvus](memory-stack.md), which provides both vector similarity and BM25 full-text
 search (Milvus 2.5+ native hybrid). A local neural reranker combines both signals to rank
-results. Two PM2 processes consume it: `memsearch-watch` keeps the index current, and
-`memsearch-mcp` exposes search and index-refresh tools to agents.
+results. Three PM2 processes consume it: `memsearch-watch-fast` and `memsearch-watch-templates`
+keep the index current (see below), and `memsearch-mcp` exposes search and index-refresh
+tools to agents.
 
-> **Not to be confused with** [memory-search-mcp](memory-services.md), which is a separate
-> full-text search service backed by [OpenSearch](memory-stack.md). memsearch does not use
-> OpenSearch.
+> **Not to be confused with** [memory-fulltext-mcp](memory-services.md#memory-fulltext-mcp)
+> (renamed from `memory-search-mcp` on 2026-07-23), which is a separate full-text search
+> service backed by [OpenSearch](memory-stack.md). memsearch does not use OpenSearch.
 
 - **Venv:** `/opt/venvs/memsearch/`
 - **CLI:** `/opt/venvs/memsearch/bin/memsearch`
 - **Reranker model:** `Alibaba-NLP/gte-reranker-modernbert-base` (sentence-transformers, local)
 
-## memsearch-watch (PM2 id 10)
+## memsearch-watch-fast and memsearch-watch-templates
 
-`memsearch-watch` is the index daemon. It runs `memsearch index` on a fixed 5-minute interval
-across all memory directories, then sleeps and repeats.
+The index daemon was split into two PM2 processes on 2026-07-20. Full detail (scripts,
+directories indexed, logs) lives in [memory-services.md](memory-services.md); summary here:
 
-**Why polling, not watchdog:** An earlier version used `memsearch watch` (inotify-based). It had a
-threading bug: `watchdog` fires per-file debounce timers in separate threads, and when multiple
-files change simultaneously (common during agent memory writes) concurrent `loop.run_until_complete()`
-calls raise `RuntimeError: This event loop is already running`. The watch process stayed alive
-but silently skipped the conflicting files. The polling approach avoids this entirely — memsearch
-skips files that haven't changed (content-hash checked), so full scans are fast.
+- **`memsearch-watch-fast`** — polls the working (`~/.claude/memory/`) and session
+  (`~/.claude/projects/*/.memsearch/memory/`) directories every 60 seconds. These
+  directories change constantly during active sessions, so polling stays cheap thanks to
+  content-hash change detection.
+- **`memsearch-watch-templates`** — event-driven (`inotifywait`) watcher for
+  `~/.claude/templates/`, debounced 30 seconds. Templates change rarely, so an
+  event-driven watcher is more appropriate than polling.
 
-**Script:** `~/scripts/memsearch-watch.sh`
-
-```
-Interval: 300 s
-Logs:     ~/logs/memsearch/watch-<timestamp>.log (30-day retention, chmod 640)
-```
-
-### Directories indexed
-
-| Directory | Tier |
-|-----------|------|
-| `~/.claude/memory/` | working |
-| `~/.claude/projects/*/.memsearch/memory/` | session (per-project plugin dirs) |
-
-The session-tier glob (`~/.claude/projects/*/.memsearch/memory/`) covers all projects where the
-Claude Code MemSearch plugin has created a local index directory. Directories that don't exist
-are skipped silently.
+**History:** the original single `memsearch-watch` service polled all three directories on
+a fixed 5-minute interval — itself a replacement for an even earlier `memsearch watch`
+(inotify-based) version with a threading bug: `watchdog` fires per-file debounce timers in
+separate threads, and when multiple files changed simultaneously (common during agent
+memory writes) concurrent `loop.run_until_complete()` calls raised
+`RuntimeError: This event loop is already running`. The watch process stayed alive but
+silently skipped the conflicting files. Polling avoided that bug entirely (memsearch skips
+unchanged files via content-hash check, so full scans stayed fast), but a single 5-minute
+interval was slower than ideal for the fast-changing tiers and unnecessarily frequent for
+templates — hence the July 2026 split into two purpose-fit processes.
 
 ## Reranker
 
@@ -111,11 +106,13 @@ print(c.plugins['claude-code']['summarize'])
 ## Operations
 
 ```bash
-# Check memsearch-watch is running
-pm2 status memsearch-watch
+# Check both watch processes are running
+pm2 status memsearch-watch-fast
+pm2 status memsearch-watch-templates
 
-# Tail the current log
-tail -f ~/logs/memsearch/watch-$(ls -t ~/logs/memsearch/ | head -1)
+# Tail the current logs
+tail -f ~/logs/memsearch/watch-fast-$(ls -t ~/logs/memsearch/ | grep watch-fast | head -1)
+tail -f ~/logs/memsearch/watch-templates-$(ls -t ~/logs/memsearch/ | grep watch-templates | head -1)
 
 # Manually trigger a full index run
 /opt/venvs/memsearch/bin/memsearch index ~/.claude/memory/
@@ -123,11 +120,12 @@ tail -f ~/logs/memsearch/watch-$(ls -t ~/logs/memsearch/ | head -1)
 # Run a test search from the CLI
 /opt/venvs/memsearch/bin/memsearch search "grafana dashboard setup"
 
-# Restart memsearch-watch (e.g., after config change)
-pm2 restart memsearch-watch
+# Restart a watch process (e.g., after config change)
+pm2 restart memsearch-watch-fast
+pm2 restart memsearch-watch-templates
 ```
 
-If the watch daemon reports index errors, check that Milvus and the Ollama queue proxy are healthy
+If either watch process reports index errors, check that Milvus and the Ollama queue proxy are healthy
 first. memsearch will fail if embeddings can't be generated.
 
 ## Related Docs

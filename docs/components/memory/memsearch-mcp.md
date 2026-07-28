@@ -38,7 +38,8 @@ read from the memsearch config file. See [memsearch.md](memsearch.md) for detail
 |---------|----------|---------|
 | `milvus` (19530) | Yes | Vector store — search fails without it |
 | `ollama-queue-proxy` (11435) | Yes | Embedding inference for `index_memory` |
-| `memsearch-watch` (PM2) | Indirect | Keeps the index current; `search_memory` is stale if watch is down |
+| `memsearch-watch-fast` (PM2) | Indirect | Keeps the working/session-tier index current; `search_memory` is stale if it's down |
+| `memsearch-watch-templates` (PM2) | Indirect | Keeps the templates-tier index current (event-driven, not polled) |
 
 memsearch-mcp starts successfully even if its dependencies are down. Individual tool calls
 will return `{"error": "..."}` rather than crashing.
@@ -82,7 +83,9 @@ Manifest snippet:
 ```
 
 The `archival-search` skill (`~/.claude/skills/archival-search/SKILL.md`) uses memsearch-mcp
-as its primary search backend, replacing the older `memory-search-mcp`.
+as its primary search backend, replacing the older `memory-search-mcp` (itself renamed to
+[`memory-fulltext-mcp`](memory-services.md#memory-fulltext-mcp) on 2026-07-23 — a separate,
+still-running OpenSearch-backed service, not superseded by memsearch-mcp).
 
 ## Related Docs
 

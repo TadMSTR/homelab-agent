@@ -19,8 +19,14 @@ Maintenance and monitoring scripts for the homelab-agent platform. These run as 
 | Script | Purpose | How It Runs |
 |--------|---------|-------------|
 | `disk-space-probe.sh` | Pushes disk usage metrics to InfluxDB | PM2 cron, every 5 min |
-| `snapshot-space-probe.sh` | Pushes Btrfs snapshot space metrics to InfluxDB | PM2 cron, every 5 min |
 | `doc-health.sh` | Checks documentation freshness and coverage | PM2 cron, daily |
+
+`snapshot-space-probe.sh` was retired — it read `df` on `/.snapshots/`, which is
+meaningless on forge's single-device Btrfs layout. Replaced by two purpose-built probes
+(`snapshot-capacity-probe.sh`, `snapshot-bloat-probe.sh`) plus a retention pruner
+(`snapshot-retention.sh`) — see
+[snapshot-monitoring.md](../docs/components/platform/snapshot-monitoring.md) for the
+full redesign.
 
 ## Memory Pipeline
 
@@ -32,7 +38,8 @@ Maintenance and monitoring scripts for the homelab-agent platform. These run as 
 | `memory-archive-mirror.sh` | Mirrors memory archives to NAS | PM2 cron |
 | `memory-expire.py` | Expires aged working memory notes | PM2 cron |
 | `memsearch-compact.sh` | Compacts memsearch index | PM2 cron |
-| `memsearch-watch-fast.sh` | Polls for new memory files and indexes them | PM2 always-on |
+| `memsearch-watch-fast.sh` | Polls for new memory files and indexes them (60s, working/session tiers) | PM2 always-on |
+| `memsearch-watch-templates.sh` | Event-driven (`inotifywait`) indexing of template memory files | PM2 always-on |
 
 ## Documentation & Search
 
@@ -46,6 +53,12 @@ Maintenance and monitoring scripts for the homelab-agent platform. These run as 
 | Script | Purpose | How It Runs |
 |--------|---------|-------------|
 | `task-dispatcher.py` | Routes incoming task queue entries to target agents | PM2 always-on |
+
+`task-dispatcher.py` runs from `~/scripts/` on the live host and is **not mirrored in
+this repo's `scripts/`** — an earlier copy checked into this repo had drifted from the
+live script (wrong room targets, missing a `datetime` bugfix) and was deleted as a stale,
+undeployed mirror. See [task-dispatcher.md](../docs/components/agent/task-dispatcher.md)
+for the current, accurate description.
 
 ## What Was Removed from the Previous Version
 

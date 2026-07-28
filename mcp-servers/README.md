@@ -26,11 +26,11 @@ See [`docs/components/agent/scoped-mcp.md`](../docs/components/agent/scoped-mcp.
 | qmd | [doc](../docs/components/cicd/owners-manual.md) | :8181 HTTP | Semantic + keyword search |
 | memsearch-mcp | [doc](../docs/components/memory/memsearch-mcp.md) | :8493 HTTP | Hybrid memory search |
 | memory-metadata-mcp | [doc](../docs/components/memory/memory-services.md) | :8490 HTTP | Memory note metadata queries |
-| memory-search-mcp | [doc](../docs/components/memory/memory-services.md) | :8491 HTTP | Full-text memory search |
+| memory-fulltext-mcp | [doc](../docs/components/memory/memory-services.md) | :8491 HTTP | Full-text memory search (renamed from `memory-search-mcp` 2026-07-23) |
 | patchmon-mcp | [doc](../docs/components/mcp-servers/patchmon-mcp.md) | subprocess | Apt patch tracking |
 | dockhand-mcp | [doc](../docs/components/mcp-servers/dockhand-mcp.md) | subprocess | Docker stack management |
-| signoz-mcp | [doc](../docs/components/observability/signoz-mcp.md) | :8492 HTTP | APM traces and logs |
-| githost-mcp | [doc](../docs/components/mcp-servers/githost-mcp.md) | subprocess | Git + Gitea/GitHub ops |
+| signoz-mcp | [doc](../docs/components/observability/signoz-mcp.md) | :8492 HTTP | APM traces and logs (v0.3.0) |
+| githost-mcp | [doc](../docs/components/mcp-servers/githost-mcp.md) | subprocess | Git + GitHub/Gitea/GitLab ops (v0.5.0, 45 tools, HITL merge gate on GitHub/GitLab merge tools) |
 | searxng-mcp | [doc](../docs/components/ai-search/searxng-mcp.md) | subprocess | Web search |
 | langfuse-mcp | [doc](../docs/components/observability/langfuse-mcp.md) | subprocess | LLM trace queries |
 | loki-mcp | [doc](../docs/components/observability/loki-mcp.md) | subprocess | Loki log queries |
@@ -43,6 +43,7 @@ See [`docs/components/agent/scoped-mcp.md`](../docs/components/agent/scoped-mcp.
 | graphiti | [doc](../docs/components/memory/graphiti.md) | :8000 HTTP | Knowledge graph |
 | nats-mcp | [doc](../docs/components/agent/nats-mcp.md) | subprocess | NATS event queries |
 | code-server-mcp | [doc](../docs/components/mcp-servers/code-server-mcp.md) | :8498 HTTP | VS Code server integration |
+| backrest-mcp | [doc](../docs/components/mcp-servers/backrest-mcp.md) | :8626 HTTP | Backup plan status, snapshots, restore |
 
 ## Manifests
 

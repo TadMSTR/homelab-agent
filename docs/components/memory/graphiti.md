@@ -65,9 +65,29 @@ Graphiti supplements file-based memory (working memory, session notes) for relat
 queries: "what connects to SWAG?", "what runs on which host?", "when did this decision
 change?". It is not a replacement for flat notes — use both.
 
-Graph contents are populated incrementally by memory-flush and memory-sync skill
-executions. Direct `add_memory` calls are used for infrastructure state change events
-(deploys, service adds/removes, topology changes).
+Graph contents are populated incrementally by memory-flush skill executions and by the
+`graphiti-ingest` daily batch job (see below). Direct `add_memory` calls are used for
+infrastructure state change events (deploys, service adds/removes, topology changes).
+
+## Phase 4 Activation (2026-07-25) — `graphiti-ingest`
+
+As part of Graphiti activation Phase 4, batch ingestion moved out of memory-sync
+entirely and into its own dedicated job:
+
+- **`graphiti-ingest`** — runs nightly at 05:00 via **system crontab** (not PM2, per the
+  `pm2-cron-to-crontab-migration` convention), wrapped by `run-graphiti-ingest.sh`, using
+  the venv at `/opt/venvs/graphiti-ingest`. It reuses the same `bge-m3` embedder
+  configuration as graphiti-mcp rather than standing up a second embedding path.
+- **memory-sync Step 5b** (the old weekly Graphiti batch-ingestion step, content-hash
+  manifest at `graph-ingested.json`) was retired the same day to a **read-only freshness
+  check**: it now only alerts if the newest ledger entry in `graph-ingested.json` is more
+  than 48 hours old, rather than performing ingestion itself.
+
+Audited under `graphiti-activation-2026-07`; one open finding (`OV-18`) in
+`graphiti-ingest.py` — an unhandled `ValueError` in `canonical_key()` can bypass the
+job's `#alerts` failure-notification contract, so a canonicalization bug could fail
+silently rather than paging. Check `run-graphiti-ingest.sh` logs directly if the
+freshness check hasn't fired but ingestion seems stale.
 
 ## Related Docs
 

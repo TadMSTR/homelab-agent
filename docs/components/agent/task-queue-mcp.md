@@ -157,9 +157,20 @@ docker compose -f ~/docker/task-queue-mcp/compose.yaml restart task-queue-mcp
 docker logs task-queue-mcp --tail 50
 ```
 
+## Status Visibility (Matrix)
+
+task-queue-mcp itself has no notification path — status visibility for agents and Ted
+comes from [matrix-task-queue-bot](matrix-task-queue-bot.md), which watches the same
+`~/.claude/task-queue/` directory this server manages. As of 2026-07-23 (commit
+`e9f6f26`) the bot's old per-task stale-approval alert (a Matrix ping for any task
+`approved` >24h) was removed — it had become a notification firehose — in favor of two
+passive mechanisms: a pinned, self-editing status board per agent, and a single daily
+morning-brief digest. [task-dispatcher](task-dispatcher.md)'s matching
+`alert_stale_approved` feature was removed the same day for the same reason.
+
 ## Related Docs
 
 - [task-dispatcher.md](task-dispatcher.md) — routes and gates tasks; owns TTL archiving
-- [matrix-task-queue-bot.md](matrix-task-queue-bot.md) — Matrix client of the control API
+- [matrix-task-queue-bot.md](matrix-task-queue-bot.md) — Matrix client of the control API; pinned boards + morning brief
 - [task-queue-widget.md](task-queue-widget.md) — dashboard widget client
 - [agent-bus.md](agent-bus.md) — event logging alongside task state transitions

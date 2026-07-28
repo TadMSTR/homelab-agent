@@ -164,7 +164,8 @@ docker exec -it vault vault kv put secret/<path> key=<new-value>
 
 ### Trigger an immediate memory index
 ```bash
-pm2 restart memsearch-watch  # will poll immediately on start
+pm2 restart memsearch-watch-fast  # will poll immediately on start (working/session tiers)
+pm2 restart memsearch-watch-templates  # event-driven; restart re-runs one startup pass
 # Or run directly:
 memsearch index ~/.claude/memory
 ```
@@ -201,6 +202,39 @@ Dashboard: grafana.helmforge.me (OIDC via Authentik)
 docker exec nats nats server info
 docker exec nats nats stream ls
 ```
+
+---
+
+## Snapshot Monitoring
+
+Btrfs snapshot space is watched by two probes, not one — see
+[snapshot-monitoring.md](../components/platform/snapshot-monitoring.md) for full detail.
+The older `snapshot-space-probe.sh` (a single `df`-based check) is retired.
+
+### Check current snapshot capacity and bloat
+```bash
+pm2 show snapshot-capacity-probe
+pm2 show snapshot-bloat-probe
+
+# Direct check (no InfluxDB round-trip)
+sudo btrfs filesystem usage /
+```
+
+### Force a probe run
+```bash
+pm2 restart snapshot-capacity-probe
+bash -x ~/scripts/snapshot-bloat-probe.sh   # verbose, safe to run ad hoc
+```
+
+### Investigate a capacity or bloat alert
+```bash
+cat /opt/appdata/snapshot-probe/capacity.state   # debounce state, last tier + timestamp
+tail -f ~/logs/snapshot-retention.log            # pruning activity
+```
+
+If `snapshot-capacity-probe` alerts critical, check `sudo btrfs filesystem usage /` for
+`Device unallocated` before assuming actual data pressure — a full allocation with free
+unallocated space usually means `btrfs balance`, not deleting snapshots.
 
 ---
 

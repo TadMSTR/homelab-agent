@@ -43,6 +43,19 @@ All mounted volumes are read-only. The container cannot write to any knowledge b
 Hister config lives at `/opt/appdata/hister/config.yml`. Collection definitions (which
 directories to index, display names) are set there.
 
+## Standalone Hister vs. `searxng-hister`
+
+This doc covers the standalone Hister instance above — a general-purpose search UI over
+forge's knowledge corpus, deployed as its own service at `hister.helmforge.me`.
+
+A second, separate Hister container, `searxng-hister`, runs embedded inside the
+[SearXNG](searxng.md) stack (`~/docker/searxng/`) rather than as its own top-level
+service. It is a per-stack instance scoped to SearXNG's own needs and is not part of the
+standalone deployment described above — it does not share the standalone instance's
+appdata, config, or indexed collections. Treat the two as independent services that
+happen to share the same underlying image; changes to one (config, version, hardening)
+do not apply to the other.
+
 ## Related Docs
 
 - [searxng.md](searxng.md) — the web search fallback target

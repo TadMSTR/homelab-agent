@@ -23,15 +23,16 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `agent-bus` | 8488 | Inter-agent event log → NATS |
 | `qmd` | 8181 | Semantic + keyword search over 9000+ docs |
 | `memory-metadata-mcp` | 8490 | Structured queries over memory note metadata |
-| `memory-search-mcp` | 8491 | Full-text search via OpenSearch |
+| `memory-fulltext-mcp` | 8491 | Full-text search via OpenSearch (renamed from `memory-search-mcp` 2026-07-23) |
 | `memsearch-mcp` | 8493 | Hybrid vector+BM25+reranker memory search |
 | `system-ops` | 8282 | Shell, file, and process operations |
 | `patchmon-mcp` | 8484 | Apt package tracking and approval |
 | `pm2-mcp` | 8486 | PM2 process management tool surface |
-| `signoz-mcp` | 8492 | SigNoz APM queries |
+| `signoz-mcp` | 8492 | SigNoz APM queries (v0.3.0) |
 | `matrix-mcp` | 8487 | Matrix messaging tool surface |
 | `plane-mcp` | 8495 | Plane issue tracking |
 | `code-server-mcp` | 8498 | VS Code server integration |
+| `backrest-mcp` | 8626 | Backup plan status, snapshots, restore (Backrest) |
 
 ### Always-On Infrastructure
 
@@ -40,8 +41,8 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `matrix-dispatcher` | Routes operator Matrix messages → agent project dirs |
 | `matrix-admin-bot` | Matrix account provisioning |
 | `matrix-task-queue-bot` | Task queue notifications via Matrix |
-| `memsearch-watch-fast` | Polls for new memory files and indexes them |
-| `memsearch-watch-templates` | Indexes template memory files |
+| `memsearch-watch-fast` | Polls for new memory files and indexes them (60s poll, working/session tiers — split from `memsearch-watch` 2026-07-20) |
+| `memsearch-watch-templates` | Indexes template memory files (event-driven `inotifywait` — split from `memsearch-watch` 2026-07-20) |
 | `memsearch-summarize` | Summarises raw session transcripts via Anthropic API |
 | `memory-os-sync` | Syncs OS-level metrics to memory |
 | `temporal-build-worker` | Temporal worker for autonomous build pipelines |
@@ -70,9 +71,12 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `memsearch-compact` | Sundays 05:00 | Compacts memsearch index |
 | `btrbk-daily` | Daily 03:00 | Btrfs snapshot creation |
 | `btrfs-scrub-monthly` | 1st of month 02:00 | Btrfs filesystem scrub |
-| `snapshot-space-probe` | Every 15 min | Snapshot space metrics → InfluxDB |
+| `snapshot-capacity-probe` | Every 15 min | Whole-filesystem free-space metrics → InfluxDB, warn/critical alerting — the real safety net; replaces the retired `snapshot-space-probe` (see [snapshot-monitoring.md](../docs/components/platform/snapshot-monitoring.md)) |
+| `snapshot-bloat-probe` | Nightly 03:45 | Per-snapshot exclusive-space trend + retention drift detection → InfluxDB |
+| `snapshot-retention` | Nightly 03:30 | Prunes retention-cron-managed snapshots past `max_age_days` |
 | `disk-space-probe` | Every 15 min | Disk space metrics → InfluxDB |
 | `renovate-cron` | Hourly | Dependency update scanning |
+| `backrest-mcp-health-prober` | Every 5 min | Direct `get_health` check against backrest-mcp, bypassing scoped-mcp — pages `#sysadmin` on auth failure |
 
 ## Useful Commands
 
