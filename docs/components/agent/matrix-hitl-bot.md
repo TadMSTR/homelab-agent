@@ -11,7 +11,7 @@ bearer token.
 approve endpoint itself — the old workaround of an agent self-approving its own gated call
 via `system-ops` is what this removes.
 
-- **Source:** `~/repos/personal/matrix-hitl-bot/` (private, Gitea `host-forge/matrix-hitl-bot`)
+- **Source:** `~/repos/gitea/host-forge-matrix-hitl-bot/` (private, Gitea `host-forge/matrix-hitl-bot`)
 - **PM2 name:** `matrix-hitl-bot`
 - **Port:** none — outbound only, to the Matrix homeserver and to loopback scoped-mcp
 - **Status:** online
