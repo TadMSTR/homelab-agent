@@ -11,16 +11,16 @@ homelab-agent/
 ├── CHANGELOG.md                 # Build history
 ├── index.md                     # THIS FILE — navigation index
 ├── docs/
-│   ├── components/              # Per-service operational reference (76 docs)
+│   ├── components/              # Per-service operational reference (98 docs)
 │   │   ├── foundation/          # Host, reverse proxy, auth, secrets, backups (10)
 │   │   ├── observability/       # Grafana, Loki, SigNoz, Langfuse, exporters (13)
 │   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (10)
-│   │   ├── memory/              # Memory architecture, Milvus, memsearch, Graphiti (8)
-│   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (14)
-│   │   ├── mcp-servers/         # system-ops, githost, dockhand, patchmon, pm2 (7)
+│   │   ├── memory/              # Memory architecture, Milvus, memsearch, Graphiti (9)
+│   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (16)
+│   │   ├── apps/                # Nextcloud, Plane, Vikunja, tools stack (7)
+│   │   ├── mcp-servers/         # system-ops, githost, dockhand, patchmon, pm2 (12)
 │   │   ├── cicd/                # Woodpecker, Temporal, Renovate, CloudCLI (7)
-│   │   └── platform/            # Doc health, disk probes, drift detection (7)
-│   ├── phases/                  # Build history docs (23 phases)
+│   │   └── platform/            # Doc health, disk probes, drift detection (9)
 │   ├── operations/              # Runbooks and operational procedures
 │   └── diagrams/                # Architecture diagrams
 ├── docker/                      # Docker Compose stacks + .env.example templates
@@ -128,6 +128,7 @@ homelab-agent/
 | `docs/components/apps/vikunja.md` | Vikunja task/project management app |
 | `docs/components/apps/stunnel.md` | TLS tunnel for Proton Bridge |
 | `docs/components/apps/tools-stack.md` | 8-tool browser utilities stack |
+| `docs/components/apps/librechat.md` | LibreChat multi-model chat platform |
 
 ### Layer 3 — Multi-Agent Engine
 
@@ -166,7 +167,9 @@ homelab-agent/
 | `docs/components/mcp-servers/doc-cache-mcp.md` | Documentation cache MCP |
 | `docs/components/mcp-servers/datastore-mcp.md` | Multi-backend datastore query MCP |
 | `docs/components/mcp-servers/librechat-mcp.md` | LibreChat agent-management MCP |
+| `docs/components/mcp-servers/backrest-mcp.md` | Backrest backup management MCP |
 | `docs/components/nextcloud-mcp.md` | Nextcloud file/calendar/notes MCP |
+| `docs/components/jobsearch-mcp.md` | Job search tracking MCP |
 
 **MCP servers — observability:**
 
@@ -207,12 +210,13 @@ homelab-agent/
 | `docs/components/memory/memory-compact-qc.md` | Weekly QC on `memsearch compact` output |
 | `docs/components/dep-update-check.md` | Dependency update scanner |
 | `docs/components/forge-reboot-gate.md` | Reboot-required gate check |
+| `docs/components/venv-deploy.md` | Python venv deployment pattern |
 | `docs/operations/runbooks.md` | Operational runbooks |
 
 ## By Task
 
 ### "I want to understand the overall architecture"
-→ Read `README.md`, then `docs/phases/` in order
+→ Read `README.md`, then `AGENTS.md`, then the relevant `docs/components/<category>/` docs
 
 ### "I want to deploy a specific service"
 → `docs/components/<category>/<service>.md`, then `docker/<service>/`
@@ -224,7 +228,7 @@ homelab-agent/
 → `docs/components/memory/memory-architecture.md`, then `docs/components/memory/memory-services.md`
 
 ### "I want to see the full build history"
-→ `docs/phases/` — each phase doc covers what was added and what security findings were resolved
+→ `CHANGELOG.md` — phase build records live in Gitea `host-forge/phases`, not in this public repo (ADR-0003)
 
 ### "I want to replicate the monitoring stack"
 → `docker/observability/`, `docs/components/observability/grafana-alloy.md`, `docs/components/observability/influxdb.md`
