@@ -7,7 +7,7 @@ shared-secret HTTP control API on the same port — the single validated mutatio
 non-MCP clients (the CloudCLI plugin and the Matrix bot).
 
 - **Source:** `~/repos/personal/task-queue-mcp` (TadMSTR/task-queue-mcp)
-- **Version:** v0.3.0
+- **Version:** v0.4.0
 - **Port:** `127.0.0.1:8485` — MCP (`/mcp`) and the HTTP control API (`/tasks/...`) share it
 - **Queue dir:** `~/.claude/task-queue/` (host-mounted)
 - **Network:** `forge-net`
@@ -30,20 +30,26 @@ external access — reachable on loopback/LAN only.
 
 ## Tool Surface
 
-Eight tools, split by caller. Agents use the strict `update_task` path; operators (via the
-HTTP control API) use the broader lifecycle tools. Agents cannot cancel — `cancelled` is
-operator-only.
+Nine tools, split by caller. Agents use the strict `update_task` path; operators (via the
+HTTP control API) use the broader lifecycle tools. Agents cannot cancel or park — both are
+operator-only. `amend_task` is the exception: the task's *source* agent may amend it, but
+the target agent may not — the same trust boundary that keeps `cancelled` operator-only,
+applied to rewriting a task's own brief.
+
+As of v0.4.0, `quarantine_task` / `restore_task` are removed entirely — `park_task` /
+`unpark_task` replace them, and `amend_task` is new.
 
 | Tool | Caller | What it does |
 |------|--------|-------------|
 | `submit_task` | agent | Create a new task (`status: submitted`); validates type, risk, priority, `workflow_mode` |
-| `list_tasks` | agent | List tasks with optional filters; TTL-expired, archived, and quarantined tasks excluded |
-| `get_task` | agent | Retrieve a task by full UUID (also resolves archived + quarantined) |
+| `list_tasks` | agent | List tasks with optional filters; TTL-expired and archived tasks excluded. Parked tasks are exempt from the TTL filter and stay listed |
+| `get_task` | agent | Retrieve a task by full UUID (also resolves archived tasks) |
 | `update_task` | agent | Strict status transition; appends a history entry |
-| `set_task_status` | operator | Audited status change — approve, cancel, or advance a missed task (`allow_override`) |
+| `set_task_status` | operator | Audited status change — approve, cancel, park, or advance a missed task (`allow_override`) |
 | `cancel_task` | operator | Graceful terminal `cancelled` state for stale tasks (record kept) |
-| `quarantine_task` | operator | Isolate a task to `quarantine/` (recoverable) |
-| `restore_task` | operator | Restore a quarantined task to the active queue |
+| `park_task` | operator | Pause a task without hiding it — status changes to `parked`, the YAML file never moves, stays listed, exempt from TTL |
+| `unpark_task` | operator | Return a parked task to the status recorded in `parked_from` (or an explicit target status) |
+| `amend_task` | source agent or operator | Append a correction to a queued task. `payload.description` is never rewritten; amendments accumulate under `payload.amendments`, capped at 10 per task / 4096 chars each |
 
 ### Status lifecycle
 
@@ -52,18 +58,24 @@ submitted → [pending-approval] → approved → in-progress → completed
                                                  ↓
                                               failed
 
-Any non-terminal ──(operator)──> cancelled        # graceful dismissal, record kept
-Any task ──(operator quarantine)──> quarantine/    # isolate (recoverable via restore)
+Any non-terminal ──(operator)──> cancelled      # graceful dismissal, record kept
+Any non-terminal <──(operator)──> parked        # pause; stays listed, TTL-exempt, reversible
 ```
 
-- **Non-terminal:** `submitted`, `pending-approval`, `approved`, `in-progress`
+- **Non-terminal:** `submitted`, `pending-approval`, `approved`, `in-progress`, `parked`
 - **Terminal (immutable, even for operators):** `completed`, `failed`, `cancelled`
 
+`parked` is a **status**, not a relocation — unlike the old quarantine mechanism, which
+moved a task's YAML into a `quarantine/` subdirectory that no reader listed. A parked task
+keeps its file exactly where it is, keeps showing up in `list_tasks`, and renders muted
+with an Unpark button in the CloudCLI plugin.
+
 The dispatcher owns `submitted → approved / pending-approval`. Agents own
-`approved → in-progress → completed` (or `failed`). Operators own `cancelled`,
-quarantine/restore, and audited overrides. Approval gating is controlled by agent manifests
-and the `requires_approval` field. `alert_state` and `retry_policy` are dispatcher-owned and
-never touched by `update_task`.
+`approved → in-progress → completed` (or `failed`). Operators own `cancelled`, `parked`,
+and audited overrides. Approval gating is controlled by agent manifests and the
+`requires_approval` field. `retry_policy` is dispatcher-owned and never touched by
+`update_task`. `alert_state` is retired as of v0.4.0 and no longer written on task
+creation — existing task YAMLs keep an inert copy for continuity, not as a migration miss.
 
 The `workflow_mode` field (`semi-auto` default, or `auto`) controls dispatcher behavior:
 `semi-auto` queues the task for operator pickup with a Matrix notification, `auto` launches
@@ -82,8 +94,10 @@ prior three-writer divergence between the core, the plugin, and the bot).
 | `POST` | `/tasks/{id}/approve` | `set_task_status(approved)` |
 | `POST` | `/tasks/{id}/cancel` | `cancel_task` |
 | `POST` | `/tasks/{id}/status` | `set_task_status` (body: `status`, `note`, `allow_override`) |
-| `POST` | `/tasks/{id}/quarantine` | `quarantine_task` |
-| `POST` | `/tasks/{id}/restore` | `restore_task` |
+| `POST` | `/tasks/{id}/park` | `park_task` |
+| `POST` | `/tasks/{id}/unpark` | `unpark_task` (body: optional `status`) |
+| `POST` | `/tasks/{id}/amend` | `amend_task` (body: `amendment`, optional `reason`) |
+| `GET` | `/queue/summary` | Counts by status across the active queue — bucketed under `"unknown"` for any out-of-vocabulary status rather than dropped |
 
 **Auth.** Custom routes bypass the MCP middleware, so a shared-secret header gates them:
 send `X-Task-Queue-Secret: $TASK_QUEUE_API_SECRET` on every mutation. The server compares it
@@ -113,15 +127,17 @@ on the control-route secret alone.
 ~/.claude/task-queue/
   YYYYMMDD-HHMMSS-<uuid-prefix>.yml   # one file per active task
   archive/                            # TTL-expired tasks (dispatcher-owned)
-  quarantine/                         # isolated tasks (recoverable via restore_task)
 ```
 
-Each task file is a YAML record (type, payload, status history, `result.output`, `alert_state`,
+A parked task's file stays in place at the top level — parking is a status change, not a
+move, so there is no separate directory for it (the old `quarantine/` subdirectory is gone
+as of v0.4.0).
+
+Each task file is a YAML record (type, payload, status history, `result.output`, `parked_from`,
 `retry_policy`). All writes are atomic — write to `.tmp`, then `os.rename()` — and serialized
 with per-task `fcntl.flock` locks to prevent races between concurrent MCP calls and the
-dispatcher. Tasks are never hard-deleted: cancellation keeps the record, quarantine moves it
-aside recoverably. Writes use `yaml.dump` (never string interpolation) to prevent YAML
-injection.
+dispatcher. Tasks are never hard-deleted: cancellation and parking both keep the record in
+place. Writes use `yaml.dump` (never string interpolation) to prevent YAML injection.
 
 ## Environment Variables
 
