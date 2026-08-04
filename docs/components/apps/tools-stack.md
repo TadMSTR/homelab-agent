@@ -36,7 +36,7 @@ All eight are proxied by SWAG and reachable only from the LAN. drawio also expos
 | `minipaint` | `minipaint:local` (built from source) | nginx:alpine root-start |
 | `vert` | `ghcr.io/vert-sh/vert` (digest-pinned) | nginx root-start |
 
-All images are pinned by SHA256 digest. Every container runs `restart: unless-stopped`, `no-new-privileges:true`, and tight `mem_limit`/`cpus` caps (128–512 MB). Containers that can drop all Linux capabilities do; the four nginx root-start images require `CHOWN` + `NET_BIND_SERVICE` at init, so they keep the default cap set with `no-new-privileges` as the mitigation (the established forge pattern — same as homepage).
+All images are pinned by SHA256 digest. Every container runs `restart: unless-stopped`, `no-new-privileges:true`, and tight `mem_limit`/`cpus` caps (128–512 MB). Containers that can drop all Linux capabilities do; the four nginx root-start images require `CHOWN` + `NET_BIND_SERVICE` at init, so they keep the default cap set with `no-new-privileges` as the mitigation (the established forge pattern — same as [homepage](homepage.md)).
 
 ### miniPaint from source
 

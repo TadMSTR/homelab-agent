@@ -6,6 +6,7 @@ User-facing applications and productivity services running on forge.
 
 | Doc | Service | URL |
 |-----|---------|-----|
+| [homepage.md](homepage.md) | Service dashboard (status cards, container stats) | `home.helmforge.me` |
 | [nextcloud.md](nextcloud.md) | File sync, collaboration suite | `nextcloud.helmforge.me` |
 | [librechat.md](librechat.md) | Self-hosted, multi-provider AI chat web app | `librechat.helmforge.me` |
 | [plane.md](plane.md) | Project & issue tracking (12-container stack) | `plane.helmforge.me` |
