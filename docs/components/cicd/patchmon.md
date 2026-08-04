@@ -16,7 +16,7 @@ PatchPilot on forge.
 | Container | Image | Role |
 |-----------|-------|------|
 | `patchmon-server` | `patchmon/server:2.0.2` | Main application server |
-| `patchmon-postgres` | `postgres:17-alpine` | Relational data store |
+| `patchmon-database` | `postgres:17-alpine` | Relational data store |
 | `patchmon-valkey` | `valkey:8-alpine` | Cache / job queue |
 | `patchmon-guacd` | `guacamole/guacd:1.6.0` | Guacamole daemon (remote terminal in UI) |
 
