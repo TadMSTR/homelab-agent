@@ -58,7 +58,7 @@ doc queue at `~/.claude/memory/shared/doc-update-queue.jsonl`.
 2. Targeted mode: checks `daily-touched-files.json` — skips if no files touched today
 3. Launches `claude -p` with the doc-health project CLAUDE.md and relevant source directories
 4. Claude runs the audit checks and writes the report
-5. Sends a Matrix notification to `#forge:helmforge.me` with the result summary
+5. Sends a Matrix notification to the `agents` room with the result summary
 6. Targeted mode: resets `daily-touched-files.json` after completing
 
 ## Dependencies

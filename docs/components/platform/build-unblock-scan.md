@@ -22,7 +22,7 @@ progress without manual dependency checking.
 
 ## Alerting
 
-Posts to the Matrix `#forge` room with `[UNBLOCKED]` tag when plans become ready.
+Posts to the Matrix `agents` room with `[UNBLOCKED]` tag when plans become ready.
 
 ## Operations
 
