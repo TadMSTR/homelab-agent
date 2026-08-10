@@ -11,13 +11,13 @@ homelab-agent/
 ├── CHANGELOG.md                 # Build history
 ├── index.md                     # THIS FILE — navigation index
 ├── docs/
-│   ├── components/              # Per-service operational reference (98 docs)
+│   ├── components/              # Per-service operational reference (99 docs)
 │   │   ├── foundation/          # Host, reverse proxy, auth, secrets, backups (10)
 │   │   ├── observability/       # Grafana, Loki, SigNoz, Langfuse, exporters (13)
 │   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (10)
 │   │   ├── memory/              # Memory architecture, Milvus, memsearch, Graphiti (9)
 │   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (16)
-│   │   ├── apps/                # Nextcloud, Plane, Vikunja, tools stack (7)
+│   │   ├── apps/                # Nextcloud, Plane, Vikunja, tools stack (8)
 │   │   ├── mcp-servers/         # system-ops, githost, dockhand, patchmon, pm2 (12)
 │   │   ├── cicd/                # Woodpecker, Temporal, Renovate, CloudCLI (7)
 │   │   └── platform/            # Doc health, disk probes, drift detection (9)
@@ -129,6 +129,7 @@ homelab-agent/
 | `docs/components/apps/stunnel.md` | TLS tunnel for Proton Bridge |
 | `docs/components/apps/tools-stack.md` | 8-tool browser utilities stack |
 | `docs/components/apps/librechat.md` | LibreChat multi-model chat platform |
+| `docs/components/apps/homepage.md` | Homepage dashboard + Docker socket proxy sidecar |
 
 ### Layer 3 — Multi-Agent Engine
 
