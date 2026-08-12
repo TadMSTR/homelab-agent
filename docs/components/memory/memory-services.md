@@ -121,7 +121,7 @@ Scope: personal-agent use only (not in the global scoped-mcp manifest).
 > under the hood; only the name changed.
 
 ```bash
-/home/ted/repos/personal/memory-search-mcp/server.py
+/home/ted/repos/personal/memory-fulltext-mcp/server.py
 ```
 
 - **Endpoint:** `http://127.0.0.1:8491`

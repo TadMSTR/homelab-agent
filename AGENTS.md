@@ -15,7 +15,7 @@ Five agents run as scoped Claude Code projects on forge. Each has a dedicated Ma
 
 | Agent | Role | Matrix Room | Key Tools |
 |-------|------|-------------|-----------|
-| `sysadmin` | Infrastructure ops — Docker updates, apt patching, service diagnostics | `#forge:` | system-ops, dockhand-mcp, patchmon-mcp, pm2-mcp, githost-mcp |
+| `sysadmin` | Infrastructure ops — Docker updates, apt patching, service diagnostics | its own room (`MATRIX_ROOM_SYSADMIN`) | system-ops, dockhand-mcp, patchmon-mcp, pm2-mcp, githost-mcp |
 | `research` | Research and build planning — upstream docs, architecture decisions, handoffs | `#research:` | searxng-mcp, qmd, graphiti, githost-mcp, task-queue-mcp |
 | `developer` | Code — MCP servers, scripts, config changes, PRs | `#developer:` | system-ops, githost-mcp, task-queue-mcp, signoz-mcp |
 | `writer` | Documentation — READMEs, runbooks, component docs, public repo updates | `#writer:` | system-ops, githost-mcp, qmd, task-queue-mcp |

@@ -8,7 +8,7 @@ directly.
 
 - **Package:** `scoped-mcp` v1.2.2 (installed at `/opt/venvs/scoped-mcp/`)
 - **Venv:** `/opt/venvs/scoped-mcp/`
-- **Manifests:** `~/.claude/manifests/<agent>-agent.yml`
+- **Manifests:** `/etc/forge/manifests/<agent>-agent.yml` (root-owned, published from `origin/main` — see below)
 - **Transport:** stdio (launched by Claude Code settings.json)
 
 ## Installation
@@ -35,10 +35,21 @@ the source repo — never the symlink target.
 |-------------|-------------|-------------|
 | `~/.claude/projects/<agent>/CLAUDE.md` | `agent-platform-agents` | `~/repos/gitea/agent-platform-agents/<agent>/CLAUDE.md` |
 | `~/.claude/skills/<skill>/SKILL.md` | `agent-platform-skills` | `~/repos/gitea/agent-platform-skills/<skill>/SKILL.md` |
-| `~/.claude/manifests/<type>-agent.yml` | `host-forge-scripts` | `~/repos/gitea/host-forge-scripts/manifests/<type>-agent.yml` |
 
-All three repos commit directly to main. Run `qmd update && qmd embed` for the relevant
+All repos above commit directly to main. Run `qmd update && qmd embed` for the relevant
 collection after changing CLAUDE.md or skill files (QMD indexes these for agent retrieval).
+
+**Manifests are not symlinked.** They live in `host-forge-scripts` (`manifests/<type>-agent.yml`)
+but scoped-mcp reads a root-owned copy at `/etc/forge/manifests/<agent>-agent.yml`, published by
+`sudo /usr/local/sbin/forge/agent-manifests-deploy.sh`. A manifest edit only takes effect after
+**both** merge to `origin/main` and a deploy run — merged-but-undeployed is a no-op. This replaced
+the old model (`~/.claude/manifests/<type>-agent.yml` as a symlink straight into the working
+tree, live on merge). The deploy set covers six agents (`jobsearch` was added alongside the
+original five). Verify what a running process actually has loaded with:
+
+```bash
+tr '\0' '\n' < /proc/$(pm2 pid scoped-mcp-<agent>)/cmdline | grep -A1 manifest
+```
 
 ## Session Wiring
 
@@ -78,7 +89,7 @@ scoped-mcp using the **full venv path**:
     "scoped-mcp": {
       "type": "stdio",
       "command": "/opt/venvs/scoped-mcp/bin/scoped-mcp",
-      "args": ["--manifest", "/home/ted/.claude/manifests/<agent>-agent.yml"]
+      "args": ["--manifest", "/etc/forge/manifests/<agent>-agent.yml"]
     }
   }
 }
@@ -114,8 +125,8 @@ Dragonfly URL) before invoking scoped-mcp. Both `AGENT_ID` and `AGENT_TYPE` are 
 
 ## Agent Tool Surfaces
 
-Each agent has a manifest at `~/.claude/manifests/<agent>-agent.yml` defining which MCP
-modules it can access, with per-tool denylists enforcing least-privilege.
+Each agent has a manifest published to `/etc/forge/manifests/<agent>-agent.yml` defining
+which MCP modules it can access, with per-tool denylists enforcing least-privilege.
 
 | Agent | Modules | Denylisted Tools |
 |-------|---------|-----------------|
@@ -160,8 +171,8 @@ The sysadmin agent requires human approval before executing high-impact tools:
 
 **Approval timeout:** 300 seconds
 
-**Approval flow:** Matrix is used for notification only (outbound to #forge). Approval is
-via the CLI:
+**Approval flow:** Matrix is used for notification only, posted to the requesting agent's
+own notify room via [matrix-hitl-bot](matrix-hitl-bot.md). Approval is via the CLI:
 
 ```mermaid
 sequenceDiagram
@@ -175,7 +186,7 @@ sequenceDiagram
 
     Agent->>SM: tool call (e.g. dockhand-mcp_container_action)
     SM->>SM: gate: HITL required
-    SM->>Matrix: POST notification to #forge
+    SM->>Matrix: POST notification to agent's notify room
     SM-->>Agent: pending — approval needed
 
     Agent->>SM: scoped-mcp hitl list (via system-ops)
@@ -292,15 +303,17 @@ These are sourced by the agent's launch environment. The manifest loader expands
 ### Adding a new MCP server
 
 1. Deploy and start the new PM2 MCP service
-2. Add an `mcp_proxy` entry to each manifest in `~/.claude/manifests/`
-3. Restart scoped-mcp (Claude Code picks up changes on next session start)
+2. Add an `mcp_proxy` entry to each manifest in `host-forge-scripts` (`manifests/<type>-agent.yml`)
+3. Merge to `origin/main`, then run `sudo /usr/local/sbin/forge/agent-manifests-deploy.sh` to
+   publish to `/etc/forge/manifests/` — merge alone does not take effect
+4. Restart scoped-mcp (Claude Code picks up changes on next session start)
 
 No venv rebuild needed — `mcp_proxy` entries are configuration only.
 
 ### Legacy cleanup
 
 `/opt/agents/*/config/scoped-mcp.json.legacy` files are dead — superseded by the YAML
-manifests at `~/.claude/manifests/`. Safe to delete once confirmed no tooling references them.
+manifests at `/etc/forge/manifests/`. Safe to delete once confirmed no tooling references them.
 
 ## Related Docs
 

@@ -122,7 +122,7 @@ The agent-workspace-scan Phase 2f runs hourly and alerts to Matrix `#sysadmin` o
 
 ## scoped-mcp integration
 
-`forge-configs` is a Gitea repo — `githost-mcp` is used for git operations. Workspace marker (`AGENT_WORKSPACE.md`) is set to `owning_agent: sysadmin`, `access: readwrite`, `inherit: false`, `pre_edit_skill: git-config-tracking`.
+`forge-configs` is a Gitea repo — `githost-mcp` is used for git operations. Access no longer comes from a per-repo `AGENT_WORKSPACE.md` marker: build `githost-workspace-policy-2026-08` (2026-08-09) removed the 27 markers under `~/repos/gitea` in favor of the central `/etc/forge/workspace-policy.yml`. Access for this repo resolves from that policy's `~/repos/gitea` container root (`owning_agent: sysadmin`, `access: readwrite`, `inherit: false`, `pre_edit_skill: git-config-tracking`).
 
 No agent has direct MCP access to forge-configs contents; the deploy script is invoked via `system-ops` or directly in sysadmin sessions. Phase 2f tamper detection provides passive coverage.
 

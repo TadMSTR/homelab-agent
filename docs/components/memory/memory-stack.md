@@ -24,7 +24,7 @@ Both services listen on localhost-only ports — not accessible from the LAN:
 | Service | Port | Consumer |
 |---------|------|----------|
 | Milvus gRPC/HTTP | `127.0.0.1:19530` | `memsearch-watch`, `qmd` |
-| OpenSearch REST | `127.0.0.1:9202` | `memory-search-mcp` |
+| OpenSearch REST | `127.0.0.1:9202` | `memory-fulltext-mcp` |
 
 OpenSearch security plugin is disabled (`DISABLE_SECURITY_PLUGIN=true`). The
 localhost-only port binding is the access control boundary — no external exposure.

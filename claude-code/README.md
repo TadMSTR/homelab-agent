@@ -62,7 +62,7 @@ cd ~/.claude/projects/sysadmin
 claude
 
 # Or via the matrix-dispatcher (automated)
-# matrix-dispatcher routes messages from #forge Matrix room to the sysadmin project dir
+# matrix-dispatcher polls each agent's own Matrix room and routes messages to that agent's project dir
 ```
 
 The [matrix-dispatcher](../docs/components/agent/matrix-dispatcher.md) polls each agent's Matrix room and injects messages into the agent's stdin stream, enabling async operation from any Matrix client.

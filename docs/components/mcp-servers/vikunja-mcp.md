@@ -40,27 +40,35 @@ exec /opt/venvs/vikunja-mcp/bin/vikunja-mcp
 
 | Env var | Purpose | Default |
 |---------|---------|---------|
-| `VIKUNJA_URL` | Base URL of the Vikunja instance (no `/api/v1`) | `https://vikunja.helmforge.me` |
+| `VIKUNJA_URL` | Base URL of the Vikunja instance (no `/api/v1`) | none — required; server fails closed with `ConfigError` at startup if unset (no more hardcoded default, since v0.4.0) |
 | `VIKUNJA_HOST` | Bind address | `127.0.0.1` |
 | `VIKUNJA_PORT` | Bind port | `8501` |
 | `VIKUNJA_TRANSPORT` | `http` or `stdio` | `http` |
 | `VIKUNJA_REQUEST_TIMEOUT` | Upstream timeout (seconds) | `30` |
 | `VIKUNJA_INFLUXDB3_URL` / `_TOKEN` / `_DATABASE` | InfluxDB 3 metrics sink | off |
 | `VIKUNJA_NATS_URL` / `_SUBJECT` | NATS metrics sink | off |
+| `VIKUNJA_AUDIT_LOG` | Enable `contrib/audit_log.py` request/response audit logging | off (`0`) |
+| `VIKUNJA_AUDIT_LOG_DIR` | Directory for audit log output when `VIKUNJA_AUDIT_LOG=1` | — |
 
 No Vikunja token is ever written to the env file — that's the point of the passthrough
 model. Per-agent tokens live in Vault at `secret/data/vikunja/agent-<role>`.
 
 ## Tools
 
-71 tools spanning the full Vikunja resource surface (v0.2.0). See the
-[repo README](https://github.com/TadMSTR/vikunja-mcp#tools) for the full table. Notable
-points:
+71 tools spanning the full Vikunja resource surface (v0.4.0, `TadMSTR/vikunja-mcp` PR #11).
+See the [repo README](https://github.com/TadMSTR/vikunja-mcp#tools) for the full table.
+Notable points:
 
 - **No `filter_list`** — Vikunja has no `GET /filters`; saved filters are exposed as
   pseudo-projects, so list them via `project_list` and fetch with `filter_get`.
 - Vikunja's REST idiom is **PUT creates, POST updates** — tool names hide this.
 - Project sharing permission ints: `0` = read, `1` = write, `2` = admin.
+- **All list tools are paginated** (`page` / `per_page` args) as of v0.4.0. This round
+  extended pagination to the tools that hadn't already gained it: `comment_list`,
+  `attachment_list`, `task_assignee_list`, `view_list`.
+- `webhook_create`'s SSRF guard is unchanged, but there is currently no valid
+  `webhook_create` target on this deployment — the SECURITY.md/`docs/forge.md` webhook
+  guidance was corrected in v0.4.0 to reflect that.
 
 An extension-hook system (`hooks.py`) wraps every tool call with a pre/post handler chain
 (`register_before` / `register_after`) — see `docs/extension-hooks.md` in the repo.
@@ -82,7 +90,7 @@ curl -s http://127.0.0.1:8501/health
 
 ## scoped-mcp Wiring
 
-Registered in all 5 agent manifests (`~/.claude/manifests/*.yml`) as an `mcp_proxy` module
+Registered in all 5 agent manifests (`/etc/forge/manifests/*.yml`) as an `mcp_proxy` module
 pointing at `http://127.0.0.1:8501/mcp`, each injecting `Authorization: Bearer
 ${VIKUNJA_TOKEN}` from its own Vault-sourced credential.
 
