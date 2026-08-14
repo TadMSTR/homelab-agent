@@ -17,7 +17,7 @@ cutover, research holds no generic file/command primitive at all.
 | Script | `/opt/venvs/doc-cache-mcp/bin/doc-cache-mcp` |
 | Interpreter | none |
 | Port | `127.0.0.1:8503` (streamable-http, loopback only by design) |
-| Repo | `~/repos/personal/doc-cache-mcp/` (local-only, not yet on GitHub) |
+| Repo | `~/repos/personal/doc-cache-mcp/` ([TadMSTR/doc-cache-mcp](https://github.com/TadMSTR/doc-cache-mcp) on GitHub) |
 
 ## Why capability-scoped
 
@@ -33,7 +33,7 @@ control.
 |------|-----------|
 | `doc_cache_list_services` | Read-only. Lists each configured service, its topics/URLs, chunk counts, and last-synced date. |
 | `doc_cache_add_service` | Registers a service + `[{topic, url}]`. Validates every URL against the allowlist, then does a structural YAML merge (dedup by topic), atomic write, and single-file git commit. Never fetches. |
-| `doc_cache_sync` | Ingests/refreshes a configured service: fetch → convert → chunk → cache → index into memsearch. Service must already exist in config. Rate-limited to 10/minute in the research manifest (LLM/embedding cost control). |
+| `doc_cache_sync` | Ingests/refreshes a configured service: fetch → convert → chunk → cache → index into memsearch. Service must already exist in config. Rate-limited to 10/minute in the research manifest (LLM/embedding cost control). Result gained a top-level `ok`/`index_error` pair in v0.2.0 — check those rather than inferring success from the absence of `errors`. |
 
 ## Source-URL allowlist (the security core)
 
@@ -73,6 +73,14 @@ Environment variables (prefix `DOC_CACHE_MCP_`):
 | `DOC_CACHE_MCP_ALLOWLIST_PATH` | `host-forge-scripts/doc-cache-allowlist.yml` | Source-URL allowlist |
 | `DOC_CACHE_MCP_GIT_COMMIT` | `true` | Commit `doc-sync.yml` after a successful add |
 | `DOC_CACHE_MCP_MAX_ENTRIES_PER_ADD` | `50` | Ceiling on source entries accepted in one `add_service` call |
+| `DOC_CACHE_MCP_GIT_PUSH` | `false` | Push the `doc-sync.yml` commit after a successful add. **Off by default** — turning it on gives this MCP unattended write access to a shared repo's `main`, gated by seven fail-closed guards (identity, scoped deploy key, commit-range ownership, path scope, additive-only diff, audit log, review-branch fallback on any trip). See the [repo README](https://github.com/TadMSTR/doc-cache-mcp#pushing) for the full guard list. |
+| `DOC_CACHE_MCP_DEPLOY_KEY_PATH` | unset | ed25519 ssh key used for the push, required when `GIT_PUSH` is on. New credential: `~/.secrets/doc-cache-mcp-deploy`, mode `0600`, scoped to write on `host-forge/scripts` only. |
+| `DOC_CACHE_MCP_PUSH_REMOTE` / `_PUSH_BRANCH` | `origin` / `main` | Push target |
+| `DOC_CACHE_MCP_REVIEW_BRANCH_PREFIX` | `doc-cache-mcp/review` | Where a guarded-off commit lands instead of `main` |
+| `DOC_CACHE_MCP_COMMIT_IDENTITY_NAME` / `_EMAIL` | `doc-cache-mcp` / `doc-cache-mcp@forge` | Git identity used for tool commits |
+| `DOC_CACHE_MCP_AUDIT_LOG_DIR` | unset | Append-only JSONL sink for push decisions. Unset = no audit events. |
+
+> v0.2.0 (this deployment surface) is **not yet live** — it needs one `pm2 restart doc-cache-mcp` to pick up the doc-sync module change.
 
 Optional telemetry: `OTEL_EXPORTER_OTLP_ENDPOINT` (OTLP span export, `service.name` is
 `doc-cache-mcp`) and `INFLUXDB_URL`/`INFLUXDB_TOKEN`/`INFLUXDB_BUCKET` (best-effort per-call
