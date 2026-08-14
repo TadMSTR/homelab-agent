@@ -25,7 +25,27 @@ Forge-specific patches (see `git log` on `forge-main` for the current list):
 - `UserPromptSubmit` hook upgraded to inject memsearch results
 - PATH fix for hook venv discovery
 
-**Version status:** fork baseline v0.4.14; upstream is one release ahead at v0.4.15 (non-security commits). Reconciliation is deferred, not yet scheduled.
+**Version status:** synced 2026-08 (`memsearch-fork-upstream-sync-2026-08`) — `forge-main` merged
+upstream/main through `d5809d7` (v0.4.17+3) at forge commit `5588877`, via
+`TadMSTR/memsearch#9`. 28 upstream commits merged, 0 commits still lacking against
+upstream at time of sync.
+
+**Version scheme:** take upstream's version number and apply a `-forge.N` suffix to
+`plugin.json` and `.claude-plugin/marketplace.json` **only** — `pyproject.toml` and
+`uv.lock` stay bare. Reset `N` to 1 whenever the upstream base version changes. Current:
+`0.4.17-forge.1`. The fork does not cut its own git tags and there is no `CHANGELOG.md`
+in the repo or upstream — the plugin version bump in those two files *is* the release
+mechanism.
+
+**Verifying a plugin-cache refresh:** do not check for a `## Session HH:MM` heading in a
+fresh session transcript as a sign the cache refreshed — upstream commit `e657b05`
+(adopted in the 2026-08 sync) moved that heading from an eager write in
+`session-start.sh` to a lazy write in `stop.sh`, first written on the session's first
+content-bearing Stop. A good refresh with no Stop yet looks identical to a broken one
+under the old check. Verify instead with `installed_plugins.json` (expected version
+present) plus `plugin-drift-sentinel.py` exiting 0 with no `cache_content` failure — see
+[plugin-drift-sentinel.md](../components/plugin-drift-sentinel.md) for what that assertion
+checks; not duplicated here.
 
 ## Checking for upstream updates
 
