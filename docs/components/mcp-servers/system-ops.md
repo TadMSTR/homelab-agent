@@ -63,3 +63,12 @@ All manifests register it as `mcp_proxy` type pointing to `http://localhost:8282
 - Full shell access via `run_command` — security boundary enforced at scoped-mcp manifest level
 - File write operations create parent directories automatically; agents must be trusted
 - Security agent has `edit_file` denied to prevent modification of audited files
+
+## Known Issue: No `~` Expansion
+
+`read_file`, `write_file`, `edit_file`, and `read_directory` do not expand a leading `~`
+in paths. A path like `~/notes/example.md` is resolved against the server's own working
+directory, which creates (or reads/writes under) a literal `~` directory rather than the
+caller's home directory — and the call still returns a success result, so the failure is
+silent. This affects every agent with system-ops access, not just one. Always pass
+absolute paths (`/home/<user>/...`) when calling these tools.
