@@ -4,15 +4,16 @@ task-queue-mcp is a containerized FastMCP server that exposes the forge agent ta
 as an MCP tool surface. Agents submit, retrieve, and transition tasks via MCP tool calls;
 task state is persisted to per-task YAML files on disk. As of v0.3.0 it also serves a
 shared-secret HTTP control API on the same port — the single validated mutation path for
-non-MCP clients (the CloudCLI plugin and the Matrix bot).
+non-MCP clients (the CloudCLI plugin and the Matrix bot). As of v0.7.0/v0.8.x, both
+surfaces on the port require a credential — see [Authentication](#authentication) below.
 
 - **Source:** `~/repos/personal/task-queue-mcp` (TadMSTR/task-queue-mcp)
-- **Version:** v0.4.0
+- **Version:** v0.8.2 — deployed and verified live 2026-08-16 (`task-queue-identity-hardening-2026-08`)
 - **Port:** `127.0.0.1:8485` — MCP (`/mcp`) and the HTTP control API (`/tasks/...`) share it
 - **Queue dir:** `~/.claude/task-queue/` (host-mounted)
 - **Network:** `forge-net`
 - **Wiring:** registered globally in `~/.claude.json`, so all Claude Code agent sessions
-  have access (also proxied per-agent via scoped-mcp)
+  have access (also proxied per-agent via scoped-mcp, with a per-agent bearer token header)
 
 ## Container Hardening
 
@@ -37,19 +38,20 @@ the target agent may not — the same trust boundary that keeps `cancelled` oper
 applied to rewriting a task's own brief.
 
 As of v0.4.0, `quarantine_task` / `restore_task` are removed entirely — `park_task` /
-`unpark_task` replace them, and `amend_task` is new.
+`unpark_task` replace them, and `amend_task` is new. As of v0.8.0, the caller column below
+is enforced, not just conventional — see [Identity binding](#identity-binding-since-v080).
 
 | Tool | Caller | What it does |
 |------|--------|-------------|
-| `submit_task` | agent | Create a new task (`status: submitted`); validates type, risk, priority, `workflow_mode` |
-| `list_tasks` | agent | List tasks with optional filters; TTL-expired and archived tasks excluded. Parked tasks are exempt from the TTL filter and stay listed |
+| `submit_task` | agent | Create a new task (`status: submitted`); validates type, risk, priority, `workflow_mode`. `source_agent` is bound to the caller's authenticated identity |
+| `list_tasks` | agent | List tasks with optional filters; TTL-expired *terminal* tasks and archived tasks excluded. Non-terminal tasks (any open work) are never TTL-filtered as of v0.8.1 — see [TTL and visibility](#ttl-and-visibility) |
 | `get_task` | agent | Retrieve a task by full UUID (also resolves archived tasks) |
-| `update_task` | agent | Strict status transition; appends a history entry |
-| `set_task_status` | operator | Audited status change — approve, cancel, park, or advance a missed task (`allow_override`) |
-| `cancel_task` | operator | Graceful terminal `cancelled` state for stale tasks (record kept) |
-| `park_task` | operator | Pause a task without hiding it — status changes to `parked`, the YAML file never moves, stays listed, exempt from TTL |
-| `unpark_task` | operator | Return a parked task to the status recorded in `parked_from` (or an explicit target status) |
-| `amend_task` | source agent or operator | Append a correction to a queued task. `payload.description` is never rewritten; amendments accumulate under `payload.amendments`, capped at 10 per task / 4096 chars each |
+| `update_task` | the task's target agent, or operator | Strict status transition; appends a history entry |
+| `set_task_status` | **operator only** | Audited status change — approve, cancel, park, or advance a missed task (`allow_override`). Refused for any agent identity as of v0.8.0 |
+| `cancel_task` | **operator only** | Graceful terminal `cancelled` state for stale tasks (record kept). Refused for any agent identity as of v0.8.0 |
+| `park_task` | the task's target agent, or operator | Pause a task without hiding it — status changes to `parked`, the YAML file never moves, stays listed, exempt from TTL |
+| `unpark_task` | the task's target agent, or operator | Return a parked task to the status recorded in `parked_from` (or an explicit target status) |
+| `amend_task` | the task's source agent, or operator | Append a correction to a queued task. `payload.description` is never rewritten; amendments accumulate under `payload.amendments`, capped at 10 per task / 4096 chars each |
 
 ### Status lifecycle
 
@@ -81,6 +83,19 @@ The `workflow_mode` field (`semi-auto` default, or `auto`) controls dispatcher b
 `semi-auto` queues the task for operator pickup with a Matrix notification, `auto` launches
 the target agent headlessly.
 
+### TTL and visibility
+
+`list_tasks` still excludes **terminal** tasks (`completed`, `failed`, `cancelled`) past
+their `ttl_days` — finished work is meant to age out of the default view. As of v0.8.1
+(vikunja#395), **no non-terminal status is TTL-filtered anymore**. Every open task stays
+visible however old it is. This closed a real blind spot, not a hypothetical one: a queue
+sweep found 17 stranded tasks where `list_tasks` had reported only 13 — the four oldest had
+aged past `ttl_days` and vanished from the listing used to count them, while still sitting
+on disk waiting for someone. Nothing that is still someone's responsibility should be hidden
+by a clock; an agent handed a stale open task can judge it, but nobody can act on a task they
+cannot see. Whenever "how many are there" is answered by `list_tasks`, remember it filters —
+count from the queue directory directly if the exact number matters.
+
 ## HTTP Control API
 
 Non-MCP clients can't import the Python core, so their mutations go through a thin HTTP
@@ -97,29 +112,120 @@ prior three-writer divergence between the core, the plugin, and the bot).
 | `POST` | `/tasks/{id}/park` | `park_task` |
 | `POST` | `/tasks/{id}/unpark` | `unpark_task` (body: optional `status`) |
 | `POST` | `/tasks/{id}/amend` | `amend_task` (body: `amendment`, optional `reason`) |
+| `POST` | `/tasks/{id}/update` | `update_task` (body: `status`, `note`, `output`, optional `on_behalf_of`) — the operator sweep, see below |
 | `GET` | `/queue/summary` | Counts by status across the active queue — bucketed under `"unknown"` for any out-of-vocabulary status rather than dropped |
 
-**Auth.** Custom routes bypass the MCP middleware, so a shared-secret header gates them:
-send `X-Task-Queue-Secret: $TASK_QUEUE_API_SECRET` on every mutation. The server compares it
-in constant time (`hmac.compare_digest`) and **fails closed** (`401`) when the secret is
-missing, wrong, non-ASCII, or unconfigured. The secret lives in `~/.secrets/forge.env` and
-is injected via env into the container, bot, and plugin — never committed to source.
+**Auth.** Custom routes bypass the MCP tool-path auth (see below), so a shared-secret header
+gates them instead: send `X-Task-Queue-Secret: $TASK_QUEUE_API_SECRET` on every mutation. The
+server compares it in constant time (`hmac.compare_digest`) and **fails closed** (`401`) when
+the secret is missing, wrong, non-ASCII, or unconfigured. The secret lives in
+`~/.secrets/forge.env` and is injected via env into the container, bot, and plugin — never
+committed to source. `actor` is **pinned to `operator`** on every control route as of v0.8.0
+— not read from the request body — so a future non-operator client here cannot quietly
+acquire the identity every ownership check exempts.
 
-> **Deploy note:** secret provisioning is a separate sysadmin task. Until
-> `TASK_QUEUE_API_SECRET` is provisioned in the environment, the control API fails closed and
-> the plugin/bot mutation path is not live. The MCP tools are unaffected.
+### The operator sweep — `POST /tasks/{id}/update`
+
+The only path to a terminal transition on **another agent's** task, added in v0.8.0. It
+replaces a dishonest pattern: before identity binding, an agent could tidy up a stranded task
+belonging to a different agent by simply passing that agent's name as `actor` on `update_task`
+— 17 tasks were swept that way during `task-queue-lifecycle-and-doc-queue-2026-08`, correctly
+outcome-wise but with a self-asserted, unverifiable `actor`. Binding `actor` to the bearer
+token closes that route entirely, so a real replacement was needed for the legitimate case:
+an operator closing a task nobody is coming back to claim.
+
+Pass `on_behalf_of` naming the agent whose task it is. The handler verifies it against the
+task's actual `target_agent` — a mismatch is a `400`, since an operator closing a
+misidentified task should be told, not have the mistake recorded as deliberate — and writes
+**both** names into history:
+
+```yaml
+history:
+  - timestamp: ...
+    status: completed
+    actor: operator
+    on_behalf_of: developer
+    note: "stranded; swept during queue cleanup"
+```
+
+A sweep reads as a sweep years later, not as the agent having quietly closed its own work.
+`on_behalf_of` is optional (omitting it is the operator acting in its own name) and is refused
+outright for any non-`operator` actor.
+
+## Authentication
+
+Both surfaces on port 8485 now require a credential — this is the headline change of the
+`task-queue-identity-hardening-2026-08` build (v0.7.0 → v0.8.2), deployed and verified live
+2026-08-16.
+
+**MCP tool path (`/mcp`).** Was unauthenticated through v0.6.1 — any caller on `forge-net` or
+loopback could invoke any tool while asserting any `actor`, including `operator`. As of
+v0.7.0 it requires a per-agent bearer token, `TASK_QUEUE_TOKEN_<AGENT>`, verified by FastMCP's
+`StaticTokenVerifier`. **The server refuses to start with no tokens configured at all** — this
+cannot silently fail open. Missing or unknown token → `401`.
+
+**HTTP control routes** are unchanged by this: still gated solely by the
+`X-Task-Queue-Secret` shared-secret header described above, not by a bearer token.
+
+### Identity binding (since v0.8.0)
+
+`actor` is **derived from the bearer token**, not taken from the caller. Passing a name that
+does not match the authenticated identity is refused rather than silently corrected — a wrong
+name in a call is a bug worth surfacing, not something to paper over. Omitting `actor` is
+fine; it is filled in from the token. This is what makes `completed_by` and
+`history[].actor` **evidence rather than claims**.
+
+This also covers `source_agent` on `submit_task`, which is an identity claim and not just a
+label: the submit-time auto-close (see the [task-queue-mcp README](https://github.com/TadMSTR/task-queue-mcp#auto-close-of-the-originating-task-since-v060))
+decides whether to fire from `source_agent`/`target_agent`, so spoofing it would terminally
+close another agent's task without ever calling `update_task`.
+
+### Capability rules
+
+| Tool | Who may call it |
+|---|---|
+| `submit_task`, `list_tasks`, `get_task` | any authenticated agent (`source_agent` bound to the caller) |
+| `update_task` | the task's `target_agent`, or the operator |
+| `park_task`, `unpark_task` | the task's `target_agent`, or the operator |
+| `amend_task` | the task's `source_agent`, or the operator |
+| `set_task_status`, `cancel_task` | **operator only** — refused for any agent identity |
+
+The `operator` identity is reachable **only** from the HTTP control routes — a
+`TASK_QUEUE_TOKEN_OPERATOR` is rejected at startup, because `operator` is exempt from every
+ownership check and a token minting it on the agent-facing transport would hand its holder
+the whole queue.
 
 ### Trust model
 
-**Loopback is the trust boundary.** The shared secret gates only the cross-process HTTP
-control routes — it is *not* the sole barrier to mutation. All MCP tools, including the
-operator-mutating ones, are reachable via the unauthenticated `/mcp/` JSON-RPC endpoint, so
-any process with loopback access to port 8485 can mutate the queue without the secret. This is
-intentional: the queue is internal agent-coordination state, the port is loopback-only, and
-the MCP transport has always been unauthenticated. The secret authenticates the *specific*
-cross-process clients over plain HTTP, not the loopback boundary. If loopback trust ever
-becomes insufficient, gate the MCP transport with a FastMCP auth provider rather than relying
-on the control-route secret alone.
+Follow this framing exactly — it is deliberately narrower than "the queue is secure":
+
+> **What this does and does not buy.** It contains a *mistaken or prompt-injected* agent
+> acting through its own tool surface, and it makes the audit trail mean what it says. It is
+> deliberately **not** a boundary against an agent that goes looking for credentials: where
+> agents hold a shell tool and run as the same OS user that owns the secret files, any token
+> on the host is readable by any of them. Closing that needs per-agent OS users or a
+> credential broker, and is out of scope for this server.
+
+That residual gap is tracked separately (vikunja#396) — `TASK_QUEUE_API_SECRET` is ambient in
+every agent's environment, so the control routes remain agent-reachable as `operator` by an
+agent willing to read its own env and call the HTTP API directly. Not fixed by this build.
+
+### Deployment prerequisite and order
+
+The per-agent tokens are not optional configuration — the server will not start without at
+least one. **Deploy order matters and is not reversible in practice:**
+
+1. Tokens into each agent's `.env` file (`TASK_QUEUE_TOKEN=<value>`) — inert until step 3.
+2. Manifests deployed (`agent-manifests-deploy.sh`) + each `scoped-mcp-<agent>` restarted —
+   still inert; a bearer header sent to a server with no auth configured is ignored.
+3. `TASK_QUEUE_TOKEN_<AGENT>` values into the server's env file, then **rebuild** (not just
+   restart) the container — this is the step that closes the gate.
+
+Reversing the order — closing the gate before every agent holds a valid token — locks every
+agent out of the queue at once, because scoped-mcp's manifest loader raises on start if a
+manifest references an undefined `${TASK_QUEUE_TOKEN}`. Rollback is simply removing the
+`TASK_QUEUE_TOKEN_*` lines from the server's env file and rebuilding; that reopens the
+pre-v0.7.0 gap but restores service without touching manifests or agent env files.
 
 ## Queue Directory Layout
 
@@ -146,30 +252,42 @@ place. Writes use `yaml.dump` (never string interpolation) to prevent YAML injec
 | `TASK_QUEUE_DIR` | `/task-queue` | Queue directory inside the container (host `~/.claude/task-queue/`) |
 | `MCP_HOST` | `0.0.0.0` | Bind host for the HTTP server |
 | `MCP_PORT` | `8485` | Port for MCP + the HTTP control API |
-| `TASK_QUEUE_API_SECRET` | — | Shared secret for the control API. **Required** for any control-API mutation — fails closed (`401`) if unset. MCP tools do not use it. |
+| `TASK_QUEUE_API_SECRET` | — | Shared secret for the HTTP control API. **Required** for any control-API mutation — fails closed (`401`) if unset. The MCP tools do not use it. |
+| `TASK_QUEUE_TOKEN_<AGENT>` | — | Per-agent bearer token for the MCP tool path, e.g. `TASK_QUEUE_TOKEN_DEVELOPER`. **At least one is required** — the server refuses to start with none. Suffix lowercased with `_` → `-` becomes the agent identity (`TASK_QUEUE_TOKEN_DOC_HEALTH` → `doc-health`). Each agent needs its own distinct token — a shared, empty, sub-16-character, or `operator`-named token is refused at startup. |
 
 ## Scoped-MCP Registration
 
-Registered in forge agent manifests that need task coordination:
+Registered in forge agent manifests that need task coordination, with the agent's own token
+injected as a bearer header (resolved from that agent's `.env`):
 
 ```yaml
-task-queue:
+task-queue-mcp:
   type: mcp_proxy
   config:
     url: http://localhost:8485/mcp
+    headers:
+      Authorization: "Bearer ${TASK_QUEUE_TOKEN}"
+    # sysadmin's surface is scoped further, as of the same build:
+    # tool_allowlist: [submit_task, list_tasks, get_task, update_task, amend_task]
+    # — set_task_status/cancel_task/park_task/unpark_task are operator-only anyway
+    # (see Capability rules above); the allowlist just keeps them off the agent's
+    # visible tool list rather than relying solely on the server-side refusal.
 ```
 
-Access is uniform across agents at the MCP layer (the operator/agent split is enforced by the
-tools themselves and by the control-API secret, not by per-agent tool grants).
+Tool access is now genuinely per-agent, not uniform: which agent a caller is determines what
+it may do, enforced by [identity binding](#identity-binding-since-v080) at the server, not
+just by manifest-level tool grants.
 
 ## Operations
 
 ```bash
-# Health / reachability
+# Health / reachability — now 401 without a valid bearer token, not 200; a non-401/200
+# response (connection refused, 5xx) is what indicates the server itself is down
 curl -s http://127.0.0.1:8485/mcp -o /dev/null -w '%{http_code}\n'
 
-# Container lifecycle (Docker stack)
-docker compose -f ~/docker/task-queue-mcp/compose.yaml restart task-queue-mcp
+# Container lifecycle — REBUILD when task-queue-mcp code changes, plain restart is not
+# enough to pick up a new image; restart is fine for picking up an env-file-only change
+docker compose -f ~/docker/task-queue-mcp/compose.yaml up -d --build
 docker logs task-queue-mcp --tail 50
 ```
 
