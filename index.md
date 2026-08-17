@@ -209,6 +209,7 @@ homelab-agent/
 | `docs/components/platform/git-drift-alert.md` | Uncommitted git drift alerting |
 | `docs/components/platform/git-remote-cred-check.md` | Plaintext credentials in git remote URLs |
 | `docs/components/memory/memory-compact-qc.md` | Weekly QC on `memsearch compact` output |
+| `docs/components/plugin-drift-sentinel.md` | Claude Code plugin marketplace drift detection |
 | `docs/components/dep-update-check.md` | Dependency update scanner |
 | `docs/components/forge-reboot-gate.md` | Reboot-required gate check |
 | `docs/components/venv-deploy.md` | Python venv deployment pattern |
