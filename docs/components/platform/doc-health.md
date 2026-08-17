@@ -38,8 +38,13 @@ The full scan runs all 7 checks. The targeted scan runs only checks 1, 2, 6, and
 | Full | `~/.claude/memory/shared/doc-health-report.md` |
 | Targeted | `~/.claude/memory/shared/doc-health-targeted-report.md` |
 
-Reports are overwritten each run. Findings that require doc updates are written to the
-doc queue at `~/.claude/memory/shared/doc-update-queue.jsonl`.
+Reports are overwritten each run. Findings that require doc updates are submitted to the
+task queue (`task_type: docs`, one task per doc) rather than appended to a queue file — the
+flat `~/.claude/memory/shared/doc-update-queue.jsonl` this used to write was retired
+2026-08-16. `action-needed` findings (checks 3 and 4) become one task each; `warn`-level
+coverage gaps are collapsed into a single batched task per run rather than one task per
+finding, so a run surfacing several minor gaps doesn't dump a double-digit burst into the
+writer's queue.
 
 ## Configuration
 

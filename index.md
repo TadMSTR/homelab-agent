@@ -203,7 +203,7 @@ homelab-agent/
 | `docs/components/platform/doc-sync-daily.md` | Daily doc sync cron |
 | `docs/components/platform/disk-space-probe.md` | Disk usage monitoring + alerts |
 | `docs/components/platform/snapshot-monitoring.md` | Btrfs snapshot space monitoring (bloat + capacity probes, retention) |
-| `docs/components/platform/writer-doc-queue.md` | Writer doc-queue cron (headless doc drafting) |
+| `docs/components/platform/writer-doc-queue.md` | Writer task-queue cron (headless doc drafting) |
 | `docs/components/platform/drift-detector-scan.md` | Config drift detection |
 | `docs/components/platform/build-unblock-scan.md` | Stalled build detection |
 | `docs/components/platform/git-drift-alert.md` | Uncommitted git drift alerting |

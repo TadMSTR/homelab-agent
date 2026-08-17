@@ -1,52 +1,58 @@
 # writer-doc-queue
 
 `writer-doc-queue` is a daily PM2 cron that launches a headless writer agent session to
-process pending entries in the forge doc queue — the consumer side of
+process approved documentation tasks on the task queue — the consumer side of
 [doc-health](doc-health.md)'s findings and of build agents' post-build doc requests.
 
 - **Script:** `~/scripts/writer-doc-queue-run.sh`
 - **Schedule:** `0 21 * * *` (daily, 21:00)
 - **No listening port** — runs as a scheduled batch job, not always-on
 
+> The doc-side work-list used to be a separate flat file
+> (`~/.claude/memory/shared/doc-update-queue.jsonl`), read independently of the task queue
+> that triggered this cron. That split queue was retired 2026-08-16 — the task queue is now
+> the writer's only work-list, and this cron's pre-flight check and the writer's skill both
+> read it. See [doc-health](doc-health.md) for how findings reach the queue.
+
 ## How it works
 
 1. Cron fires `writer-doc-queue-run.sh`, which does a **pre-flight check** before spending
    any API tokens: it scans `~/.claude/task-queue/*.yml` directly (task-queue-mcp has no
-   REST API) for tasks with `target_agent: writer` and `status` in `approved`/`submitted`.
+   REST API) for tasks with `target_agent: writer` and `status: approved`.
 2. If the pending count is `0`, the script logs and exits — no Claude session is launched.
 3. Otherwise it sources writer agent secrets from `/opt/appdata/agents/writer/.env`
    (`SCOPED_MCP_BEARER_TOKEN` etc. — mirrors the task-dispatcher's `load_agent_env()`,
    SMCP-28). Without this, the writer project's `.mcp.json` bearer header resolves empty and
    the session silently starts with no scoped-mcp tools.
-4. Launches `claude -p --dangerously-skip-permissions` from `~/.claude/projects/writer`
-   with the prompt: *"You have pending documentation tasks in the queue. Run the
-   writer-doc-queue skill to process them."*
-5. The invoked session runs the `writer-doc-queue` skill, which reads
-   `~/.claude/memory/shared/doc-update-queue.jsonl`, processes `pending` entries in priority
-   order (routing by `type` per the writer project's CLAUDE.md), writes/updates docs,
-   commits, and marks each entry `done` (or `pending-review` if blocked).
+4. Launches `claude -p --dangerously-skip-permissions` from `~/.claude/projects/writer`,
+   naming the specific approved task IDs it found in the launch prompt: *"You have approved
+   documentation tasks in the queue: `<id>, <id>, ...`. Run the writer-task-queue skill to
+   process them."*
+5. The invoked session runs the `writer-task-queue` skill (renamed from `writer-doc-queue`
+   2026-08-16), which claims each named task via `task-queue-mcp: update_task(status:
+   in-progress)`, writes/updates the doc, commits, and closes it (`status: completed`) — or
+   `park_task`s it with the blocking question if it can't proceed.
 
-Manual writer sessions (interactive or task-triggered) also process the queue safely — the
-`in-progress`/`done` status field on each queue entry prevents double-processing between the
-cron and an ad-hoc session.
+Manual writer sessions (interactive or task-triggered) also process the queue safely — a
+task's `in-progress`/`completed` status prevents double-processing between the cron and an
+ad-hoc session, the same guarantee the retired JSONL's status field used to provide.
 
 ## Configuration
 
 | Setting | Value |
 |---------|-------|
 | Task queue scan dir | `~/.claude/task-queue/` (flat YAML files) |
-| Doc queue | `~/.claude/memory/shared/doc-update-queue.jsonl` |
 | Writer secrets | `/opt/appdata/agents/writer/.env` |
 | Log | `~/logs/writer-doc-queue.log` |
 
 ## Dependencies
 
-- **task-queue-mcp** — YAML task files gate whether a session launches at all
-- **doc-health** — primary producer of doc queue entries (coverage gaps, staleness)
+- **task-queue-mcp** — the writer's sole work-list; gates whether this cron launches a
+  session at all, and is what the launched session reads and writes to
+- **doc-health** — primary producer of doc tasks (coverage gaps, staleness) — submits
+  `task_type: docs` tasks directly rather than appending to a queue file
 - **scoped-mcp** (writer manifest) — githost-mcp, system-ops, qmd, matrix-mcp, etc. used
   during doc writing
-- **doc-update-queue.jsonl routing table** (writer project CLAUDE.md) — determines
-  destination repo/path per queue entry `type`
 
 ## Operations
 
@@ -60,10 +66,10 @@ tail -50 ~/logs/writer-doc-queue.log
 # Force a run
 pm2 restart writer-doc-queue
 
-# Check pending queue entries manually
-grep -c '"status": "pending"' ~/.claude/memory/shared/doc-update-queue.jsonl
+# Check approved writer tasks manually
+grep -l 'target_agent: writer' ~/.claude/task-queue/*.yml | xargs grep -l 'status: approved'
 ```
 
 ## Related docs
 
-- [doc-health](doc-health.md) — writes most of the entries this cron consumes
+- [doc-health](doc-health.md) — writes most of the tasks this cron consumes

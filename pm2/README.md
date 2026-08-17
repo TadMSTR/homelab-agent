@@ -62,7 +62,7 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `agent-bus-reconcile` | Every 5 min | Reconciles NATS JetStream state |
 | `doc-sync-daily` | Daily 03:00 | Syncs docs from source repos to QMD |
 | `doc-health-daily` | Daily 22:00 | Checks documentation coverage |
-| `writer-doc-queue` | Daily 21:00 | Processes pending doc queue entries |
+| `writer-doc-queue` | Daily 21:00 | Processes approved writer tasks from the task queue |
 | `memory-promote-daily` | Daily 23:00 | Promotes working → distilled memory |
 | `memory-pipeline` | Daily 04:00 | Full memory processing pipeline |
 | `memory-sync-weekly` | Mondays 07:00 | Cross-tier memory sync |
