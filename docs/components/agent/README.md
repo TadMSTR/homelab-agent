@@ -7,6 +7,8 @@ The services that make the multi-agent engine work: tool scoping, inter-agent me
 | Doc | Service | Port / Endpoint |
 |-----|---------|----------------|
 | [scoped-mcp.md](scoped-mcp.md) | Per-agent MCP proxy — manifest-controlled tool surface | stdio |
+| [steward.md](steward.md) | Sole proposer of changes to the root-owned agent-config surface | systemd, own port |
+| [forge-config-mcp.md](forge-config-mcp.md) | Closed op vocabulary steward uses to author config proposals | systemd, own port |
 | [agent-bus.md](agent-bus.md) | Inter-agent event log, HMAC signing, NATS federation | 8495 |
 | [task-queue-mcp.md](task-queue-mcp.md) | Task queue MCP server | 8496 |
 | [task-queue-widget.md](task-queue-widget.md) | Task queue dashboard widget (React, embedded in Matrix) | 3004 |
