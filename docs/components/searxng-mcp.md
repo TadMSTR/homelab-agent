@@ -7,8 +7,9 @@ the [project README](https://github.com/TadMSTR/searxng-mcp) for the full tool/a
 reference; this doc covers forge's deployment of it.
 
 - **Version:** v3.18.0
-- **Runs as:** Docker container (`~/docker/searxng-mcp/docker-compose.yml`), image
-  `searxng-mcp:local` built from repo main @ `a2a64d6`
+- **Runs as:** Docker container in the `searxng` stack (`~/docker/searxng/docker-compose.yml`),
+  co-located with SearXNG itself since a 2026-08-23 stack consolidation; image `searxng-mcp:local`
+  built from repo main @ `a2a64d6`
 - **Endpoint:** `http://127.0.0.1:8504` — bearer-authed
 - **Transport:** streamable-http
 - **Agents:** all agent manifests (developer, sysadmin, security, writer, research, harlock)
@@ -104,13 +105,13 @@ concurrency issue that no longer applies.
 
 ```bash
 # Status
-docker compose -f ~/docker/searxng-mcp/docker-compose.yml ps
+docker compose -f ~/docker/searxng/docker-compose.yml ps
 
 # Logs
-docker compose -f ~/docker/searxng-mcp/docker-compose.yml logs -f searxng-mcp
+docker compose -f ~/docker/searxng/docker-compose.yml logs -f searxng-mcp
 
 # Restart (e.g. after a token rotation — env_file changes need a recreate, not a bare restart)
-docker compose -f ~/docker/searxng-mcp/docker-compose.yml up -d --force-recreate searxng-mcp
+docker compose -f ~/docker/searxng/docker-compose.yml up -d --force-recreate searxng-mcp
 
 # Manual health check
 curl -s http://127.0.0.1:8504/health
@@ -124,7 +125,7 @@ curl -s -H "Authorization: Bearer $SEARXNG_MCP_TOKEN" http://127.0.0.1:8504/mcp
 `pm2 start searxng-mcp` **no longer works on its own** — the PM2 entry was deleted, not just
 stopped. Recreate it from `~/.claude/comms/artifacts/searxng-mcp-phase3/pm2-searxng-mcp.json`
 (`bash /home/ted/scripts/run-searxng-mcp-http.sh`, fork mode, cwd `/home/ted`), then
-`docker compose -f ~/docker/searxng-mcp/docker-compose.yml down`. The manifests' bearer header is
+`docker compose -f ~/docker/searxng/docker-compose.yml down`. The manifests' bearer header is
 harmless against the PM2 instance — it has no auth check to reject it with.
 
 ## scoped-mcp Integration
