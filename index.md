@@ -11,12 +11,12 @@ homelab-agent/
 ├── CHANGELOG.md                 # Build history
 ├── index.md                     # THIS FILE — navigation index
 ├── docs/
-│   ├── components/              # Per-service operational reference (99 docs)
+│   ├── components/              # Per-service operational reference (103 docs)
 │   │   ├── foundation/          # Host, reverse proxy, auth, secrets, backups (10)
 │   │   ├── observability/       # Grafana, Loki, SigNoz, Langfuse, exporters (13)
 │   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (10)
 │   │   ├── memory/              # Memory architecture, Milvus, memsearch, Graphiti (9)
-│   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (16)
+│   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (18)
 │   │   ├── apps/                # Nextcloud, Plane, Vikunja, tools stack (8)
 │   │   ├── mcp-servers/         # system-ops, githost, dockhand, patchmon, pm2 (12)
 │   │   ├── cicd/                # Woodpecker, Temporal, Renovate, CloudCLI (7)
@@ -150,6 +150,8 @@ homelab-agent/
 | `docs/components/agent/matrix-hitl-bot.md` | Matrix HITL approval bot (scoped-mcp in-session approvals) |
 | `docs/components/agent/nats-mcp.md` | NATS publish/subscribe MCP |
 | `docs/components/agent/harlock.md` | Harlock personal agent |
+| `docs/components/agent/steward.md` | Config steward agent — proposals, countersign, apply |
+| `docs/components/agent/forge-config-mcp.md` | Root-owned config surface MCP (/etc/forge) |
 | `manifests/` | Sanitized agent manifest examples |
 | `claude-code/` | Claude Code project configs |
 
