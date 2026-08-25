@@ -31,7 +31,7 @@ See [`docs/components/agent/scoped-mcp.md`](../docs/components/agent/scoped-mcp.
 | dockhand-mcp | [doc](../docs/components/mcp-servers/dockhand-mcp.md) | subprocess | Docker stack management |
 | signoz-mcp | [doc](../docs/components/observability/signoz-mcp.md) | :8492 HTTP | APM traces and logs (v0.3.0) |
 | githost-mcp | [doc](../docs/components/mcp-servers/githost-mcp.md) | subprocess | Git + GitHub/Gitea/GitLab ops (v0.5.0, 45 tools, HITL merge gate on GitHub/GitLab merge tools) |
-| searxng-mcp | [doc](../docs/components/ai-search/searxng-mcp.md) | subprocess | Web search |
+| searxng-mcp | [doc](../docs/components/ai-search/searxng-mcp.md) | :8504 HTTP | Web search |
 | langfuse-mcp | [doc](../docs/components/observability/langfuse-mcp.md) | subprocess | LLM trace queries |
 | loki-mcp | [doc](../docs/components/observability/loki-mcp.md) | subprocess | Loki log queries |
 | grafana-mcp | [doc](../docs/components/observability/grafana-mcp.md) | :8014 SSE | Grafana dashboard queries |

@@ -1,180 +1,157 @@
 # searxng-mcp
 
-searxng-mcp is a FastMCP MCP server (Node.js/TypeScript) that wraps SearXNG with
-intelligent web fetching, ML-based result reranking, and multi-tier content extraction.
-It provides forge agents with local web search and page retrieval without sending queries
-to third-party search APIs.
+An MCP server for private web search via a self-hosted [SearXNG](https://github.com/searxng/searxng)
+instance — search with local ML reranking, full-page fetch via a Firecrawl/Crawl4AI/raw-HTTP
+cascade, and a domain capability database that learns which fetch tier works for which host. See
+the [project README](https://github.com/TadMSTR/searxng-mcp) for the full tool/architecture
+reference; this doc covers forge's deployment of it.
 
-- **Package:** `@tadmstr/searxng-mcp` v3.12.0 (TadMSTR/searxng-mcp)
-- **Repo:** `/home/ted/repos/personal/searxng-mcp/`
-- **Transport:** stdio — spawned per agent session via `/home/ted/scripts/run-searxng-mcp.sh`
-- **Runtime:** Node.js 20+
+- **Version:** v3.18.0
+- **Runs as:** Docker container in the `searxng` stack (`~/docker/searxng/docker-compose.yml`),
+  co-located with SearXNG itself since a 2026-08-23 stack consolidation; image `searxng-mcp:local`
+  built from repo main @ `a2a64d6`
+- **Endpoint:** `http://127.0.0.1:8504` — bearer-authed
+- **Transport:** streamable-http
+- **Agents:** all agent manifests (developer, sysadmin, security, writer, research, harlock)
 
-## Architecture
+## What changed 2026-08-19
 
-```mermaid
-flowchart TD
-    agent["Forge agent"]
-    agent -->|"stdio via run-searxng-mcp.sh"| mcp["searxng-mcp"]
+This service was a bare PM2 process on `127.0.0.1:8504` with **no authentication** for its
+entire life, which was survivable only because it was loopback-bound. Containerising it forces a
+`0.0.0.0` bind so it resolves by container name — deleting the only thing protecting an
+arbitrary-URL `fetch_url` tool and a destructive `clear_cache` tool. So bearer auth shipped
+*before* the container did, not alongside it: the auth landed in v3.18.0's first two phases, and
+only once every agent manifest carried the bearer header did the cutover flip the socket from the
+PM2 process to the container. Zero outage, each step independently verifiable — the manifests'
+header was harmless against the old unauthenticated PM2 instance for the time both existed.
 
-    mcp -->|"expand query (optional)"| ollama["Ollama :11435\nquery expansion"]
-    mcp -->|"search"| searxng["SearXNG :8081"]
-    searxng --> results["raw results"]
-    results -->|"rerank"| reranker["Reranker :8787\n(ML model)"]
-    reranker --> ranked["ranked results → agent"]
+The PM2 process (`~/scripts/run-searxng-mcp-http.sh`) is **stopped, deleted, and pm2-saved** —
+it no longer exists. There is one instance of this service now, not two.
 
-    mcp -->|"fetch_url / search_and_fetch"| cascade["Fetch cascade\n(see below)"]
-    cascade --> content["page markdown → agent"]
+## Port / Endpoint
 
-    mcp -->|"cache reads/writes"| dragonfly["Dragonfly :6381\n(search 1h · fetch 3d · crawl 6h)"]
+`127.0.0.1:8504`, bearer token required on every request except `GET /health`
+(`Authorization: Bearer ${SEARXNG_MCP_TOKEN}`). **There is no unauthenticated fallback** — unset
+the token and every agent gets 401. One shared token authenticates access to the server as a
+whole; searxng-mcp has no per-caller authorization model, so per-agent tokens would imply scoping
+the server doesn't implement. Tool-level scoping (e.g. denying `clear_cache` to a given agent)
+stays at the scoped-mcp proxy layer, not here.
 
-    mcp -->|"search_and_summarize"| ollama2["Ollama :11435\nsummarize model"]
+`GET /health` is exempt by design — it's the container healthcheck, takes no input, and its
+response carries no secrets:
 
-    mcp -->|"events"| nats["NATS :4222\nevents.searxng.*"]
-    mcp -->|"traces"| signoz["SigNoz OTLP :4318"]
+```json
+{"status": "ok", "cache": "up", "sessions": 3}
 ```
 
-## Tools (6)
+It returns **503 when Valkey is unreachable**, so a cache outage marks the container unhealthy
+even though the server itself fails soft (cache miss → serve live, doesn't error). `restart:
+unless-stopped` does not act on container health, so nothing auto-restarts as a result — this
+surprises people, worth knowing before assuming a 503 means the process is down.
 
-| Tool | Description |
-|------|-------------|
-| `search` | Query SearXNG with local reranking; returns top N results (1–20) |
-| `search_and_fetch` | Search, rerank, fetch full content (1–3 results) via fetch cascade |
-| `search_and_summarize` | Search, fetch, synthesize summary with Ollama (1–5 results) |
-| `fetch_url` | Extract readable markdown from any URL via tiered fetch cascade |
-| `crawl_site` | Crawl entire site; returns URL/title/snippet manifest (Firecrawl → sitemap → optional BFS) |
-| `clear_cache` | Purge search/fetch/crawl/all caches in Dragonfly |
+## Configuration
 
-## Fetch Cascade
+| Variable | Purpose |
+|----------|---------|
+| `SEARXNG_MCP_AUTH_TOKEN` | Bearer token clients must present; injected via manifest env from `SEARXNG_MCP_TOKEN` |
+| `SEARXNG_MCP_TRANSPORT` / `SEARXNG_MCP_HOST` / `SEARXNG_MCP_PORT` | Fixed to `http` / `0.0.0.0` / `8504` in the container — the `8504:8504` host publish depends on the port override matching |
+| `DOMAIN_DB_SNAPSHOT_DIR` / `DOMAIN_DB_SNAPSHOT_RETENTION` | Domain-capability-DB snapshot durability (`/snapshots`, retention 60) |
+| Service URLs (`SEARXNG_URL`, `FIRECRAWL_URL`, `RERANKER_URL`, `CRAWL4AI_URL`, `OLLAMA_URL`, `KIWIX_URL`, `ADBLOCK_PROXY_URL`, `NATS_URL`) | See `docker-compose.yml` — several of these are easy to get wrong across the container/host boundary, see below |
+| `NATS_USER` / `NATS_SUBJECT_PREFIX` | `searxng-mcp` / `events.searxng` |
 
-`fetch_url` uses a multi-tier strategy with per-domain success tracking. Tiers are tried in
-order; each failure falls through to the next. Per-domain success rates are tracked in
-Dragonfly — if a domain's success rate drops below 30% over 10+ tries, that tier is skipped.
+Secrets: `/home/ted/.secrets/searxng-mcp.env`, chmod 600. Deliberately **not** `forge.env` — that
+would inject `ANTHROPIC_API_KEY` and `GITEA_TOKEN` into a container with no use for them.
 
-```mermaid
-flowchart TD
-    entry["fetchPage(url)"]
-    cache{"Valkey\ncache hit?"}
-    cached["return cached result"]
-    github{"github.com?"}
-    gh_fetch["GitHub API / raw.githubusercontent.com"]
-    llms{"llms.txt domain?"}
-    llms_fetch["Probe /llms-full.txt → extract section"]
-    kiwix{"Kiwix host?\nKIWIX_URL set"}
-    kiwix_fetch["Kiwix ZIM\nWikipedia · Stack Overflow · Arch Wiki"]
-    pdf{".pdf URL?"}
-    robots["robots.txt pre-check\ndisallowed → error (cached 24h)"]
-    tier_skip(["Per-domain tier skip\n&lt;30% success rate over ≥10 tries\nor operator override"])
-    t1["Tier 1 — Firecrawl :3002\nJS-rendered extraction"]
-    t2["Tier 2 — Crawl4AI :11235\n(optional · adblock proxy if set)"]
-    t3["Tier 3 — Raw HTTP + Readability\n(adblock proxy if set)"]
-    t4["Tier 4 — Wayback Machine\n(opt-in · WAYBACK_ENABLED=true)"]
-    post["Post-extraction\ntitle cascade · JSON-LD"]
-    result["return { title, url, text }"]
+**Three dependency-URL traps**, worth knowing before debugging a "why can't it reach X":
 
-    entry --> cache
-    cache -->|hit| cached
-    cache -->|miss| github
-    github -->|yes| gh_fetch
-    github -->|no| llms
-    llms -->|yes| llms_fetch
-    llms -->|no| kiwix
-    kiwix -->|yes| kiwix_fetch
-    kiwix -->|no| pdf
-    pdf -->|"yes — skip tier 1"| t2
-    pdf -->|no| robots
-    robots --> tier_skip --> t1
-    t1 -->|success| post
-    t1 -->|"empty / error"| t2
-    t2 -->|success| post
-    t2 -->|"empty / error"| t3
-    t3 -->|success| post
-    t3 -->|"empty / error"| t4
-    t4 --> result
-    post --> result
-```
-
-Robots.txt compliance is enforced on tiers 1–3. Adblock filtering is available via
-`ADBLOCK_PROXY_URL` (applied to tiers 2 and 3).
-
-### Adblock proxy container
-
-`ADBLOCK_PROXY_URL` points at `crawler-adblock-proxy-1` — a standalone HTTP proxy (built
-from `searxng-mcp/docker/adblock-proxy`, `@ghostery/adblocker` filter lists) deployed in its
-own `~/docker/crawler/docker-compose.yml` stack (compose project `crawler`, network
-`fetch-net`), not part of the Firecrawl or Crawl4AI stacks it fronts. It listens on
-`127.0.0.1:8118` (host-bound, since searxng-mcp runs as a host stdio process, not a
-container) and blocks plain-HTTP ad/tracker requests with an empty `200` response;
-HTTPS `CONNECT` is tunneled without MITM. Filter lists (EasyList + EasyPrivacy) refresh
-every 168 hours (`ADBLOCK_REFRESH_HOURS`).
-
-## Environment Variables
-
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `SEARXNG_URL` | Yes | SearXNG instance (default: `http://localhost:8081`) |
-| `FIRECRAWL_URL` | Yes | Firecrawl extraction endpoint (port 3002) |
-| `CRAWL4AI_URL` | No | Crawl4AI fallback (port 11235) |
-| `RERANKER_URL` | Yes | ML reranker endpoint (port 8787) |
-| `VALKEY_URL` | Yes | Dragonfly/Valkey cache (port 6381, db1; 3-day fetch TTL) |
-| `OLLAMA_URL` | No | Ollama for search_and_summarize (port 11435) |
-| `KIWIX_URL` | No | Kiwix offline fast path |
-| `HISTER_URL` | No | Hister browser-history fast path |
-| `HISTER_TOKEN` | No | Bearer token for Hister |
-| `ADBLOCK_PROXY_URL` | No | HTTP proxy for ad filtering on tiers 2+3 |
-| `NATS_URL` | No | NATS for event publishing (`events.searxng.*`) |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | No | SigNoz distributed tracing |
-| `EXPAND_QUERIES` | No | Enable Ollama query expansion (default: false) |
-| `CRAWL_BFS_ENABLED` | No | Enable BFS crawl fallback (default: false) |
-| `CRAWL_MAX_PAGES_DEFAULT` | No | Max pages per crawl (default: 20) |
-| `CRAWL_MANIFEST_TTL_SECONDS` | No | Crawl manifest cache TTL (default: 21600) |
+- **Kiwix** — container port is **8080**, not the published host port (`8292`).
+  `http://kiwix:8292` fails; `http://kiwix:8080` works.
+- **Ollama** — traffic must go via **`ollama-queue-proxy:11435`**, not `ollama:11434` directly.
+  Going straight to `ollama` bypasses the queue proxy and the `OLLAMA_API_KEY` gate it enforces.
+- **`adblock-proxy`** — a compose service *alias*, not the real container name. The real
+  container is `crawler-adblock-proxy-1`; the alias only resolves on the `crawler_fetch-net`
+  network, which is why searxng-mcp joins that network in addition to `forge-net`.
 
 ## Dependencies
 
-| Service | Required | Port |
-|---------|----------|------|
-| SearXNG | Yes | 8081 |
-| Firecrawl | Yes | 3002 |
-| Reranker | Yes | 8787 |
-| Dragonfly (searxng-dragonfly) | Yes | 6381 |
-| Crawl4AI | No | 11235 |
-| Ollama | No | 11435 |
-| Kiwix | No | 8292 |
-| NATS | No | 4222 |
+| Service | Required | Purpose |
+|---------|----------|---------|
+| SearXNG | Yes | Underlying search engine |
+| Firecrawl | Yes | Tier-1 full-page fetch |
+| Valkey (`searxng-dragonfly`) | Recommended | Result/fetch caching + domain capability DB. Server degrades gracefully (no caching) if unreachable, but the domain DB — and therefore data-driven tier routing — needs it |
+| Crawl4AI, Ollama, Kiwix, reranker | Optional | Tier-2 fetch fallback, query expansion/summarization, offline-doc fast path, result reranking — each degrades independently when unset/unreachable |
 
-## scoped-mcp Wiring
+## Hardening
 
-Registered in all five agent manifests under `~/.claude/manifests/`:
+- `user: 1000:1000`, `cap_drop: [ALL]`, `no-new-privileges:true`
+- `read_only: true` root filesystem + tmpfs `/tmp` — all state lives in Valkey; the only writable
+  path is the bind mount `/opt/appdata/searxng/domain-db-snapshots` → `/snapshots`. If something
+  ever turns out to need a writable root, find out *what* before dropping this flag.
+- `mem_limit: 2g`, `cpus: 2.0`, `ulimits: core: 0`
+- Networks: `forge-net` and `crawler_fetch-net` (the latter solely for the `adblock-proxy` alias
+  above)
 
-| Manifest | Access |
-|----------|--------|
-| `sysadmin-agent.yml` | All tools except `clear_cache` |
-| `developer-agent.yml` | All tools except `clear_cache` |
-| `research-agent.yml` | All tools except `clear_cache` |
-| `security-agent.yml` | All tools except `clear_cache` |
-| `writer-agent.yml` | All tools except `clear_cache` |
+## Concurrent-write behaviour
 
-`clear_cache` is denied on all agents — shared Valkey cache, no individual agent should
-purge globally. `search_and_summarize` rate-limited to 10/min (LLM-intensive).
+Both the (former) PM2 process and this container wrote the same Valkey domain DB (`domain:*`).
+v3.17.0's Lua compare-and-set write primitive makes torn writes across processes structurally
+impossible, but conflict retries are bounded (3 attempts) with a `cas_exhausted` counter exposed
+if that budget is ever exceeded. This was relevant during the roughly one-hour window both
+instances existed side by side during cutover; it isn't a live concern now that PM2 is gone and
+there's a single writer again — noted here only so a future reader doesn't go looking for a
+concurrency issue that no longer applies.
 
-## Observability
+## Operations
 
-Events published to NATS subjects `events.searxng.*` when configured. OpenTelemetry
-traces sent to SigNoz via `OTEL_EXPORTER_OTLP_ENDPOINT`. Grafana dashboard
-"SearXNG-MCP Operations" tracks search/fetch/cache metrics.
+```bash
+# Status
+docker compose -f ~/docker/searxng/docker-compose.yml ps
 
-### Domain-capability database maintenance
+# Logs
+docker compose -f ~/docker/searxng/docker-compose.yml logs -f searxng-mcp
 
-The per-domain fetch-tier success tracking (§ Fetch Cascade) persists to a domain-capability
-database, schema v4 as of v3.14.0. A PM2 cron, `searxng-domain-db-maintenance` (`30 5 * * *`,
-in `~/repos/personal/searxng-mcp`), runs the `domain-db-maintenance` CLI daily: emits OTel
-gauges for the current domain-db state, writes a durable JSON snapshot
-(`DOMAIN_DB_SNAPSHOT_DIR`), and prunes entries past `DOMAIN_DB_SNAPSHOT_RETENTION`. A
-companion `restore-domain-db` CLI restores from the latest snapshot if the live db is lost.
+# Restart (e.g. after a token rotation — env_file changes need a recreate, not a bare restart)
+docker compose -f ~/docker/searxng/docker-compose.yml up -d --force-recreate searxng-mcp
+
+# Manual health check
+curl -s http://127.0.0.1:8504/health
+
+# Manual authenticated call
+curl -s -H "Authorization: Bearer $SEARXNG_MCP_TOKEN" http://127.0.0.1:8504/mcp
+```
+
+### Rollback
+
+`pm2 start searxng-mcp` **no longer works on its own** — the PM2 entry was deleted, not just
+stopped. Recreate it from `~/.claude/comms/artifacts/searxng-mcp-phase3/pm2-searxng-mcp.json`
+(`bash /home/ted/scripts/run-searxng-mcp-http.sh`, fork mode, cwd `/home/ted`), then
+`docker compose -f ~/docker/searxng/docker-compose.yml down`. The manifests' bearer header is
+harmless against the PM2 instance — it has no auth check to reject it with.
+
+## scoped-mcp Integration
+
+All 6 agent manifests carry `Authorization: Bearer ${SEARXNG_MCP_TOKEN}`, resolved from
+`/opt/appdata/agents/<type>/.env`. Tool scoping (e.g. `clear_cache` denylisting) is enforced at
+the proxy layer, not by searxng-mcp itself — see above.
 
 ## Security Notes
 
-- Runs as stdio subprocess — no network listener, no authentication surface
-- Robots.txt compliance enforced on all fetch tiers
-- Per-domain success tracking stored in Dragonfly for intelligent tier selection
-- Cache keys scoped by URL; no cross-agent data leakage
+Audited under `searxng-mcp-containerize-2026-08` (Phases 1-2: 0 Critical/High/Medium, 1 Info
+accepted; Phase 3: 0 Critical/High, 1 Medium + 1 Low fixed, 5 Info). Two accepted deviations from
+the standard network-isolation pattern, recorded in `accepted-risks.md`:
+
+| ID | Status | Note |
+|----|--------|------|
+| NE-02 | Accepted | Joins the ~55-container `forge-net` rather than a purpose-built network pair — bearer auth is judged the actual control here |
+| NE-03 | Accepted | In-container `0.0.0.0` bind — required for container-name DNS resolution; the startup guard makes an unauthenticated non-loopback bind loud rather than silent |
+
+Migration is not yet complete: vikunja#321 stays open for Phases 5-7 (cron reconciliation,
+LibreChat wiring, ticket cleanup).
+
+## Related Docs
+
+- [project README](https://github.com/TadMSTR/searxng-mcp) — full tool reference, architecture,
+  domain capability DB schema
+- `services.md` (host-forge-knowledge-base) — port registry entry
+- Phase docs (host-forge-knowledge-base): `phases/searxng-mcp-domain-db-writeloss-2026-08.md`,
+  `phases/searxng-mcp-containerize-2026-08.md`
