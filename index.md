@@ -11,12 +11,12 @@ homelab-agent/
 ├── CHANGELOG.md                 # Build history
 ├── index.md                     # THIS FILE — navigation index
 ├── docs/
-│   ├── components/              # Per-service operational reference (103 docs)
+│   ├── components/              # Per-service operational reference (104 docs)
 │   │   ├── foundation/          # Host, reverse proxy, auth, secrets, backups (10)
 │   │   ├── observability/       # Grafana, Loki, SigNoz, Langfuse, exporters (13)
 │   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (10)
 │   │   ├── memory/              # Memory architecture, Milvus, memsearch (9)
-│   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (18)
+│   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (19)
 │   │   ├── apps/                # Nextcloud, Plane, Vikunja, tools stack (8)
 │   │   ├── mcp-servers/         # system-ops, githost, dockhand, patchmon, pm2 (12)
 │   │   ├── cicd/                # Woodpecker, Temporal, Renovate, CloudCLI (7)
@@ -104,6 +104,7 @@ homelab-agent/
 | `docs/components/agent/synapse.md` | Matrix homeserver |
 | `docs/components/agent/nats.md` | Event bus |
 | `docs/components/agent/dragonfly.md` | Agent state backend |
+| `docs/components/agent/webhook-doorman.md` | Inbound webhook router (GitHub, Vikunja, Grafana) |
 | `docs/components/foundation/dockhand.md` | Docker stack management UI |
 | `docs/components/cicd/code-server.md` | VS Code in the browser |
 | `docs/components/cicd/owners-manual.md` | Auto-generated platform reference (MkDocs) |

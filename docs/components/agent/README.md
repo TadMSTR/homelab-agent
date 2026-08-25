@@ -23,6 +23,7 @@ The services that make the multi-agent engine work: tool scoping, inter-agent me
 | [nats.md](nats.md) | NATS JetStream event bus | 4222 |
 | [nats-mcp.md](nats-mcp.md) | NATS publish/subscribe MCP server | 8497 |
 | [dragonfly.md](dragonfly.md) | Agent state backend (Redis-compatible) | 6379 |
+| [webhook-doorman.md](webhook-doorman.md) | Fail-closed inbound webhook router (GitHub, Vikunja, Grafana) | 8507 |
 
 ## How It Fits Together
 
