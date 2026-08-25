@@ -16,7 +16,7 @@ The memory system gives agents recall across sessions. Notes flow through three 
 | [memsearch-summarize.md](memsearch-summarize.md) | Session transcript summarizer | 8494 |
 | [memory-expire.md](memory-expire.md) | Expired note eviction cron | — (cron) |
 | [memory-compact-qc.md](memory-compact-qc.md) | Weekly QC on Ollama compact output | — (cron) |
-| [graphiti.md](graphiti.md) | Temporal knowledge graph (Neo4j) | 8000 |
+| [graphiti.md](graphiti.md) | Temporal knowledge graph (Neo4j), retired 2026-08-05 | — |
 
 ## Query Paths
 
@@ -25,4 +25,3 @@ The memory system gives agents recall across sessions. Notes flow through three 
 | Semantic / fuzzy recall | memsearch-mcp | Milvus (vector + BM25 + reranker) |
 | Keyword / phrase search | memory-fulltext-mcp | OpenSearch (BM25) |
 | Filter by tag, date, tier | memory-metadata-mcp | SQLite |
-| Entity relationships, temporal facts | graphiti-mcp | Neo4j |

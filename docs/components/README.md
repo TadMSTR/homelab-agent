@@ -65,7 +65,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`memsearch-mcp.md`](memory/memsearch-mcp.md) | memsearch MCP server (:8493) |
 | [`memsearch-summarize.md`](memory/memsearch-summarize.md) | Session transcript summarizer (Anthropic API) |
 | [`memory-expire.md`](memory/memory-expire.md) | Expired note eviction cron |
-| [`graphiti.md`](memory/graphiti.md) | Temporal knowledge graph (Neo4j backend) |
+| [`graphiti.md`](memory/graphiti.md) | Temporal knowledge graph (Neo4j backend), retired 2026-08-05 |
 
 ## [`agent/`](agent/) — Agent Infrastructure (14)
 

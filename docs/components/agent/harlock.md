@@ -102,13 +102,12 @@ The rollover handoff preamble also includes a two-line pointer to SOUL.md so Har
 
 ## Memory systems
 
-Harlock has access to four memory systems to compensate for context rollover and idle harvest:
+Harlock has access to three memory systems to compensate for context rollover and idle harvest:
 
 | System | Tool | What it contains |
 |--------|------|-----------------|
 | memsearch | `memsearch-mcp` | Hybrid vector+BM25+reranker search over session, working, and docs tiers |
 | memory-metadata | `memory-metadata-mcp` | List/filter notes by tag, date, or agent |
-| graphiti | `graphiti` | Knowledge graph — facts, decisions, service relationships |
 | qmd | `qmd` | Semantic search over indexed documentation collections |
 
 **Cold-start injection:** the manager (running as the operator user) runs memsearch before opening a new session that has no warm handoff, and injects the top results into the first prompt. This seeds Harlock with relevant prior context even on a fresh chain with no rollover summary.
@@ -193,7 +192,6 @@ Modules exposed to the subprocess:
 | `searxng-mcp` | search + fetch | `clear_cache` denied |
 | `memsearch-mcp` | hybrid memory search | bearer-token auth |
 | `memory-metadata-mcp` | list/filter notes | read-only |
-| `graphiti` | knowledge graph | `clear_graph` denied |
 | `qmd` | doc search | read-only |
 | `githost-mcp` | git read | `git_add`/`git_commit`/`git_push` denied |
 

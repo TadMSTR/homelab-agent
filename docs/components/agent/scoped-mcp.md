@@ -75,7 +75,7 @@ flowchart TD
     tools --> mcp1["searxng-mcp"]
     tools --> mcp2["githost-mcp"]
     tools --> mcp3["system-ops"]
-    tools --> mcp4["dockhand-mcp, patchmon-mcp,\nqmd, graphiti, matrix, ..."]
+    tools --> mcp4["dockhand-mcp, patchmon-mcp,\nqmd, matrix, ..."]
 ```
 
 ### Interactive sessions (Claude Code desktop/terminal)
@@ -131,9 +131,9 @@ which MCP modules it can access, with per-tool denylists enforcing least-privile
 | Agent | Modules | Denylisted Tools |
 |-------|---------|-----------------|
 | sysadmin | system-ops, githost-mcp, patchmon-mcp, dockhand-mcp, searxng-mcp, qmd, memory-metadata-mcp, task-queue-mcp, pm2-mcp, grafana-mcp, loki-mcp, signoz-mcp, claudebox-ops, matrix | `searxng-mcp: clear_cache` |
-| research | searxng-mcp, qmd, graphiti, memory-metadata-mcp, memory-fulltext-mcp, task-queue-mcp, langfuse-mcp, signoz-mcp, claudebox-ops, matrix | `graphiti: clear_graph`, `searxng-mcp: clear_cache` |
-| developer | system-ops, githost-mcp, searxng-mcp, qmd, graphiti, memory-metadata-mcp, task-queue-mcp, langfuse-mcp, matrix | `graphiti: clear_graph`, `searxng-mcp: clear_cache` |
-| writer | system-ops, searxng-mcp, qmd, graphiti, memory-metadata-mcp, memory-fulltext-mcp, task-queue-mcp, matrix | `graphiti: clear_graph`, `system-ops: list_processes`, `searxng-mcp: clear_cache` |
+| research | searxng-mcp, qmd, memory-metadata-mcp, memory-fulltext-mcp, task-queue-mcp, langfuse-mcp, signoz-mcp, claudebox-ops, matrix | `searxng-mcp: clear_cache` |
+| developer | system-ops, githost-mcp, searxng-mcp, qmd, memory-metadata-mcp, task-queue-mcp, langfuse-mcp, matrix | `searxng-mcp: clear_cache` |
+| writer | system-ops, searxng-mcp, qmd, memory-metadata-mcp, memory-fulltext-mcp, task-queue-mcp, matrix | `system-ops: list_processes`, `searxng-mcp: clear_cache` |
 | security | system-ops, searxng-mcp, memory-metadata-mcp, task-queue-mcp, loki-mcp, matrix | `system-ops: edit_file`, `searxng-mcp: clear_cache` |
 
 ### claudebox-ops

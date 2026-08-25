@@ -233,9 +233,9 @@ tags, dates), the fulltext server queries note bodies.
 
 ## Related Docs
 
-- [memory-architecture.md](memory-architecture.md) — full system map: tiers, indices, and Graphiti
+- [memory-architecture.md](memory-architecture.md) — full system map: tiers and indices
 - [memory-stack.md](memory-stack.md) — Milvus + OpenSearch storage backends
 - [memsearch.md](memsearch.md) — memsearch library, polling watch daemon, reranker
 - [memsearch-mcp.md](memsearch-mcp.md) — MCP server wrapping memsearch
 - [memsearch-summarize.md](memsearch-summarize.md) — session transcript summarizer
-- [graphiti.md](graphiti.md) — knowledge graph (relational, temporal — separate from flat memory)
+- [graphiti.md](graphiti.md) — knowledge graph, retired 2026-08-05

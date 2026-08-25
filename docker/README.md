@@ -13,7 +13,6 @@ docker/
 ├── crawler/              # Crawl4AI + Firecrawl composite stack
 ├── dockhand/             # Docker stack manager UI
 ├── firecrawl/            # Web content extraction to markdown
-├── graphiti/             # Temporal knowledge graph (Neo4j + Graphiti MCP)
 ├── hister/               # Browser-based semantic search
 ├── langfuse/             # LLM observability
 ├── librechat/            # Multi-model chat UI
@@ -49,9 +48,8 @@ Deploy in this order to satisfy network and service dependencies:
 6. **agent-platform** — NATS, DragonflyDB, Ollama queue proxy
 7. **ollama** — local LLM inference; needed by memsearch and embedding services
 8. **memory-stack** — Milvus + OpenSearch; memsearch depends on Milvus
-9. **graphiti** — knowledge graph; depends on Neo4j (included in compose)
-10. **task-queue-mcp** — inter-agent task routing
-11. All remaining stacks — can be deployed in any order after the above
+9. **task-queue-mcp** — inter-agent task routing
+10. All remaining stacks — can be deployed in any order after the above
 
 ## Usage
 

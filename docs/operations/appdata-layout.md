@@ -17,8 +17,8 @@ Stack name is the same in both paths. Service name is the immediate subdirectory
 /opt/appdata/observability/influxdb/
 /opt/appdata/observability/loki/
 
-~/docker/graphiti/docker-compose.yml
-/opt/appdata/graphiti/neo4j/
+~/docker/searxng/docker-compose.yml
+/opt/appdata/searxng/domain-db-snapshots/
 
 ~/docker/agent-platform/docker-compose.yml
 /opt/appdata/agent-platform/dragonfly/

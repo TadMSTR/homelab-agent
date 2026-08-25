@@ -40,7 +40,6 @@ See [`docs/components/agent/scoped-mcp.md`](../docs/components/agent/scoped-mcp.
 | agent-bus | [doc](../docs/components/agent/agent-bus.md) | subprocess | Event logging + NATS |
 | matrix-mcp | [doc](../docs/components/agent/matrix-mcp.md) | :8487 HTTP | Matrix messaging |
 | plane-mcp | [doc](../docs/components/mcp-servers/plane-mcp.md) | :8495 HTTP | Issue tracking |
-| graphiti | [doc](../docs/components/memory/graphiti.md) | :8000 HTTP | Knowledge graph |
 | nats-mcp | [doc](../docs/components/agent/nats-mcp.md) | subprocess | NATS event queries |
 | code-server-mcp | [doc](../docs/components/mcp-servers/code-server-mcp.md) | :8498 HTTP | VS Code server integration |
 | backrest-mcp | [doc](../docs/components/mcp-servers/backrest-mcp.md) | :8626 HTTP | Backup plan status, snapshots, restore |

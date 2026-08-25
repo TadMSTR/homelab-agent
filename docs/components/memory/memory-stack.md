@@ -52,4 +52,4 @@ See [memory-services.md](memory-services.md) for the PM2 layer on top of this st
 ## Related Docs
 
 - [memory-services.md](memory-services.md) — PM2 MCP services that sit on top of this stack
-- [graphiti.md](graphiti.md) — separate knowledge graph backend (Neo4j)
+- [graphiti.md](graphiti.md) — knowledge graph backend (Neo4j), retired 2026-08-05

@@ -6,7 +6,7 @@
 
 ![homelab-agent banner](docs/assets/banner.png)
 
-A platform for running a team of AI agents on a single server. Five agents — sysadmin, developer, researcher, writer, security — work semi-autonomously or fully unattended, coordinating through a task queue and communicating over Matrix. Each agent gets a scoped tool surface controlled by a manifest, persistent multi-tier memory backed by open-source infrastructure ([Milvus](docs/components/memory/memory-stack.md) for vector search, [OpenSearch](docs/components/memory/memory-stack.md) for full-text, [Neo4j](docs/components/memory/graphiti.md) for knowledge graph), and an event ledger that tracks every cross-agent handoff.
+A platform for running a team of AI agents on a single server. Five agents — sysadmin, developer, researcher, writer, security — work semi-autonomously or fully unattended, coordinating through a task queue and communicating over Matrix. Each agent gets a scoped tool surface controlled by a manifest, persistent multi-tier memory backed by open-source infrastructure ([Milvus](docs/components/memory/memory-stack.md) for vector search, [OpenSearch](docs/components/memory/memory-stack.md) for full-text), and an event ledger that tracks every cross-agent handoff.
 
 The agents build the platform. Research plans a feature, developer writes the code, writer documents it, security audits the result — then the new tool becomes available to the agents that built it. [searxng-mcp](https://github.com/TadMSTR/searxng-mcp), [scoped-mcp](https://github.com/TadMSTR/scoped-mcp), and [githost-mcp](https://github.com/TadMSTR/githost-mcp) were all built this way.
 
@@ -38,11 +38,11 @@ Three layers, each independently useful. You can run just the Docker services wi
 ┌────────────────────────────────────────────────────────────────┐
 │  Layer 3: Multi-Agent Claude Code Engine                       │
 │  5 resident agents · scoped-mcp · Matrix dispatch             │
-│  agent-bus · memory pipeline · knowledge graph                 │
+│  agent-bus · memory pipeline                                   │
 ├────────────────────────────────────────────────────────────────┤
-│  Layer 2: Docker Service Stack (60+ containers, 22 stacks)     │
+│  Layer 2: Docker Service Stack (60+ containers, 21 stacks)     │
 │  SWAG/Authentik · Ollama (NVIDIA GPU) · Langfuse · SigNoz      │
-│  Synapse · SearXNG · Milvus · Graphiti · Temporal · NATS       │
+│  Synapse · SearXNG · Milvus · Temporal · NATS                 │
 ├────────────────────────────────────────────────────────────────┤
 │  Layer 1: Host                                                 │
 │  Minisforum MS-A2 · AMD Ryzen 9 9955HX (16c/32t) · 96 GB      │
@@ -70,7 +70,7 @@ Three layers, each independently useful. You can run just the Docker services wi
 | **Foundation** | [SWAG](docs/components/foundation/swag.md) (reverse proxy + SSL), [Authentik](docs/components/foundation/authentik.md) (SSO), [Vault](docs/components/foundation/vault.md) (secrets) | 5 |
 | **Observability** | [Grafana](docs/components/observability/grafana-alloy.md) + Loki + Alloy, [SigNoz](docs/components/observability/signoz.md) (APM), [Langfuse](docs/components/observability/langfuse.md) (LLM traces) | 13 |
 | **AI & Search** | [Ollama](docs/components/ai-search/ollama.md) (local inference), [SearXNG](docs/components/ai-search/searxng.md), [Firecrawl](docs/components/ai-search/firecrawl.md), [Reranker](docs/components/ai-search/reranker.md) | 10 |
-| **Memory** | [Milvus](docs/components/memory/memory-stack.md) (vector), [OpenSearch](docs/components/memory/memory-stack.md) (full-text), [Graphiti + Neo4j](docs/components/memory/graphiti.md) (knowledge graph) | 8 |
+| **Memory** | [Milvus](docs/components/memory/memory-stack.md) (vector), [OpenSearch](docs/components/memory/memory-stack.md) (full-text) | 6 |
 | **Agent Infra** | [Synapse](docs/components/agent/synapse.md) (Matrix), [NATS](docs/components/agent/nats.md) (event bus), [task-queue-mcp](docs/components/agent/task-queue-mcp.md) | 13 |
 | **CI/CD** | [Woodpecker CI](docs/components/cicd/woodpecker.md), [Temporal](docs/components/cicd/temporal.md) (workflow engine) | 6 |
 
@@ -109,7 +109,7 @@ flowchart TB
 
 - **[Matrix dispatch](docs/components/agent/matrix-dispatcher.md)** polls each agent's room for operator messages and routes them into the right Claude Code project. Send a message from any Matrix client; the agent picks it up and replies in-thread.
 
-- **[Persistent memory](docs/components/memory/memory-architecture.md)** — a three-tier system (session → working → distilled) with four search paths: hybrid vector+BM25 via [memsearch](docs/components/memory/memsearch.md), full-text keyword via [OpenSearch](docs/components/memory/memory-stack.md), structured metadata queries, and a temporal [knowledge graph](docs/components/memory/graphiti.md) for entity relationships.
+- **[Persistent memory](docs/components/memory/memory-architecture.md)** — a three-tier system (session → working → distilled) with three search paths: hybrid vector+BM25 via [memsearch](docs/components/memory/memsearch.md), full-text keyword via [OpenSearch](docs/components/memory/memory-stack.md), and structured metadata queries.
 
 - **[agent-bus](docs/components/agent/agent-bus.md)** logs every cross-agent event (handoffs, task completions, audit requests) to a JSONL trail, federated to NATS JetStream.
 

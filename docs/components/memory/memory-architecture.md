@@ -2,8 +2,9 @@
 
 Forge's agent memory system has two parallel layers: **flat notes** (the canonical source of truth,
 organised into three promotion tiers) and **indices** (derived from the notes, enabling different
-query styles). Graphiti is a third, complementary layer for relational and temporal knowledge that
-doesn't map well to flat text.
+query styles). A third layer, Graphiti (a Neo4j-backed relational/temporal knowledge graph), was
+retired 2026-08-05 — see [graphiti.md](graphiti.md). There is no relational layer today; agents
+use flat notes for the queries Graphiti used to answer.
 
 ---
 
@@ -74,8 +75,8 @@ flowchart TD
 ## Procedural Layer
 
 The skills system is the procedural memory tier — reusable agent behaviors stored as SKILL.md files.
-Unlike the note store (observations, decisions) or Graphiti (entity relationships), skills encode
-*how to do things*: multi-step procedures, tool sequencing, and domain-specific workflows.
+Unlike the note store (observations, decisions), skills encode *how to do things*: multi-step
+procedures, tool sequencing, and domain-specific workflows.
 
 ```mermaid
 flowchart LR
@@ -104,42 +105,13 @@ and indexed by qmd independently. The authoritative source is the Gitea repo; th
 
 ---
 
-## Graphiti — Relational Layer
+## Graphiti (retired)
 
-Graphiti is a parallel system, not part of the note or index layer. It stores **entities and
-relationships** (not document chunks) in Neo4j with temporal metadata — when facts were true and
-when they changed.
-
-Use Graphiti for:
-- "What services does SWAG depend on?"
-- "When did this architectural decision change?"
-- "Which agents have access to which tools?"
-
-Use the note/index layer for:
-- Free-text observations, session notes, decisions
-- Anything an agent wrote down mid-session
-
-```mermaid
-flowchart LR
-    subgraph "Note + Index layer"
-        W2["~/.claude/memory/"] --> milvus2[("Milvus")]
-        W2 --> sqlite2[("SQLite / OpenSearch")]
-    end
-
-    subgraph "Graph layer"
-        neo4j[("**Neo4j** :7687")] --> graphiti_mcp["**graphiti-mcp** :8000"]
-    end
-
-    agents["Forge agents"] --> milvus2
-    agents --> sqlite2
-    agents --> graphiti_mcp
-    agents --> W2
-```
-
-Graphiti is populated by `add_memory` calls from agents at infrastructure change events (deploys,
-topology changes, service additions). It is not fed by the promotion pipeline.
-
-See [graphiti.md](graphiti.md) for configuration, stack details, and operations.
+Forge previously ran a relational/temporal knowledge graph layer (Neo4j + graphiti-mcp)
+alongside the note/index layers above. It was retired 2026-08-05 — see
+[graphiti.md](graphiti.md) for what it was and why it was shut down. Queries it used to answer
+("what depends on what," "when did this change") now fall back to flat notes; there is no
+direct replacement.
 
 ---
 
@@ -176,14 +148,11 @@ flowchart TD
     opensearch -- "⑭ full-text phrase/\nkeyword search" --> search_mcp["memory-fulltext-mcp :8491"]
     metadb -- "⑮ structured queries on\ntags, dates, tiers" --> meta_mcp["memory-metadata-mcp :8490"]
 
-    neo4j[("Neo4j :7687\n(entity + relationship graph)")] -- "⑯ temporal entity queries\nwhat changed and when" --> graphiti_mcp["graphiti-mcp :8000"]
-
     subgraph "MCP query surface — agents call these"
         memsearch_mcp
         qmd
         meta_mcp
         search_mcp
-        graphiti_mcp
     end
 ```
 
@@ -203,7 +172,6 @@ flowchart TD
 | ⑬ | .metadata.db → OpenSearch | `memory-os-sync` watches the SQLite file and pushes changes to OpenSearch for full-text indexing |
 | ⑭ | OpenSearch → memory-fulltext-mcp | Agents search note *bodies* by phrase or keyword via BM25 |
 | ⑮ | .metadata.db → memory-metadata-mcp | Agents filter notes by structured fields (tag, date range, tier) without reading file bodies |
-| ⑯ | Neo4j → graphiti-mcp | Agents query entities, relationships, and when facts changed — the relational/temporal layer |
 
 ---
 
@@ -214,4 +182,4 @@ flowchart TD
 - [memsearch.md](memsearch.md) — memsearch library, reranker, configuration
 - [memsearch-mcp.md](memsearch-mcp.md) — MCP server wrapping memsearch
 - [memsearch-summarize.md](memsearch-summarize.md) — session transcript summarizer
-- [graphiti.md](graphiti.md) — Neo4j knowledge graph (relational layer)
+- [graphiti.md](graphiti.md) — Neo4j knowledge graph, retired 2026-08-05

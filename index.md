@@ -15,7 +15,7 @@ homelab-agent/
 │   │   ├── foundation/          # Host, reverse proxy, auth, secrets, backups (10)
 │   │   ├── observability/       # Grafana, Loki, SigNoz, Langfuse, exporters (13)
 │   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (10)
-│   │   ├── memory/              # Memory architecture, Milvus, memsearch, Graphiti (9)
+│   │   ├── memory/              # Memory architecture, Milvus, memsearch (9)
 │   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (18)
 │   │   ├── apps/                # Nextcloud, Plane, Vikunja, tools stack (8)
 │   │   ├── mcp-servers/         # system-ops, githost, dockhand, patchmon, pm2 (12)
@@ -95,7 +95,7 @@ homelab-agent/
 | `docs/components/memory/memsearch-mcp.md` | memsearch MCP server (:8493) |
 | `docs/components/memory/memsearch-summarize.md` | Session transcript summarizer |
 | `docs/components/memory/memory-expire.md` | Expired note eviction |
-| `docs/components/memory/graphiti.md` | Knowledge graph |
+| `docs/components/memory/graphiti.md` | Knowledge graph, retired 2026-08-05 |
 
 **Agent Infrastructure:**
 
@@ -260,7 +260,6 @@ Key cross-references:
 | `qmd` | File system | All agents |
 | `task-queue-mcp` | DragonflyDB | All agents (cross-agent handoffs) |
 | `task-dispatcher` | task-queue-mcp, scoped-mcp | Platform (headless launches) |
-| `graphiti` | Neo4j | research, sysadmin |
 | `system-ops` | Host OS | sysadmin, developer, writer |
 | `githost-mcp` | Gitea, GitHub | All agents |
 | `searxng-mcp` | SearXNG, Firecrawl, Reranker | All agents |
