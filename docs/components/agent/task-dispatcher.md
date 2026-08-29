@@ -7,7 +7,7 @@ sessions, alerts on stale tasks, and archives completed work.
 - **Script:** `~/scripts/task-dispatcher.py`
 - **Interpreter:** `/usr/bin/python3`
 - **Schedule:** PM2 cron, every 2 minutes (`*/2 * * * *`)
-- **Log:** `~/.claude/task-queue/dispatcher.log`
+- **Log:** `~/.pm2/logs/task-dispatcher-out.log` (stderr: `task-dispatcher-error.log`)
 - **No listening port** — runs as a batch job, not a server
 
 ## How It Works
@@ -55,6 +55,18 @@ resort. If none yields a usable credential, the dispatcher refuses the launch an
 the task to failure rather than starting a session that would immediately error on an
 expired or missing token.
 
+## Logging
+
+Logs go to `~/.pm2/logs/task-dispatcher-out.log` (stderr to `task-dispatcher-error.log`) —
+cron's own stdout/stderr redirect is the only sink. A prior duplicate `FileHandler` also
+writing `~/.claude/task-queue/dispatcher.log` was removed in v1.1.0; that file is not
+deleted automatically and stops growing once the change is deployed.
+
+Each tick emits one INFO line, not three — the run-start banner and the manifest-load
+detail dropped to DEBUG. `=== task-dispatcher run complete ===` stays at INFO with that
+exact wording: a Loki `absent_over_time` cron-liveness alert may key on the string, so
+treat it as a contract, not incidental log text.
+
 ## Configuration
 
 | Setting | Value |
@@ -81,7 +93,7 @@ expired or missing token.
 pm2 show task-dispatcher
 
 # View recent logs
-tail -50 ~/.claude/task-queue/dispatcher.log
+tail -50 ~/.pm2/logs/task-dispatcher-out.log
 
 # Force a run
 pm2 restart task-dispatcher
