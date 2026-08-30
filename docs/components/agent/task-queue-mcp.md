@@ -8,7 +8,9 @@ non-MCP clients (the CloudCLI plugin and the Matrix bot). As of v0.7.0/v0.8.x, b
 surfaces on the port require a credential — see [Authentication](#authentication) below.
 
 - **Source:** `~/repos/personal/task-queue-mcp` (TadMSTR/task-queue-mcp)
-- **Version:** v0.8.2 — deployed and verified live 2026-08-16 (`task-queue-identity-hardening-2026-08`)
+- **Version:** v0.10.0 (`agent-workflow-interop-2026-08` Phase 1) — merged and tagged
+  2026-08-29; **not yet deployed**, the running container is still pre-0.10.0 code as of
+  this writing
 - **Port:** `127.0.0.1:8485` — MCP (`/mcp`) and the HTTP control API (`/tasks/...`) share it
 - **Queue dir:** `~/.claude/task-queue/` (host-mounted)
 - **Network:** `forge-net`
@@ -31,7 +33,7 @@ external access — reachable on loopback/LAN only.
 
 ## Tool Surface
 
-Nine tools, split by caller. Agents use the strict `update_task` path; operators (via the
+Ten tools, split by caller. Agents use the strict `update_task` path; operators (via the
 HTTP control API) use the broader lifecycle tools. Agents cannot cancel or park — both are
 operator-only. `amend_task` is the exception: the task's *source* agent may amend it, but
 the target agent may not — the same trust boundary that keeps `cancelled` operator-only,
@@ -40,18 +42,25 @@ applied to rewriting a task's own brief.
 As of v0.4.0, `quarantine_task` / `restore_task` are removed entirely — `park_task` /
 `unpark_task` replace them, and `amend_task` is new. As of v0.8.0, the caller column below
 is enforced, not just conventional — see [Identity binding](#identity-binding-since-v080).
+As of v0.10.0, `requeue_dead_letter` joins the operator-only row — see
+[Queue Directory Layout](#queue-directory-layout) for what it recovers from.
 
 | Tool | Caller | What it does |
 |------|--------|-------------|
 | `submit_task` | agent | Create a new task (`status: submitted`); validates type, risk, priority, `workflow_mode`. `source_agent` is bound to the caller's authenticated identity |
 | `list_tasks` | agent | List tasks with optional filters; TTL-expired *terminal* tasks and archived tasks excluded. Non-terminal tasks (any open work) are never TTL-filtered as of v0.8.1 — see [TTL and visibility](#ttl-and-visibility) |
-| `get_task` | agent | Retrieve a task by full UUID (also resolves archived tasks) |
+| `get_task` | agent | Retrieve a task by full UUID (also resolves archived tasks, and dead-lettered tasks as of v0.10.0) |
 | `update_task` | the task's target agent, or operator | Strict status transition; appends a history entry |
 | `set_task_status` | **operator only** | Audited status change — approve, cancel, park, or advance a missed task (`allow_override`). Refused for any agent identity as of v0.8.0 |
 | `cancel_task` | **operator only** | Graceful terminal `cancelled` state for stale tasks (record kept). Refused for any agent identity as of v0.8.0 |
 | `park_task` | the task's target agent, or operator | Pause a task without hiding it — status changes to `parked`, the YAML file never moves, stays listed, exempt from TTL |
 | `unpark_task` | the task's target agent, or operator | Return a parked task to the status recorded in `parked_from` (or an explicit target status) |
 | `amend_task` | the task's source agent, or operator | Append a correction to a queued task. `payload.description` is never rewritten; amendments accumulate under `payload.amendments`, capped at 10 per task / 4096 chars each |
+| `requeue_dead_letter` | **operator only** | Return a dead-lettered task to the queue root at `submitted`, dropping `failed_reason` and resetting `retry_policy`. Since v0.10.0 — the only tool that can move a record out of a terminal status |
+
+Every record returned by `get_task`/`list_tasks` carries **`queue_location`**
+(`"queue"` | `"archive"` | `"dead-letters"`, since v0.10.0), so a caller can tell a dead
+letter from live work without inspecting file paths, which it never sees.
 
 ### Status lifecycle
 
@@ -96,6 +105,26 @@ by a clock; an agent handed a stale open task can judge it, but nobody can act o
 cannot see. Whenever "how many are there" is answered by `list_tasks`, remember it filters —
 count from the queue directory directly if the exact number matters.
 
+**Dead letters (since v0.10.0).** `list_tasks(include_dead_letters=True)` also returns
+records the dispatcher gave up routing and moved to `dead-letters/`. It defaults to `False`
+and is deliberately **not** implied by `include_archived` — every agent's work sweep is a
+plain `list_tasks` call, and a dead letter is a task nothing can route, so folding it into
+the default listing would hand each agent a backlog it cannot act on. This is visibility,
+not re-delivery.
+
+Two behaviours make the flag work against a real queue rather than a fixture, and both were
+found by running it against the live one:
+
+- Dead letters carry terminal `failed`, and every one on forge is already past its
+  `ttl_days` — the newest by a month, the oldest by three. **Dead letters are exempt from
+  the TTL filter**, or `include_dead_letters=True` returns an empty list against the only
+  queue that has any, which reads as "there are none".
+- A dead letter is among the oldest records in the queue by construction, so under a plain
+  created-descending sort it lands behind hundreds of live tasks and `limit` discards it.
+  **Dead letters sort first when included.** Measured before the fix:
+  `include_dead_letters=True, limit=200` returned 200 rows and zero dead letters. Ordering
+  within each group is unchanged.
+
 ## HTTP Control API
 
 Non-MCP clients can't import the Python core, so their mutations go through a thin HTTP
@@ -113,7 +142,8 @@ prior three-writer divergence between the core, the plugin, and the bot).
 | `POST` | `/tasks/{id}/unpark` | `unpark_task` (body: optional `status`) |
 | `POST` | `/tasks/{id}/amend` | `amend_task` (body: `amendment`, optional `reason`) |
 | `POST` | `/tasks/{id}/update` | `update_task` (body: `status`, `note`, `output`, optional `on_behalf_of`) — the operator sweep, see below |
-| `GET` | `/queue/summary` | Counts by status across the active queue — bucketed under `"unknown"` for any out-of-vocabulary status rather than dropped |
+| `POST` | `/tasks/{id}/requeue` | `requeue_dead_letter` (body: optional `note`), since v0.10.0 |
+| `GET` | `/queue/summary` | Counts by status across the active queue — bucketed under `"unknown"` for any out-of-vocabulary status rather than dropped. `dead_letters` is a **sibling** of `counts`, not a member of it (since v0.10.0) — every dead letter carries `failed`, so counting it by status would bury it among genuinely finished work |
 
 **Auth.** Custom routes bypass the MCP tool-path auth (see below), so a shared-secret header
 gates them instead: send `X-Task-Queue-Secret: $TASK_QUEUE_API_SECRET` on every mutation. The
@@ -152,6 +182,29 @@ A sweep reads as a sweep years later, not as the agent having quietly closed its
 `on_behalf_of` is optional (omitting it is the operator acting in its own name) and is refused
 outright for any non-`operator` actor.
 
+### Recovering a dead letter — `POST /tasks/{id}/requeue` (since v0.10.0)
+
+A dead letter cannot be transitioned in place. `update_task`, `set_task_status`,
+`park_task`/`unpark_task`, and `amend_task` do not load `dead-letters/` at all — that
+absence is the gate — and they refuse by name (`task is dead-lettered and cannot be
+mutated in place`) rather than answering `not found`. `requeue_dead_letter` is the only
+door out, and it is scoped to that one directory: a `failed` task sitting in the queue root
+or in `archive/` is unreachable through it however its id is spelled, so terminal
+immutability elsewhere is unchanged.
+
+Requeuing moves the record back to the queue root at `submitted`, drops `failed_reason`,
+and resets `retry_policy` to `{next_retry_at: null, retry_count: 0}`. `created` is **not**
+refreshed — rewriting it to make a three-month-old dropped audit look new is the flavour of
+tidiness that made this backlog invisible in the first place. The history entry carries
+`action: requeue` and `cleared_failed_reason`, so a second drop does not read as a first.
+
+Operator-only, the same gate as `set_task_status` — an agent able to requeue its own dead
+letters would turn a routing bug into an agent-driven retry loop with nothing bounding it.
+
+Requeuing does not fix *why* a task was dropped. Do not describe it as a fix for the
+underlying routing failure — that is recovery only; the root cause is tracked separately
+(vikunja#63).
+
 ## Authentication
 
 Both surfaces on port 8485 now require a credential — this is the headline change of the
@@ -188,7 +241,7 @@ close another agent's task without ever calling `update_task`.
 | `update_task` | the task's `target_agent`, or the operator |
 | `park_task`, `unpark_task` | the task's `target_agent`, or the operator |
 | `amend_task` | the task's `source_agent`, or the operator |
-| `set_task_status`, `cancel_task` | **operator only** — refused for any agent identity |
+| `set_task_status`, `cancel_task`, `requeue_dead_letter` | **operator only** — refused for any agent identity |
 
 The `operator` identity is reachable **only** from the HTTP control routes — a
 `TASK_QUEUE_TOKEN_OPERATOR` is rejected at startup, because `operator` is exempt from every
@@ -233,11 +286,37 @@ pre-v0.7.0 gap but restores service without touching manifests or agent env file
 ~/.claude/task-queue/
   YYYYMMDD-HHMMSS-<uuid-prefix>.yml   # one file per active task
   archive/                            # TTL-expired tasks (dispatcher-owned)
+  dead-letters/                       # routing-exhausted tasks (dispatcher-owned)
 ```
 
 A parked task's file stays in place at the top level — parking is a status change, not a
 move, so there is no separate directory for it (the old `quarantine/` subdirectory is gone
 as of v0.4.0).
+
+`dead-letters/` is written by **task-dispatcher**, not by this server, when a task
+exhausts its routing retries — it is the one directory no ordinary transition can reach (see
+[Recovering a dead letter](#recovering-a-dead-letter--post-tasksidrequeue-since-v0100)
+above). Until v0.10.0 nothing in task-queue-mcp could read this directory at all: `get_task`
+searched the queue root then `archive/` and answered `not found` for a record sitting right
+there, `list_tasks` globbed the root only, and `/queue/summary` counted the root only. 17
+tasks accumulated here between 2026-05-29 and 2026-07-25 — every one a security audit
+request, all carrying the identical `failed_reason` — and the only notice any of them ever
+got was a single Matrix message at the moment each was dropped.
+
+A dead-letter record carries a `failed_reason` block alongside the normal task fields:
+
+```yaml
+status: failed
+failed_reason:
+  reason: "Invalid or missing build_name in payload: 'unknown'"
+  timestamp: ...
+  retry_count: 3
+```
+
+The directory name (`dead-letters`) is presently an ungated literal shared between this
+server and task-dispatcher — identical today, but not enforced equal by any test. Flagged
+in the Phase 1 audit as the same drift class the parent build's later phases gate for other
+cross-repo vocabulary; not yet closed for this one.
 
 Each task file is a YAML record (type, payload, status history, `result.output`, `parked_from`,
 `retry_policy`). All writes are atomic — write to `.tmp`, then `os.rename()` — and serialized
