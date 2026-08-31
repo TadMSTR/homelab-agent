@@ -1,5 +1,28 @@
 // PM2 Ecosystem Configuration — Forge Platform
 //
+// ============================================================================
+// THIS IS AN ILLUSTRATIVE INVENTORY, NOT A WORKING CONFIG. DO NOT START IT.
+// ============================================================================
+//
+// Every entry below carries only `name`, `script` and `autorestart`. None
+// carries the `interpreter`, `args`, `cwd` or `env` the process actually needs.
+// Copying this file and running `pm2 start` on it does not reproduce the
+// platform — it starts 44 misconfigured processes under the right names, which
+// is worse than starting nothing, because `pm2 save` will then overwrite good
+// definitions with these.
+//
+// It is also not a template in the usual sense: the paths are interpolated from
+// $HOME rather than left as placeholders, so it resolves to real, plausible
+// locations on any machine and fails at runtime rather than at copy time.
+//
+// Read it as documentation of WHICH processes exist. For definitions that can
+// actually start something, see the ecosystem.config.js in each service's own
+// repository, which is where they live.
+//
+// Anything that audits PM2 coverage by globbing for ecosystem files must
+// exclude *example* — otherwise this file answers "is every process declared?"
+// with a confident yes on behalf of 44 processes it cannot start.
+//
 // PM2 manages long-running MCP services and scheduled background jobs.
 // Services fall into two categories:
 //   - Always-on: daemons that run continuously (MCP servers, watchers)
