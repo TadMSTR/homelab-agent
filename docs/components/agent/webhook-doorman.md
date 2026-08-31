@@ -5,7 +5,8 @@ receivers — `vikunja-webhook-listener`, `qmd-webhook`, and `plane-webhook-list
 ingress that verifies, deduplicates, and fans out webhook deliveries to chat/notification sinks.
 Public repo: [TadMSTR/webhook-doorman](https://github.com/TadMSTR/webhook-doorman).
 
-- **Image:** `ghcr.io/tadmstr/webhook-doorman:0.3.0` (multi-arch amd64 + arm64)
+- **Image:** `ghcr.io/tadmstr/webhook-doorman:0.4.0` (multi-arch amd64 + arm64) — verified
+  deployed via `docker ps` (container start time postdates the v0.4.0 tag commit)
 - **Compose:** `~/docker/webhook-doorman/docker-compose.yml` (own stack)
 - **Config:** `/opt/appdata/webhook-doorman/config.yml` (0644, non-secret)
 - **Secrets:** `/opt/appdata/webhook-doorman/.env` (0600 ted:ted, read by the daemon as root via
@@ -53,6 +54,45 @@ Escaping is destination-specific, not format-specific: Discord Markdown is rende
 Python-Markdown backend passes raw inline HTML through by spec). Each sink's escaping rule is
 looked up per the full three-member format union — see `ARCHITECTURE.md` in the repo for the
 detail that made this worth a doctrine statement.
+
+## Agent-facing content safety (v0.4.0)
+
+New in v0.4.0, and entirely opt-in — a config that doesn't mention these behaves exactly as
+before.
+
+- **`trust` on a source** — `untrusted` (default) | `trusted`. A verified signature proves who
+  sent the request, not who wrote the body inside it.
+- **`agent_readable` on a sink** — default `false`. When set alongside an `untrusted` source,
+  the fields that source's parser marked attacker-authored arrive wrapped in
+  `<untrusted source="..." field="...">`. Structural fields (`source`, `event_type`,
+  `delivery_id`, `event_id`, and parser-derived values like `repo`/`number`) stay outside the
+  fence. **Cost worth knowing:** a fenced field becomes a string, so under the `generic` parser
+  — which marks the whole `payload` as untrusted — `{{ payload.issue.title }}` renders empty on
+  an `agent_readable` sink. Use a named parser's context fields, which are fenced individually.
+- **`filter` on a source** — `event_types` allowlist, `require`/`deny` over dotted paths into
+  the decoded payload, `max_field_bytes`. Two asymmetries matter: a path that does **not**
+  resolve **fails** a `require` (you asked for a guarantee the payload didn't carry) and
+  **passes** a `deny` (absent isn't the thing being refused). A filtered event is stored with
+  status `filtered` and zero deliveries, and answered `200`.
+- **`detector` block** — `backend: none` (default) | `heuristic`, `threshold`,
+  `on_detect: annotate|quarantine|drop`, `on_error: annotate|quarantine`. `on_error` has **no**
+  `drop` member — deliberate: detection never rejects at the door, it only annotates or
+  quarantines. The verdict is three-valued (`clean`/`flagged`/`unavailable`) and `unavailable`
+  is never folded into `clean`, so a down detector doesn't read as clean traffic.
+- **Two new admin endpoints**, behind the existing bearer token: `GET /admin/held` (metadata
+  only — no payload, no rendered body, rule *names* only) and
+  `POST /admin/release/{event_id}`.
+- **Five new metric series**: `events_filtered_total{source,reason}`,
+  `content_sanitized_total{source,class}`, `detection_total{source,verdict}`,
+  `detection_latency_seconds{backend}`, `events_quarantined_total{source,rule}`, plus a
+  `held_events` gauge.
+- **`/health` gains a `detector` block** (`configured`, `backend`, `available`, `last_error`).
+  `last_error` is an exception *class name* only, never a message — `/health` is
+  unauthenticated.
+
+**Deploy warning:** v0.4.0 applies the project's first schema migration automatically on first
+container start. A rollback to 0.3.0 will **refuse to start** rather than write to a migrated
+database. Snapshot `/opt/appdata/webhook-doorman/data` before any upgrade.
 
 ## Configuration
 
@@ -130,11 +170,17 @@ Built across four phases against the same repo, in order:
    histograms, optional OTel — and closed a second credential leak the new tracing itself opened
    (OTel's automatic `httpx` instrumentation records full request URLs, which *are* the
    credential for Discord/Slack/Apprise webhook URLs).
+5. `webhook-doorman-agent-content-safety-2026-08` — v0.4.0. Content-safety layer for
+   destinations that feed an LLM agent (structural filtering, source trust + fenced untrusted
+   content, Unicode instruction-smuggling sanitization, pluggable detector, quarantine/release)
+   plus the project's first schema migration.
 
 Forge went straight from `0.1.0` to `0.3.0` in one rollout once all three follow-on plans closed,
-rather than deploying each intermediate version. Full phase docs (host-forge-knowledge-base,
-private): `phases/forge-webhook-router-2026-08.md`, `phases/webhook-doorman-correctness-2026-08.md`,
-`phases/webhook-doorman-sinks-2026-08.md`, `phases/webhook-doorman-observability-2026-08.md`.
+rather than deploying each intermediate version; v0.4.0 deployed separately. Full phase docs
+(host-forge-knowledge-base, private): `phases/forge-webhook-router-2026-08.md`,
+`phases/webhook-doorman-correctness-2026-08.md`, `phases/webhook-doorman-sinks-2026-08.md`,
+`phases/webhook-doorman-observability-2026-08.md`,
+`phases/webhook-doorman-agent-content-safety-2026-08.md`.
 
 ## Related Docs
 

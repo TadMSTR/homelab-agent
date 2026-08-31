@@ -18,6 +18,7 @@ cutover, research holds no generic file/command primitive at all.
 | Interpreter | none |
 | Port | `127.0.0.1:8503` (streamable-http, loopback only by design) |
 | Repo | `~/repos/personal/doc-cache-mcp/` ([TadMSTR/doc-cache-mcp](https://github.com/TadMSTR/doc-cache-mcp) on GitHub) |
+| Version | v0.2.1 — telemetry that fails is now visible |
 
 ## Why capability-scoped
 
@@ -80,12 +81,32 @@ Environment variables (prefix `DOC_CACHE_MCP_`):
 | `DOC_CACHE_MCP_COMMIT_IDENTITY_NAME` / `_EMAIL` | `doc-cache-mcp` / `doc-cache-mcp@forge` | Git identity used for tool commits |
 | `DOC_CACHE_MCP_AUDIT_LOG_DIR` | unset | Append-only JSONL sink for push decisions. Unset = no audit events. |
 
-> v0.2.0 (this deployment surface) is **not yet live** — it needs one `pm2 restart doc-cache-mcp` to pick up the doc-sync module change.
+> v0.2.1 is live (restarted 2026-08-30, verified via PM2 process start time against the tagged
+> commit). No pending restart outstanding.
 
 Optional telemetry: `OTEL_EXPORTER_OTLP_ENDPOINT` (OTLP span export, `service.name` is
 `doc-cache-mcp`) and `INFLUXDB_URL`/`INFLUXDB_TOKEN`/`INFLUXDB_BUCKET` (best-effort per-call
 metrics, default bucket `doc-cache-mcp`) — each gated on its own env var with no import cost
 when unset.
+
+### Telemetry failure visibility (v0.2.1)
+
+A `configured and failing` InfluxDB backend now warns exactly once per process instead of
+failing silently:
+
+| Event | Meaning |
+|-------|---------|
+| `influx_init_failed` | `INFLUXDB_URL` set but the client could not be built (usually the `[telemetry]` extra is missing). Writes disabled for the process, not retried. |
+| `influx_write_failed` | The client built but a write failed — **this, not `influx_init_failed`, is what a wrong or unreachable `INFLUXDB_URL` looks like**, because `InfluxDBClient3` connects lazily and so builds successfully against any host. Writes keep being attempted. |
+
+Both carry the exception *class* only, never the URL or token. Before this release both cases
+were completely silent — measured: five `emit_metric` calls against a dead InfluxDB produced
+zero log lines.
+
+This server deliberately does **not** get the third-party logger demotion its sibling MCP
+servers (backrest-mcp, nats-mcp) received — its `configure_logging()` is
+`structlog.configure()` with a `PrintLoggerFactory` and does no stdlib routing, so there is no
+third-party wire trace to drown it out.
 
 ## Dependencies
 
