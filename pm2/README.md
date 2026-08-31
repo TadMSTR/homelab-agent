@@ -1,16 +1,29 @@
 # PM2 Services
 
-PM2 manages the forge platform's always-on MCP servers and scheduled background jobs. All processes are defined in `ecosystem.config.js.example`.
+PM2 manages the forge platform's always-on MCP servers and scheduled background jobs.
+
+`ecosystem.config.js.example` in this directory lists **which** processes exist. It is an
+inventory, not a working configuration — each entry carries only `name`, `script` and
+`autorestart`, and none carries the `interpreter`, `args`, `cwd` or `env` the process needs
+to actually run.
 
 ## Usage
 
+**Do not `cp` the example and start it.** Doing so launches misconfigured processes under
+the correct names, and the next `pm2 save` then overwrites the real definitions with the
+broken ones.
+
+Each service's start definition lives in an `ecosystem.config.js` in that service's own
+repository, next to the code it starts. To bring up a service, start it from there:
+
 ```bash
-cp ecosystem.config.js.example ecosystem.config.js
-# Edit paths if they differ from $HOME/repos/personal/ layout
-pm2 start ecosystem.config.js
+pm2 start /path/to/<service-repo>/ecosystem.config.js
 pm2 save
 pm2 startup   # follow the printed command to enable boot start
 ```
+
+Keeping each definition beside its own code is deliberate: a single central file drifts from
+what is deployed, and the drift is invisible until something needs restarting.
 
 ## Process Categories
 
