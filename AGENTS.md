@@ -11,7 +11,11 @@ This repo has two audiences: humans learning to build a similar platform, and AI
 
 ## Resident Agents
 
-Five agents run as scoped Claude Code projects on forge. Each has a dedicated Matrix room and a manifest that defines its tool surface.
+Eight agents run as scoped Claude Code projects on forge, each behind its own
+`scoped-mcp-*` PM2 process. A ninth, `steward`, runs separately under systemd rather
+than PM2 (its tool broker needs to read a mode-400 `.env` and write a root-owned
+proposal store, neither of which a PM2 process owned by the regular user can do) — see
+[`docs/components/agent/steward.md`](docs/components/agent/steward.md).
 
 | Agent | Role | Matrix Room | Key Tools |
 |-------|------|-------------|-----------|
@@ -20,6 +24,10 @@ Five agents run as scoped Claude Code projects on forge. Each has a dedicated Ma
 | `developer` | Code — MCP servers, scripts, config changes, PRs | `#developer:` | system-ops, githost-mcp, task-queue-mcp, signoz-mcp |
 | `writer` | Documentation — READMEs, runbooks, component docs, public repo updates | `#writer:` | system-ops, githost-mcp, qmd, task-queue-mcp |
 | `security` | Security audits, triage reports, remediation verification | `#security:` | system-ops, githost-mcp, searxng-mcp, signoz-mcp |
+| `doc-health` | Weekly automated documentation staleness audit — report-first, only index fixes auto-committed | its own room | system-ops, matrix-mcp, task-queue-mcp |
+| `jobsearch` | Personal job-search tooling — find/rank/assess/track openings. Not a build agent; no task-queue work, no commits | its own room | system-ops |
+| `memory-sync` | Memory lifecycle — promote session notes to working tier, distill to permanent records, expire stale entries | its own room | system-ops, matrix-mcp |
+| `steward` | Sole proposer of changes to forge's root-owned config surface (`/etc/forge/manifests/*.yml`, `workspace-policy.yml`) — proposes only, never applies | its own room | githost-mcp-steward, forge-config-mcp |
 
 ## scoped-mcp Architecture
 
@@ -44,13 +52,8 @@ Sanitized manifest examples are in [`manifests/`](manifests/). The full manifest
   a separate out-of-band CLI approval step. See
   [`docs/components/agent/scoped-mcp.md`](docs/components/agent/scoped-mcp.md) for the
   gate mechanics.
-- **Graphiti "Read when" companion section (2026-07-25):** every resident agent's
-  CLAUDE.md now carries a "Read when" companion section alongside its Graphiti write
-  guidance — short rules of thumb for when to query the knowledge graph (relational,
-  temporal questions) versus flat memory notes (session/working detail), so agents don't
-  default to one at the expense of the other.
 - **githost-mcp per-agent launchers (v0.5.0):** each of the six agent manifests
-  (developer, sysadmin, research, security, writer, harlock) launches its own
+  (developer, sysadmin, research, security, writer, steward) launches its own
   githost-mcp process via a dedicated per-agent launcher script and env file, rather
   than sharing one process — giving each agent its own `ALLOWED_REPO_ROOTS` scope and
   clean per-agent attribution in the audit log. See
