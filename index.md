@@ -217,6 +217,8 @@ homelab-agent/
 | `docs/components/forge-reboot-gate.md` | Reboot-required gate check |
 | `docs/components/venv-deploy.md` | Python venv deployment pattern |
 | `docs/operations/runbooks.md` | Operational runbooks |
+| `docs/operations/forks.md` | Upstream forks and carried patches |
+| `SECURITY.md` | Vulnerability reporting policy |
 
 ## By Task
 
@@ -246,6 +248,9 @@ homelab-agent/
 
 ### "I want to run a diagnostic or recovery procedure"
 → `docs/operations/runbooks.md`
+
+### "I want to update a forked upstream project"
+→ `docs/operations/forks.md`
 
 ## Component Inventory
 
