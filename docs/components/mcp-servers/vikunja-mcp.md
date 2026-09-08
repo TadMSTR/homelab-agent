@@ -1,8 +1,10 @@
 # vikunja-mcp
 
-vikunja-mcp is a FastMCP server wrapping the [Vikunja](https://vikunja.io) REST API — 71
-tools covering projects, project sharing, tasks, assignees, relations/reminders, kanban
-buckets/views, labels, comments, filters, attachments, teams, and webhooks.
+vikunja-mcp is a FastMCP server wrapping the [Vikunja](https://vikunja.io) REST API — 73
+tools spanning the full Vikunja resource surface: projects, project sharing, tasks,
+assignees, relations/reminders, backlinks, kanban buckets/views, labels, comments, filters,
+attachments, teams, and webhooks. It targets Vikunja's `/api/v2`, so it requires **Vikunja
+2.4.0 or newer** (v1 is frozen upstream at 2.4.0 and removed at 4.0).
 
 - **Package:** `vikunja-mcp` (`~/repos/personal/vikunja-mcp`, installed into
   `/opt/venvs/vikunja-mcp/`)
@@ -40,7 +42,7 @@ exec /opt/venvs/vikunja-mcp/bin/vikunja-mcp
 
 | Env var | Purpose | Default |
 |---------|---------|---------|
-| `VIKUNJA_URL` | Base URL of the Vikunja instance (no `/api/v1`) | none — required; server fails closed with `ConfigError` at startup if unset (no more hardcoded default, since v0.4.0) |
+| `VIKUNJA_URL` | Base URL of the Vikunja instance (no `/api/v2`) | none — required; server fails closed with `ConfigError` at startup if unset. There is no hardcoded default and none is planned. |
 | `VIKUNJA_HOST` | Bind address | `127.0.0.1` |
 | `VIKUNJA_PORT` | Bind port | `8501` |
 | `VIKUNJA_TRANSPORT` | `http` or `stdio` | `http` |
@@ -55,17 +57,23 @@ model. Per-agent tokens live in Vault at `secret/data/vikunja/agent-<role>`.
 
 ## Tools
 
-71 tools spanning the full Vikunja resource surface (v0.4.0, `TadMSTR/vikunja-mcp` PR #11).
-See the [repo README](https://github.com/TadMSTR/vikunja-mcp#tools) for the full table.
+73 tools spanning the full Vikunja resource surface — 71 as of v0.2.0, plus
+`backlog_summary` (v0.7.0) and `task_link_commit` (v0.8.0). See the [repo
+README](https://github.com/TadMSTR/vikunja-mcp#tools) for the full table.
 Notable points:
 
 - **No `filter_list`** — Vikunja has no `GET /filters`; saved filters are exposed as
   pseudo-projects, so list them via `project_list` and fetch with `filter_get`.
-- Vikunja's REST idiom is **PUT creates, POST updates** — tool names hide this.
+- As of v0.9.0 (the `/api/v2` migration), Vikunja's REST idiom is **POST creates (201), PUT
+  replaces, PATCH merges, DELETE returns 204** — the inverse of the old v1 idiom (PUT
+  created, POST updated). One route doesn't follow the pattern — the team-admin toggle stays
+  POST on both API versions. Tool names hide the verb either way.
 - Project sharing permission ints: `0` = read, `1` = write, `2` = admin.
-- **All list tools are paginated** (`page` / `per_page` args) as of v0.4.0. This round
-  extended pagination to the tools that hadn't already gained it: `comment_list`,
-  `attachment_list`, `task_assignee_list`, `view_list`.
+- **All list tools are paginated** (`page` / `per_page` args). Since v0.9.0, pagination comes
+  back as a body envelope rather than response headers: a bare list when the result fits, or
+  `{"items": [...], "pagination": {"truncated": true, "total_pages": N, "total": M, "count":
+  K}}` when it doesn't. `total` is the size of the whole result set and `count` is the rows
+  in this response — v1 could not report `total` at all.
 - `webhook_create`'s SSRF guard is unchanged, but there is currently no valid
   `webhook_create` target on this deployment — the SECURITY.md/`docs/forge.md` webhook
   guidance was corrected in v0.4.0 to reflect that.
