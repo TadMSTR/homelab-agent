@@ -6,10 +6,13 @@ cascade, and a domain capability database that learns which fetch tier works for
 the [project README](https://github.com/TadMSTR/searxng-mcp) for the full tool/architecture
 reference; this doc covers forge's deployment of it.
 
-- **Version:** v3.18.0
+- **Version:** v3.29.0
 - **Runs as:** Docker container in the `searxng` stack (`~/docker/searxng/docker-compose.yml`),
-  co-located with SearXNG itself since a 2026-08-23 stack consolidation; image `searxng-mcp:local`
-  built from repo main @ `a2a64d6`
+  co-located with SearXNG itself since a 2026-08-23 stack consolidation. As of the v3.26.0
+  cutover the container runs a published, digest-pinned image
+  (`ghcr.io/tadmstr/searxng-mcp:v3.29.0`) rather than a local build off repo main — a supply-chain
+  improvement as much as a convenience: the image is now reproducible from a tagged release
+  instead of whatever commit happened to be checked out at build time
 - **Endpoint:** `http://127.0.0.1:8504` — bearer-authed
 - **Transport:** streamable-http
 - **Agents:** all agent manifests (developer, sysadmin, security, writer, research, harlock)
@@ -68,9 +71,16 @@ would inject `ANTHROPIC_API_KEY` and `GITEA_TOKEN` into a container with no use 
   `http://kiwix:8292` fails; `http://kiwix:8080` works.
 - **Ollama** — traffic must go via **`ollama-queue-proxy:11435`**, not `ollama:11434` directly.
   Going straight to `ollama` bypasses the queue proxy and the `OLLAMA_API_KEY` gate it enforces.
-- **`adblock-proxy`** — a compose service *alias*, not the real container name. The real
-  container is `crawler-adblock-proxy-1`; the alias only resolves on the `crawler_fetch-net`
-  network, which is why searxng-mcp joins that network in addition to `forge-net`.
+- **`adblock-proxy`** — this used to be documented as a compose service alias fronting a
+  differently-named container. That's no longer true: since the v3.26.0 cutover it's a real,
+  published container named `adblock-proxy`. The reason searxng-mcp joins a second network
+  (`fetch-net`, alongside `forge-net`) isn't an alias-resolution quirk anymore either — it's
+  because `adblock-proxy` and the solver-tier service (Byparr — see below) both live on
+  `fetch-net` specifically so they're *not* reachable from the wider `forge-net` population.
+  Both are unauthenticated services that will act on whatever URL they're handed, so they get the
+  smallest network that still lets searxng-mcp reach them.
+- **Byparr (solver tier)** — same `fetch-net` isolation as `adblock-proxy`, same reasoning. See
+  [Solver Tier](#solver-tier-byparr) below and [byparr.md](byparr.md).
 
 ## Dependencies
 
@@ -80,6 +90,34 @@ would inject `ANTHROPIC_API_KEY` and `GITEA_TOKEN` into a container with no use 
 | Firecrawl | Yes | Tier-1 full-page fetch |
 | Valkey (`searxng-dragonfly`) | Recommended | Result/fetch caching + domain capability DB. Server degrades gracefully (no caching) if unreachable, but the domain DB — and therefore data-driven tier routing — needs it |
 | Crawl4AI, Ollama, Kiwix, reranker | Optional | Tier-2 fetch fallback, query expansion/summarization, offline-doc fast path, result reranking — each degrades independently when unset/unreachable |
+| Byparr | Optional | Challenge-solver tier for pages a standard fetch tier can't get past (JS/Cloudflare-style challenges). Degrades to "fetch fails" for challenge-gated pages when unset — see [Solver Tier](#solver-tier-byparr) below and [byparr.md](byparr.md) |
+
+The reranker deserves its own callout: it's a shared sidecar, not exclusive to searxng-mcp. A
+second, independent consumer (a chat UI, wired directly to the reranker's Jina-compatible
+`/v1/rerank` endpoint) also depends on it, with no health surface of its own for that second
+consumer to check. The reranker has no auth — its mitigation is publishing loopback-only rather
+than network isolation, since a second, out-of-stack consumer needs to reach it and a
+narrow shared network wouldn't cover that case the way it does for `adblock-proxy`/Byparr above.
+See [reranker.md](reranker.md).
+
+## Solver Tier (Byparr)
+
+searxng-mcp's fetch cascade normally runs Firecrawl → Crawl4AI → raw HTTP, in that order, falling
+back a tier whenever the one before it can't extract usable content. The solver tier sits outside
+that ladder: it's only invoked when a fetch attempt comes back as a bot-challenge page (a
+JS-executing "checking your browser" interstitial) rather than a normal failure. In that case,
+searxng-mcp hands the URL to Byparr, which drives a real headless browser through the challenge
+and returns cookies/HTML the caller can use to retry the fetch.
+
+Configuration is two env vars: `SOLVER_ENABLED` (gate — off means challenge pages just fail like
+any other unreachable fetch) and `SOLVER_URL` (pointing at the Byparr container on `fetch-net`).
+Byparr has no host-published port and no auth of its own; see
+[byparr.md](byparr.md#network-placement--why-its-isolated) for why that's an acceptable trade —
+short version, it's isolated on a network with exactly one consumer.
+
+The solver tier is deliberately a last resort, not a default: spinning up a full browser session
+per request is far more expensive than any other tier, so it only runs when everything cheaper
+has already failed.
 
 ## Hardening
 
@@ -88,8 +126,9 @@ would inject `ANTHROPIC_API_KEY` and `GITEA_TOKEN` into a container with no use 
   path is the bind mount `/opt/appdata/searxng/domain-db-snapshots` → `/snapshots`. If something
   ever turns out to need a writable root, find out *what* before dropping this flag.
 - `mem_limit: 2g`, `cpus: 2.0`, `ulimits: core: 0`
-- Networks: `forge-net` and `crawler_fetch-net` (the latter solely for the `adblock-proxy` alias
-  above)
+- Networks: `forge-net` and `fetch-net` — the latter carries no other traffic, it exists purely
+  so searxng-mcp can reach `adblock-proxy` and Byparr without either being reachable from
+  `forge-net`'s much larger population of containers
 
 ## Concurrent-write behaviour
 
@@ -145,8 +184,10 @@ the standard network-isolation pattern, recorded in `accepted-risks.md`:
 | NE-02 | Accepted | Joins the ~55-container `forge-net` rather than a purpose-built network pair — bearer auth is judged the actual control here |
 | NE-03 | Accepted | In-container `0.0.0.0` bind — required for container-name DNS resolution; the startup guard makes an unauthenticated non-loopback bind loud rather than silent |
 
-Migration is not yet complete: vikunja#321 stays open for Phases 5-7 (cron reconciliation,
-LibreChat wiring, ticket cleanup).
+Migration is not yet fully complete — a couple of follow-up phases (cron reconciliation, cleanup)
+remain tracked separately. The chat-UI integration piece of that follow-up has landed since this
+was written: a chat UI now calls the reranker sidecar directly (see the reranker note above),
+independent of searxng-mcp.
 
 ## Related Docs
 
