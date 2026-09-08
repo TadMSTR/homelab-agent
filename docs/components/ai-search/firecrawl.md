@@ -1,6 +1,15 @@
-# Firecrawl
+# Firecrawl (legacy stack — superseded)
 
-Firecrawl v0.0.46 — web scraping and content extraction service used by searxng-mcp to fetch and clean page content from search results. Deployed as a 4-container stack with an isolated internal network.
+> **Superseded as of 2026-09-05.** The stack described in this document (`firecrawl-simple`,
+> image `trieve/firecrawl`) is **no longer the active Firecrawl** in the request path. All
+> documented consumers have been cut over to a newer, upstream-based Firecrawl deployment.
+> The legacy stack described below is **still running** on forge (not yet decommissioned)
+> but is being phased out and should not be assumed to be receiving live traffic. Treat the
+> content below as historical/reference material for the legacy stack, not as current
+> architecture. A doc for the new stack is pending a separate decision on where it belongs
+> and is not yet published here.
+
+Firecrawl v0.0.46 (legacy `firecrawl-simple` stack) — web scraping and content extraction service formerly used by searxng-mcp to fetch and clean page content from search results. Deployed as a 4-container stack with an isolated internal network.
 
 - **Version:** 0.0.46
 - **Compose:** `~/docker/firecrawl/docker-compose.yml`
@@ -35,9 +44,10 @@ environment:
 
 This disables pnpm binary integrity verification. Required for v0.0.46 to start; remove on upgrade if the upstream image has resolved the key mismatch.
 
-## Usage
+## Usage (legacy — see notice above)
 
-searxng-mcp calls firecrawl-api to extract clean text from URLs returned by SearXNG:
+This describes how the legacy stack was used before the 2026-09-05 cutover. searxng-mcp
+called firecrawl-api to extract clean text from URLs returned by SearXNG:
 
 ```
 http://firecrawl-api:3002/v1/scrape  # gitleaks:allow
