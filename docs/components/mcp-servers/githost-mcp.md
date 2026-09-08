@@ -12,8 +12,10 @@ all three providers simultaneously.
   resolution)
 - **Repo:** `TadMSTR/githost-mcp` (public)
 - **Transport:** stdio (per-agent launcher script)
-- **Agents:** all six agent manifests (developer, sysadmin, research, security, writer,
-  harlock) — see scoped-mcp Registration below for per-agent tool restrictions
+- **Agents:** registered per-agent, one PM2 instance and launcher script per agent — see
+  scoped-mcp Registration below for per-agent tool restrictions. PM2 instances follow the
+  convention `githost-mcp-<agent>`; get the live list with `pm2 list | grep githost-mcp`
+  rather than trusting a fixed agent list here, since the agent set has drifted before.
 
 ## Tools (45 total)
 
@@ -169,7 +171,7 @@ os.execve(python, [python, "-m", "githost_mcp.server"], env)
 **Paths:**
 - Venv: `/opt/venvs/githost-mcp/`
 - Launchers: `~/repos/gitea/host-forge-scripts/scripts/run-githost-mcp-<agent>.py` (one per
-  agent: developer, sysadmin, research, security, writer, harlock)
+  agent — see `pm2 list | grep githost-mcp` for the current agent set)
 - Secrets: `~/.secrets/githost-mcp-<agent>.env` (chmod 600, per-agent `ALLOWED_REPO_ROOTS`)
 - Appdata: `/opt/appdata/githost-mcp/{logs,audit}/` (chmod 750, shared across agents)
 
@@ -201,6 +203,10 @@ githost-mcp:
 | `security` | Denylists `git_tag`, `git_checkout` (main-only), `release`, registry publish, all provider `create_release`/merge tools, `woodpecker_trigger` |
 | `writer` | `ALLOWED_REPO_ROOTS` restricted to doc repos; commits directly to `main` only — denylists `git_tag`, `git_checkout`, `release`, registry publish, all provider `create_release`/merge tools |
 | `harlock` | Denylists all local write tools and every provider's PR/MR create + merge tools |
+
+This table has not been re-verified against the live PM2 process set recently — treat agent
+names here as indicative of restriction *patterns*, and confirm the current agent roster
+with `pm2 list | grep githost-mcp` before relying on an exact name.
 
 The `github_pr_create`/`github_pr_merge`/`gitlab_mr_create`/`gitlab_mr_merge` denylist
 entries above were added 2026-07-13 as the HITL-gate fix described in Security Model.

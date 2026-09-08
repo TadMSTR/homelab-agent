@@ -5,7 +5,7 @@ forge agent Claude Code session. It polls the forge homeserver for new messages 
 agent's room and injects them into the agent's Claude Code project directory.
 
 - **Source:** `~/repos/personal/matrix-dispatcher/`
-- **PM2 name:** `matrix-dispatcher` (ID 21)
+- **PM2 name:** `matrix-dispatcher-forge` (ID 3)
 - **Entry point:** `start-forge.sh`
 - **Status:** online
 
@@ -15,7 +15,7 @@ agent's room and injects them into the agent's Claude Code project directory.
 (bot access token), then executes `dispatcher.py`. The credentials file must exist and be
 readable before the process starts — PM2 restarts will fail with an error if it's missing.
 
-Logs at `~/.pm2/logs/matrix-dispatcher-{out,error}.log`.
+Logs at `~/.pm2/logs/matrix-dispatcher-forge-{out,error}.log`.
 
 ## Configuration
 

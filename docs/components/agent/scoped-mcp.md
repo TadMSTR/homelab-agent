@@ -1,10 +1,19 @@
 # scoped-mcp (forge)
 
-scoped-mcp is a per-agent MCP tool proxy giving each of the 5 forge resident agents
-(sysadmin, research, developer, writer, security) an isolated, manifest-controlled tool
-surface. Each agent session launches its own scoped-mcp process; the proxy loads only the
-modules the agent is allowed to use and injects credentials so agents never see token values
-directly.
+scoped-mcp is a per-agent MCP tool proxy giving each forge agent an isolated,
+manifest-controlled tool surface. Each agent session launches its own scoped-mcp process;
+the proxy loads only the modules the agent is allowed to use and injects credentials so
+agents never see token values directly.
+
+The 5 interactive resident agents (sysadmin, research, developer, writer, security) are the
+primary consumers, but non-interactive automation processes get their own scoped-mcp
+instance too — the running set has grown beyond those 5 and will keep growing, so this doc
+does not attempt to enumerate every instance name. PM2 instances follow the convention
+`scoped-mcp-<agent>`; get the live list with:
+
+```bash
+pm2 list | grep scoped-mcp
+```
 
 - **Package:** `scoped-mcp` v1.2.2 (installed at `/opt/venvs/scoped-mcp/`)
 - **Venv:** `/opt/venvs/scoped-mcp/`
@@ -135,6 +144,11 @@ which MCP modules it can access, with per-tool denylists enforcing least-privile
 | developer | system-ops, githost-mcp, searxng-mcp, qmd, memory-metadata-mcp, task-queue-mcp, langfuse-mcp, matrix | `searxng-mcp: clear_cache` |
 | writer | system-ops, searxng-mcp, qmd, memory-metadata-mcp, memory-fulltext-mcp, task-queue-mcp, matrix | `system-ops: list_processes`, `searxng-mcp: clear_cache` |
 | security | system-ops, searxng-mcp, memory-metadata-mcp, task-queue-mcp, loki-mcp, matrix | `system-ops: edit_file`, `searxng-mcp: clear_cache` |
+
+This table covers manifests for the 5 interactive resident agents only. Automation-only
+scoped-mcp instances (e.g. for jobsearch, doc-health, memory-sync workflows) have their own
+manifests under `/etc/forge/manifests/` but are not tabulated here — see `pm2 list | grep
+scoped-mcp` for the current live set.
 
 ### claudebox-ops
 

@@ -10,6 +10,9 @@ covers the app stack itself.
 - **URL:** `https://librechat.helmforge.me`
 - **Stack:** `~/docker/librechat/`
 - **Appdata:** `/opt/appdata/librechat/`
+- **Version:** `v0.8.8-rc2` (bumped from `v0.8.5` 2026-09-05). This is a **release candidate**,
+  not a tagged stable release — expect different stability guarantees than a GA tag when
+  troubleshooting or planning upgrades.
 
 ## Stack
 

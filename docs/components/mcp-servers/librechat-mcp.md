@@ -9,9 +9,9 @@ handling JWT authentication transparently. Runs as a sidecar inside the LibreCha
 | Field | Value |
 |-------|-------|
 | Container | `librechat-mcp` |
-| Image | `ghcr.io/tadmstr/librechat-mcp:latest` |
+| Version | `0.3.0` (image `ghcr.io/tadmstr/librechat-mcp:0.3.0`, pinned — not `:latest`) |
 | Stack | `~/docker/librechat/` (sidecar in the LibreChat compose) |
-| Port | `127.0.0.1:8496` (streamable-http) |
+| Port | `127.0.0.1:8496` (streamable-http) — unchanged in 0.3.0 |
 | Network | `librechat-internal` |
 | Repo | `~/repos/personal/librechat-mcp/` (GitHub: TadMSTR/librechat-mcp) |
 
@@ -27,8 +27,13 @@ network and can reach `http://librechat:3080` directly. The container is hardene
 | LIBRECHAT_ADMIN_EMAIL | `${LIBRECHAT_MCP_EMAIL}` (from stack `.env`) |
 | LIBRECHAT_ADMIN_PASSWORD | `${LIBRECHAT_MCP_PASSWORD}` (from stack `.env`) |
 | MCP_PORT | `8496` |
+| LIBRECHAT_MCP_API_TOKEN | `${LIBRECHAT_MCP_TOKEN}` (from stack `.env`, min 16 chars) — **mandatory as of 0.2.0**; the container refuses to start without it |
 
-Authentication uses LibreChat's `POST /api/auth/login` endpoint. The JWT is cached
+The MCP surface itself is bearer-token gated by `LIBRECHAT_MCP_API_TOKEN` — the loopback
+port binding and the token are independent controls, not substitutes for each other.
+Before 0.2.0 the endpoint had no auth at all.
+
+Authentication to the LibreChat API uses `POST /api/auth/login`. The JWT is cached
 in-process and refreshed proactively after 6 days (LibreChat's default token lifetime is
 7 days); a 401 triggers an immediate re-login.
 

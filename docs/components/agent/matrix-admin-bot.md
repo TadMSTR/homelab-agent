@@ -8,7 +8,7 @@ See homelab-agent matrix-admin-bot doc
 for the claudebox instance and full command reference. This doc covers the forge deployment only.
 
 - **Source:** `~/repos/personal/matrix-admin-bot/`
-- **PM2 name:** `matrix-admin-bot` (ID 22)
+- **PM2 name:** `matrix-admin-bot-forge` (ID 4)
 - **Config:** `~/.secrets/matrix-admin-bot.yml`
 - **Status:** online
 
@@ -20,7 +20,7 @@ python bot.py --config /home/ted/.secrets/matrix-admin-bot.yml
 
 Launched via the matrix-admin-bot virtualenv at
 `~/repos/personal/matrix-admin-bot/venv/bin/python`. Logs at
-`~/.pm2/logs/matrix-admin-bot-{out,error}.log`.
+`~/.pm2/logs/matrix-admin-bot-forge-{out,error}.log`.
 
 ## Configuration
 

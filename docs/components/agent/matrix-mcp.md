@@ -4,7 +4,7 @@ matrix-mcp gives forge's operator agents Matrix messaging capability via the
 `helmforge.me` homeserver.
 
 - **Source:** `~/repos/personal/matrix-mcp/`
-- **PM2 name:** `matrix-mcp` (ID 20)
+- **PM2 name:** `matrix-mcp-forge` (ID 2)
 - **Transport:** HTTP (FastMCP), `127.0.0.1:8487`
 - **Status:** online
 
@@ -15,7 +15,7 @@ fastmcp run server.py --transport http --host 127.0.0.1 --port 8487
 ```
 
 Launched by PM2 from `~/repos/personal/matrix-mcp/` using the virtualenv at
-`venv/bin/fastmcp`. Logs at `~/.pm2/logs/matrix-mcp-{out,error}.log`.
+`venv/bin/fastmcp`. Logs at `~/.pm2/logs/matrix-mcp-forge-{out,error}.log`.
 
 Credentials are sourced from the forge secrets file referenced in `server.py`. The bot
 account on the forge homeserver sends and receives on behalf of forge agents.
