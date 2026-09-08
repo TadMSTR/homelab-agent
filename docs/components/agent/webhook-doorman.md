@@ -5,8 +5,8 @@ receivers — `vikunja-webhook-listener`, `qmd-webhook`, and `plane-webhook-list
 ingress that verifies, deduplicates, and fans out webhook deliveries to chat/notification sinks.
 Public repo: [TadMSTR/webhook-doorman](https://github.com/TadMSTR/webhook-doorman).
 
-- **Image:** `ghcr.io/tadmstr/webhook-doorman:0.4.0` (multi-arch amd64 + arm64) — verified
-  deployed via `docker ps` (container start time postdates the v0.4.0 tag commit)
+- **Image:** `ghcr.io/tadmstr/webhook-doorman:0.5.0` (multi-arch amd64 + arm64) — verified
+  deployed via `docker inspect` (container `Created` timestamp postdates the v0.5.0 release)
 - **Compose:** `~/docker/webhook-doorman/docker-compose.yml` (own stack)
 - **Config:** `/opt/appdata/webhook-doorman/config.yml` (0644, non-secret)
 - **Secrets:** `/opt/appdata/webhook-doorman/.env` (0600 ted:ted, read by the daemon as root via
@@ -94,6 +94,27 @@ before.
 container start. A rollback to 0.3.0 will **refuse to start** rather than write to a migrated
 database. Snapshot `/opt/appdata/webhook-doorman/data` before any upgrade.
 
+## Supply chain (v0.5.0)
+
+Build-time and CI hardening only — **no runtime or behavioral change**. A 0.4.0 config runs
+identically on 0.5.0: no new config keys, no new endpoints, no schema migration.
+
+- **Dependency tree is now pinned and audited from what actually ships.** The image previously
+  installed from a fresh, unpinned resolve at build time, while CI separately audited the
+  *declared* version ranges — two different dependency sets, neither of which was the one
+  published. A committed lockfile is now the source of truth for the build, and the audit runs
+  against the artefact's own installed packages. No vulnerabilities were found; the gap closed
+  was that nothing was actually looking at what shipped.
+- **The publish path verifies the image before pushing it**, rather than building and pushing in
+  one step with GHCR as the first thing to see the artefact.
+- **CI now asserts the service's actual request-signing contract**, not just liveness: an
+  unsigned request is refused, a wrongly-signed request is refused, and a correctly-signed
+  request is accepted. The accept case is the one that matters — without it, a build whose
+  verification logic rejected everything would pass identically to a working one.
+- Base images pinned by digest, build provenance attestation, static analysis and dependency-bot
+  coverage added, and the test coverage floor raised (with the measured figure recorded above
+  the constant, so it can't drift silently again).
+
 ## Configuration
 
 `config.yml` sections: `server` (max body size, `allow_unverified`), `storage` (SQLite path,
@@ -156,7 +177,8 @@ curl -s -H "Authorization: Bearer $ADMIN_TOKEN" http://127.0.0.1:8507/admin/dlq
 
 ## Build History
 
-Built across four phases against the same repo, in order:
+Built across four phases against the same repo, in order, plus one supply-chain-only release
+with no separate phase doc:
 
 1. `forge-webhook-router-2026-08` — original build, v0.1.0. Introduced the fail-closed model:
    escaping belongs to the destination (not the parser), a dedup key can't point at a credential
@@ -174,9 +196,14 @@ Built across four phases against the same repo, in order:
    destinations that feed an LLM agent (structural filtering, source trust + fenced untrusted
    content, Unicode instruction-smuggling sanitization, pluggable detector, quarantine/release)
    plus the project's first schema migration.
+6. v0.5.0 — supply-chain hardening. Build-time dependency resolution replaced with a committed,
+   hash-pinned lockfile audited from the published artefact; publish path verifies the image
+   before push; CI asserts the accept/reject signing contract instead of only liveness. No
+   behavioral change to the running service.
 
 Forge went straight from `0.1.0` to `0.3.0` in one rollout once all three follow-on plans closed,
-rather than deploying each intermediate version; v0.4.0 deployed separately. Full phase docs
+rather than deploying each intermediate version; v0.4.0 and v0.5.0 each deployed separately. Full
+phase docs
 (host-forge-knowledge-base, private): `phases/forge-webhook-router-2026-08.md`,
 `phases/webhook-doorman-correctness-2026-08.md`, `phases/webhook-doorman-sinks-2026-08.md`,
 `phases/webhook-doorman-observability-2026-08.md`,
