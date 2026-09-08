@@ -1,8 +1,8 @@
 # Crawl4ai
 
-Crawl4ai 0.8.6 — browser-based web content extraction service. Used by searxng-mcp for JS-heavy pages that Firecrawl's HTML scraper cannot render. Complements Firecrawl: Firecrawl handles static HTML, Crawl4ai handles pages requiring a full browser.
+Crawl4ai 0.9.3 — browser-based web content extraction service. Used by searxng-mcp for JS-heavy pages. Both Crawl4ai and Firecrawl do browser-based rendering now (Firecrawl gained a Playwright-backed rendering path in its own upgrade), so "static vs. dynamic" is no longer the dividing line between them — pick based on tier/use-case (see [firecrawl.md](firecrawl.md)) rather than treating Crawl4ai as the sole browser-rendering tier.
 
-- **Version:** 0.8.6
+- **Version:** 0.9.3 — 0.9.3 is a security release (closes coordinated-disclosure advisories in the PDF-processing path and the Docker Playground UI) plus accumulated bug fixes; no behavioral changes affecting the setup documented below were identified.
 - **Port:** `11235` (forge-net internal)
 - **Compose:** `~/docker/crawl4ai/docker-compose.yml`
 - **Network:** `forge-net`
@@ -53,5 +53,5 @@ Returns 200 when the service is ready. searxng-mcp uses `CRAWL4AI_URL=http://cra
 ## Related Docs
 
 - [phase-5-user-stack-infra.md](../../phases/phase-5-user-stack-infra.md) — web search pipeline architecture
-- [firecrawl.md](firecrawl.md) — static HTML extraction (complementary service)
+- [firecrawl.md](firecrawl.md) — complementary extraction service (also browser-capable; differentiator is tier/use-case, not static-vs-dynamic)
 - [reranker.md](reranker.md) — result reranking (downstream of both)
