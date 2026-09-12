@@ -6,8 +6,7 @@
 > The legacy stack described below is **still running** on forge (not yet decommissioned)
 > but is being phased out and should not be assumed to be receiving live traffic. Treat the
 > content below as historical/reference material for the legacy stack, not as current
-> architecture. A doc for the new stack is pending a separate decision on where it belongs
-> and is not yet published here.
+> architecture. See [firecrawl-v2.md](firecrawl-v2.md) for the current deployment.
 
 Firecrawl v0.0.46 (legacy `firecrawl-simple` stack) — web scraping and content extraction service formerly used by searxng-mcp to fetch and clean page content from search results. Deployed as a 4-container stack with an isolated internal network.
 
