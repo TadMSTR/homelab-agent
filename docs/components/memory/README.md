@@ -14,6 +14,7 @@ The memory system gives agents recall across sessions. Notes flow through three 
 | [memsearch.md](memsearch.md) | Hybrid vector+BM25 search library | — |
 | [memsearch-mcp.md](memsearch-mcp.md) | memsearch MCP server | 8493 |
 | [memsearch-summarize.md](memsearch-summarize.md) | Session transcript summarizer | 8494 |
+| [scribe.md](scribe.md) | Transcript extractor + summarizer, built to replace memsearch-summarize (not deployed) | — |
 | [memory-expire.md](memory-expire.md) | Expired note eviction cron | — (cron) |
 | [memory-compact-qc.md](memory-compact-qc.md) | Weekly QC on Ollama compact output | — (cron) |
 | [graphiti.md](graphiti.md) | Temporal knowledge graph (Neo4j), retired 2026-08-05 | — |
