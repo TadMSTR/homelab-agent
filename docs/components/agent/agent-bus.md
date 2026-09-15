@@ -6,8 +6,15 @@ completions, artifact creation) via MCP tool calls. Events are written to local 
 files and federated to NATS JetStream for real-time observability.
 
 - **Source:** `~/repos/personal/agent-bus/`
-- **PM2 name:** `agent-bus` (id 9)
-- **Transport:** stdio (launched by Claude Code via scoped-mcp)
+- **PM2 name:** `agent-bus` (PM2 ids are assigned at registration order and shift on every
+  ecosystem rebuild — use the name, not a hardcoded id, to look it up)
+- **Transport:** stdio per scoped-mcp session — each agent broker launches its own child
+  process of `server.py`. A separate long-lived instance also runs directly under PM2
+  (`pm2 describe agent-bus`) purely to keep the federation loop alive when no agent session
+  is active; it is not an MCP endpoint any client calls tools against. `federation_loop` runs
+  in every process that starts this server (the PM2 instance and one stdio child per
+  scoped-mcp broker, 8+ in total) — an exclusive flock elects a single federator so they
+  don't race each other's cursor file (see `acquire_federation_lock()` in `server.py`).
 - **NATS subject:** `agent-bus.<hostname>.events`
 
 ## Tools
