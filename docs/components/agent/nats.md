@@ -4,7 +4,7 @@ NATS on forge is the event transport layer for agent orchestration. It provides 
 
 ## Configuration
 
-Config file: `/opt/appdata/agent-platform/nats/nats.conf` (600, owned by ted)
+Config file: `/opt/appdata/nats/nats.conf` (600, owned by ted)
 
 ```
 port: 4222
@@ -19,7 +19,7 @@ authorization {
 }
 ```
 
-Passwords are stored as bcrypt hashes in the config. The config is mounted read-only into the NATS container; credentials are not visible in process args. JetStream data persists at `/opt/appdata/agent-platform/nats/`.
+Passwords are stored as bcrypt hashes in the config. The config is mounted read-only into the NATS container; credentials are not visible in process args. JetStream data persists at `/opt/appdata/nats/`.
 
 ## Users and Permissions
 
@@ -30,7 +30,7 @@ Passwords are stored as bcrypt hashes in the config. The config is mounted read-
 | User | Role | Publish | Subscribe |
 |------|------|---------|-----------| 
 | `platform` | Full admin | `>` | `>` |
-| `agent-bus` | Bus — routes all events | `events.>` | `>` |
+| `agent-bus` | Bus — routes all events | `events.>`, `$JS.API.>` (added 2026-08-29, agent-bus v0.4.0 — `js.publish()` needs its own JetStream API publish grant distinct from the `events.>` data-plane subject) | `>` |
 | `task-queue` | Task queue MCP | `tasks.>` | `tasks.>`, `events.>`, `_INBOX.>` |
 | `agent-research` | Research agent | `tasks.research.>`, `events.research.>` | `tasks.research.>`, `_INBOX.>` |
 | `agent-sysadmin` | Sysadmin agent | `tasks.sysadmin.>`, `events.sysadmin.>` | `tasks.sysadmin.>`, `_INBOX.>` |
@@ -38,6 +38,10 @@ Passwords are stored as bcrypt hashes in the config. The config is mounted read-
 | `agent-writer` | Writer agent | `tasks.writer.>`, `events.writer.>` | `tasks.writer.>`, `_INBOX.>` |
 | `agent-developer` | Developer agent | `tasks.developer.>`, `events.developer.>` | `tasks.developer.>`, `_INBOX.>` |
 | `searxng-mcp` | SearXNG MCP server | `events.searxng.>` | `_INBOX.>` |
+| `nats-provisioner` | JetStream admin only — one-shot stream-provisioner container (vikunja#556) that creates/verifies the AGENT_BUS stream on every `docker compose up` | `$JS.API.>` | `$JS.API.>`, `_INBOX.>` |
+
+`nats-provisioner` has no data-plane publish/subscribe — scoped to `$JS.API.>` so a
+compromised provisioner cannot read or write any subject's messages.
 
 ### Legacy helm users (retained, not actively rotated)
 
