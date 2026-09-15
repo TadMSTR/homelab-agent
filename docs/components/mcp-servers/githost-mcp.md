@@ -203,6 +203,7 @@ githost-mcp:
 | `security` | Denylists `git_tag`, `git_checkout` (main-only), `release`, registry publish, all provider `create_release`/merge tools, `woodpecker_trigger` |
 | `writer` | `ALLOWED_REPO_ROOTS` restricted to doc repos; commits directly to `main` only — denylists `git_tag`, `git_checkout`, `release`, registry publish, all provider `create_release`/merge tools |
 | `harlock` | Denylists all local write tools and every provider's PR/MR create + merge tools |
+| `steward` | The unusual one: holds only read verbs plus `gitea_pr_create` — no `git_add`/`git_commit`/`git_push` and no merge verb at all in its manifest tool_allowlist. `write_roots: []` in `workspace-policy.yml`; steward's job is to open a PR carrying a config diff, never to land one. Its githost-mcp instance runs as `ted`, not a dedicated agent-role user. |
 
 This table has not been re-verified against the live PM2 process set recently — treat agent
 names here as indicative of restriction *patterns*, and confirm the current agent roster

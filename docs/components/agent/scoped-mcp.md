@@ -53,8 +53,10 @@ but scoped-mcp reads a root-owned copy at `/etc/forge/manifests/<agent>-agent.ym
 `sudo /usr/local/sbin/forge/agent-manifests-deploy.sh`. A manifest edit only takes effect after
 **both** merge to `origin/main` and a deploy run — merged-but-undeployed is a no-op. This replaced
 the old model (`~/.claude/manifests/<type>-agent.yml` as a symlink straight into the working
-tree, live on merge). The deploy set covers six agents (`jobsearch` was added alongside the
-original five). Verify what a running process actually has loaded with:
+tree, live on merge). The deploy set has grown past the original five interactive agents plus `jobsearch` — nine
+manifests are live at `/etc/forge/manifests/` as of this writing (`doc-health`,
+`memory-sync`, and `steward` were added since). Don't trust a specific count here; it will
+drift again. Verify what a running process actually has loaded with:
 
 ```bash
 tr '\0' '\n' < /proc/$(pm2 pid scoped-mcp-<agent>)/cmdline | grep -A1 manifest
