@@ -11,11 +11,11 @@ homelab-agent/
 ├── CHANGELOG.md                 # Build history
 ├── index.md                     # THIS FILE — navigation index
 ├── docs/
-│   ├── components/              # Per-service operational reference (104 docs)
+│   ├── components/              # Per-service operational reference (106 docs)
 │   │   ├── foundation/          # Host, reverse proxy, auth, secrets, backups (10)
 │   │   ├── observability/       # Grafana, Loki, SigNoz, Langfuse, exporters (13)
-│   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (10)
-│   │   ├── memory/              # Memory architecture, Milvus, memsearch (9)
+│   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (12)
+│   │   ├── memory/              # Memory architecture, Milvus, memsearch (10)
 │   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (19)
 │   │   ├── apps/                # Nextcloud, Plane, Vikunja, tools stack (8)
 │   │   ├── mcp-servers/         # system-ops, githost, dockhand, patchmon, pm2 (12)
@@ -78,9 +78,11 @@ homelab-agent/
 | `docs/components/ai-search/ollama-queue-proxy.md` | Queuing/auth layer in front of Ollama |
 | `docs/components/ai-search/open-webui.md` | Multi-model chat UI |
 | `docs/components/ai-search/searxng.md` | Private meta-search |
-| `docs/components/ai-search/firecrawl.md` | Web extraction |
+| `docs/components/ai-search/firecrawl.md` | Web extraction — legacy stack, superseded by firecrawl-v2 |
+| `docs/components/ai-search/firecrawl-v2.md` | Upstream Firecrawl v2 — current web extraction backend |
 | `docs/components/ai-search/crawl4ai.md` | Web crawling |
 | `docs/components/ai-search/reranker.md` | ML reranking |
+| `docs/components/ai-search/byparr.md` | Headless-browser challenge solver (searxng-mcp fetch cascade) |
 | `docs/components/ai-search/hister.md` | Browser semantic search |
 | `docs/components/ai-search/kiwix.md` | Offline Wikipedia/SO/Arch Wiki |
 
@@ -95,6 +97,7 @@ homelab-agent/
 | `docs/components/memory/memsearch-mcp.md` | memsearch MCP server (:8493) |
 | `docs/components/memory/memsearch-summarize.md` | Session transcript summarizer |
 | `docs/components/memory/memory-expire.md` | Expired note eviction |
+| `docs/components/memory/scribe.md` | Transcript extractor — built, shadow-tested, NOT deployed |
 | `docs/components/memory/graphiti.md` | Knowledge graph, retired 2026-08-05 |
 
 **Agent Infrastructure:**
