@@ -67,25 +67,39 @@ Forge runtime configuration:
 | `[reranker]` | `model` | `Alibaba-NLP/gte-reranker-modernbert-base` | Local reranker |
 | `[chunking]` | `max_chunk_size` | `1500` | Chars per chunk |
 | `[chunking]` | `overlap_lines` | `2` | Overlap between chunks |
-| `[compact]` | `llm_provider` | `anthropic` | LLM for compaction |
-| `[compact]` | `llm_model` | `claude-sonnet-4-6` | Compaction model |
-| `[llm.providers.ollama]` | `type` | `openai-compatible` | Provider type for local LLM calls |
+| `[llm]` | `provider` | `openai` | Default library-level LLM provider (e.g. `compact`) |
+| `[llm]` | `model` | `mistral-medium-latest` | Default model |
+| `[llm]` | `base_url` | `https://api.mistral.ai/v1` | Default OpenAI-compatible endpoint |
+| `[llm.providers.ollama]` | `type` | `openai-compatible` | Provider type for local LLM calls. **Configured but unselected** — nothing currently routes here; kept for the failover decision at vikunja#399, not dead config |
 | `[llm.providers.ollama]` | `base_url` | `http://127.0.0.1:11435/v1` | OQP OpenAI-compat endpoint (`/v1` suffix required) |
-| `[llm.providers.ollama]` | `api_key` | (from forge.env) | OQP API key for LLM provider calls |
+| `[llm.providers.mistral]` | `base_url` | `https://api.mistral.ai/v1` | Mistral OpenAI-compat endpoint |
+| `[llm.providers.mistral]` | `api_key` | `env:MISTRAL_API_KEY` | Auth for Mistral calls |
 | `[plugins.claude-code.summarize]` | `enabled` | `true` | Enable session transcript summarizer |
-| `[plugins.claude-code.summarize]` | `provider` | `ollama` | Routes to `[llm.providers.ollama]` |
-| `[plugins.claude-code.summarize]` | `model` | `memsearch-summarize` | Custom Ollama modelfile (see below) |
+| `[plugins.claude-code.summarize]` | `provider` | `mistral` | Routes to `[llm.providers.mistral]` |
+| `[plugins.claude-code.summarize]` | `model` | `mistral-medium-latest` | Live model — see [llm-providers.md](../ai-search/llm-providers.md) |
 | `[prompts]` | `summarize` | `~/.memsearch/prompts/summarize-local.txt` | Custom system prompt for summarize plugin |
+
+**Read `~/.memsearch/config.toml` directly before citing any of the above** — this table has
+been wrong before (vikunja#402: it named Ollama/qwen3:14b after the config had already moved
+to Mistral) and the fix for that is not re-copying values into docs, it's linking to the
+single page that owns them: [llm-providers.md](../ai-search/llm-providers.md).
 
 ## Summarize plugin
 
 The `plugins.claude-code.summarize` plugin ingests raw session transcripts from `.memsearch/spool/` and compresses them into bullet summaries, then writes the result back so later searches hit the condensed form rather than raw tool output.
 
-**Model:** `memsearch-summarize` — a custom Ollama modelfile built on `qwen3:14b` with the `/no_think` template suffix (disables chain-of-thought output), `temperature 0.1`, and `num_predict 400`. Keeps summaries tight and deterministic.
+**Model:** `mistral-medium-latest`, via the OpenAI-compatible `[llm.providers.mistral]` provider (`https://api.mistral.ai/v1`). This replaced an earlier Ollama-hosted `memsearch-summarize` modelfile (`qwen3:14b`, `/no_think` suffix, `temperature 0.1`, `num_predict 400`) during the 2026-08 pipeline-resilience build — if you see that modelfile referenced elsewhere as current, it is stale.
 
-**Routing:** LLM calls go through `[llm.providers.ollama]` which points at OQP (`http://127.0.0.1:11435/v1`, OpenAI-compat endpoint). This gives the summarize plugin the same priority queuing and concurrency caps as other OQP consumers. Embedding calls (`[embedding]`) continue to use the Ollama native API on the same OQP port (`http://127.0.0.1:11435`, no `/v1`).
+**Routing:** LLM calls for summarize go through `[llm.providers.mistral]` directly to the external Mistral API — not through OQP. **Embedding calls (`[embedding]`) are the one LLM-adjacent path that is still genuinely Ollama**, via OQP on `http://127.0.0.1:11435` (no `/v1`, native Ollama API). Do not conflate the two: summarize and embedding are separate config sections with separate providers, and only one of them changed.
 
 **Custom prompt:** `~/.memsearch/prompts/summarize-local.txt` overrides the default system prompt. Edit this file to tune summary style without touching the memsearch library.
+
+**No quality gate exists on this path.** `memory-compact-qc.sh` grades `compact` output, not
+summarize output, and grades it for fidelity to a source that is itself summarize output —
+[memory-architecture.md](memory-architecture.md)'s hop table should not be read as implying
+summarize has independent quality coverage. Relatedly, `memsearch-spend.sh` meters only
+`process=compact`; Mistral summarize calls are not in that meter, so any spend figure derived
+from it is not total pipeline spend (see [llm-providers.md](../ai-search/llm-providers.md)).
 
 ```bash
 # Check the active summarize model

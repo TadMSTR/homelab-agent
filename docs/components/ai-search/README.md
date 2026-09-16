@@ -16,10 +16,13 @@ Local LLM inference, web search, and content extraction services. Ollama handles
 | [reranker.md](reranker.md) | ML result reranking | 8484 |
 | [hister.md](hister.md) | Browser history semantic search | 3006 |
 | [kiwix.md](kiwix.md) | Offline Wikipedia / Stack Overflow / Arch Wiki | 8888 |
+| [llm-providers.md](llm-providers.md) | Which LLM provider each memory/search consumer actually uses | — (reference page, no service) |
 
 ## How Agents Use These
 
 Agents don't call Ollama or SearXNG directly. They use MCP servers:
 
 - **searxng-mcp** — web search → fetch → rerank cascade (all agents)
-- **ollama-queue-proxy** — serialized embedding/inference requests from memsearch and qmd
+- **ollama-queue-proxy** — serialized embedding/inference requests from memsearch. **Not
+  qmd** — qmd runs its own in-process `llama.cpp` embedder and has no dependency on Ollama,
+  OQP, or Milvus (vikunja#402; see [llm-providers.md](llm-providers.md)).

@@ -50,9 +50,8 @@ flowchart TD
     mw_tmpl --> milvus
     milvus --> mm["**memsearch-mcp** :8493\nhybrid vector+BM25+reranker"]
 
-    milvus --> qmd_svc["**qmd** :8181\nsemantic + BM25 + HyDE\n(9k docs, 40+ collections)"]
     notes --> qr["qmd-refresh\nhourly cron"]
-    qr --> qmd_svc
+    qr --> qmd_svc["**qmd** :8181\nown embedder, in-process llama.cpp\n(9k docs, 40+ collections)"]
 
     notes --> meta["**memory-metadata-mcp** :8490\nSQLite frontmatter index"]
     meta --> sqlite[("**.metadata.db**\nSQLite")]
@@ -129,8 +128,8 @@ flowchart TD
     working & distilled -- "③ archive-mirror 02:30\npoint-in-time backup snapshot\nwith change history" --> nfs
 
     working --> summarize["memsearch-summarize :8494\n(session digest writer)"]
-    summarize -- "④ sends raw note chunks\nfor LLM summarization" --> anthropic["Anthropic API"]
-    anthropic -- "⑤ returns digest summary\nwritten back as new note" --> summarize
+    summarize -- "④ sends raw note chunks\nfor LLM summarization" --> llmprovider["configured LLM provider\n(live: Mistral API)"]
+    llmprovider -- "⑤ returns digest summary\nwritten back as new note" --> summarize
     summarize -- "⑥ summary note enters\nnext promotion cycle" --> spool
 
     working -- "⑦ watches for new/changed\nworking+session files (60s poll)" --> watch["memsearch-watch-fast\n(polling)"]
@@ -138,9 +137,8 @@ flowchart TD
     watch -- "⑧ embeds with BGE-M3\nupserts into vector index" --> milvus[("Milvus :19530\n(vector index)")]
     watch_tmpl --> milvus
     milvus -- "⑨ hybrid vector+BM25+reranker\nbest semantic recall" --> memsearch_mcp["memsearch-mcp :8493"]
-    milvus -- "⑩ semantic search backend\nfor forge-wide doc corpus" --> qmd["qmd :8181\n(9k docs, 40+ collections)"]
-    working -- "⑪ hourly re-index of\nall memory collections" --> qr["qmd-refresh\n(hourly cron)"]
-    qr --> qmd
+    working -- "⑩–⑪ hourly re-index of\nall memory collections" --> qr["qmd-refresh\n(hourly cron)"]
+    qr --> qmd["qmd :8181\nown in-process llama.cpp embedder\n(9k docs, 40+ collections)"]
 
     working -- "⑫ parses frontmatter tags,\ntier, dates into SQLite" --> metadb[(".metadata.db\n(SQLite frontmatter index)")]
     metadb -- "⑬ syncs fields/tags\nfor full-text indexing" --> os_sync["memory-os-sync\n(always-on, 30s poll)"]
@@ -163,11 +161,11 @@ flowchart TD
 | ① | spool → working | `memory-promote-daily` scores session notes nightly and moves high-value ones into the main working store |
 | ② | working → distilled | `memory-sync-weekly` reads working notes and compresses them into concise long-lived summaries |
 | ③ | working/distilled → NFS | `memory-archive-mirror` takes a daily snapshot of all tiers to atlas — append-only, retains change history |
-| ④–⑤ | working ↔ Anthropic | `memsearch-summarize` chunks a project's spool, calls Claude to write a digest, and saves the result |
+| ④–⑤ | working ↔ configured LLM provider | `memsearch-summarize` chunks a project's spool, calls its configured LLM provider to write a digest, and saves the result. Provider/model has changed twice (Anthropic → Ollama qwen3:14b → Mistral); see [llm-providers.md](../ai-search/llm-providers.md) for the current assignment rather than trusting this table |
 | ⑥ | summarize → spool | The new summary re-enters the spool so it gets scored and promoted by the next ① cycle |
 | ⑦–⑧ | working → Milvus | `memsearch-watch-fast` polls the working/session tiers every 60s; `memsearch-watch-templates` watches the templates tier via `inotifywait`. Both embed changed files with BGE-M3 and upsert vectors into Milvus |
 | ⑨ | Milvus → memsearch-mcp | Agents query via hybrid vector + BM25 + cross-encoder reranker — highest-recall recall path |
-| ⑩–⑪ | working/Milvus → qmd | `qmd-refresh` re-indexes all memory collections hourly; qmd also uses Milvus as its vector backend |
+| ⑩–⑪ | working → qmd | `qmd-refresh` re-indexes all memory collections hourly. **qmd does not use Milvus.** It links `llama.cpp` in-process and loads its own GGUF embedding models from `~/.cache/qmd/models/` — no dependency on Milvus or memsearch at all. Retiring memsearch would not take qmd's vector search with it. The real coupling the diagram omits: qmd's in-process `llama.cpp` and Ollama's `llama.cpp`-backed inference (serving memsearch's `bge-m3` embedding calls via ollama-queue-proxy) are two uncoordinated `llama.cpp` consumers sharing one 16 GB GPU — the root of the recurring "Failed to create any embedding context" errors, not a data dependency between qmd and memsearch |
 | ⑫ | working → .metadata.db | `memory-metadata-mcp` parses frontmatter (tier, tags, dates) into a local SQLite file on each write |
 | ⑬ | .metadata.db → OpenSearch | `memory-os-sync` watches the SQLite file and pushes changes to OpenSearch for full-text indexing |
 | ⑭ | OpenSearch → memory-fulltext-mcp | Agents search note *bodies* by phrase or keyword via BM25 |
@@ -182,4 +180,6 @@ flowchart TD
 - [memsearch.md](memsearch.md) — memsearch library, reranker, configuration
 - [memsearch-mcp.md](memsearch-mcp.md) — MCP server wrapping memsearch
 - [memsearch-summarize.md](memsearch-summarize.md) — session transcript summarizer
+- [llm-providers.md](../ai-search/llm-providers.md) — which LLM provider each memory consumer
+  actually uses, kept current in one place rather than four
 - [graphiti.md](graphiti.md) — Neo4j knowledge graph, retired 2026-08-05
