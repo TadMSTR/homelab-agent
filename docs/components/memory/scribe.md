@@ -1,14 +1,15 @@
 # scribe
 
 Deterministic transcript extractor and session summarizer, built to replace
-[memsearch-summarize](memsearch-summarize.md)'s spool path. **Released (v0.1.0), backfilled,
-not cut over** — venv installed at `/opt/venvs/scribe`, a one-time backfill has populated
-digests and event logs on disk, but there is no PM2 process, no cron, and the `SessionStart`
-hook is not registered in `~/.claude/settings.json`. `memsearch-summarize` is untouched and
-remains in production. See the repo README for full usage; this page covers what an operator
-of the memory pipeline needs to know.
+[memsearch-summarize](memsearch-summarize.md)'s spool path. **Released (v0.2.0), backfilled,
+not cut over** — the venv at `/opt/venvs/scribe` is still on v0.1.0 pending upgrade (sysadmin
+task `88385bd8`); a one-time backfill has populated digests and event logs on disk, but there
+is no PM2 process, no cron, and the `SessionStart` hook is not registered in
+`~/.claude/settings.json`. `memsearch-summarize` is untouched and remains in production. See
+the repo README for full usage; this page covers what an operator of the memory pipeline needs
+to know.
 
-Repo: `TadMSTR/scribe` (private) — `~/repos/personal/scribe/README.md`. Tag `v0.1.0`.
+Repo: `TadMSTR/scribe` (private) — `~/repos/personal/scribe/README.md`. Tag `v0.2.0`.
 
 ## Why it exists
 
@@ -130,7 +131,7 @@ backfill (already complete — see above) so no agent sees an empty injection on
 
 ## Entry points
 
-CLI only: `python -m scribe {extract|events|journal|qc|run}`.
+CLI only: `python -m scribe {extract|events|journal|qc|run|recover}`.
 
 - `python -m scribe.extract <transcript.jsonl>` — run the extractor standalone.
 - `python -m scribe events <session-id> [--path]` — print or locate a persisted event log.
@@ -142,6 +143,10 @@ CLI only: `python -m scribe {extract|events|journal|qc|run}`.
 - `python -m scribe run` — **defaults to a dry run.** Discovers finished sessions, extracts
   and reports, without constructing a provider, reading a credential, or writing anything.
   `python -m scribe run --live` runs the full shadow pipeline: summarize and write.
+- `python -m scribe recover [--apply]` — new in v0.2.0. Reopens sessions whose digest was
+  never really written. Dry by default; `--apply` stamps the affected blocks and clears the
+  state, then a following `python -m scribe run --live` re-summarizes them. See
+  [Provisional digests and `scribe recover`](#provisional-digests-and-scribe-recover) below.
 
 Port 8499 appears in `scribe.example.toml` but **no HTTP server exists** — that block is
 forward-looking. Do not add 8499 to `services.md`.
@@ -166,19 +171,56 @@ persisted event log and classifies each fire as `extraction-miss` / `model-outpu
 `undetermined`. "There is no log" supports neither cause; treat `undetermined` accordingly
 rather than assuming the worse (or better) reading.
 
-## Run totals and `placeholders`
+## Run totals, `placeholder`, and `discarded`
 
-A run's totals satisfy `written == summarized + suppressed + placeholders`. `placeholders` is
-the field to watch: `written` counts every block that reached the file, and a placeholder is a
-block, so before this field existed a run that silently lost summaries reported the same
-`written` as a clean run. `python -m scribe run` prints a loud line when `placeholders` is
-non-zero. **A non-zero value means summaries were lost, not degraded.**
+A run's totals satisfy `written == summarized + suppressed + placeholder`, and `discarded` is
+a fourth, independent counter — added in v0.2.0 — for a digest the model produced and then was
+not written (the turn already held a final block). It should be unreachable, and
+`python -m scribe run` prints a loud line if it ever fires.
+
+**As of v0.2.0, `placeholder` no longer means a lost summary.** A placeholder session is now
+`provisional` (see below) and is retried up to `MAX_PROVISIONAL_ATTEMPTS` (3); the run report
+points at `scribe recover` for anything that never lands on its own. **`discarded` is the new
+home for LOST** — a discarded digest was generated and then refused at write time, and nothing
+currently retries it automatically, so a non-zero `discarded` is worth reporting rather than
+shrugging off.
 
 The digest schema declares its own per-field limits to the model (`maxItems` plus the limits
-stated in the system prompt) rather than enforcing an unstated rule after the fact — a
-declared-but-unenforced limit used to cause the model to comply and still get rejected. A
-schema violation from an over-long list is no longer retried; it fails fast rather than
-burning three identical high-token calls before writing a placeholder.
+stated in the system prompt, generated from the same `_LIST_FIELDS` source so the two cannot
+drift apart) rather than enforcing an unstated rule after the fact. `done` was the one field
+still exempt from this until v0.2.0 — capped at 40 while the field it derives from,
+`rollup.commands`, reaches 187 — and it was the only field ever observed to violate its cap in
+production (30 rejections at 41–67 items, `MAX_DONE_ITEMS` now **200**, set against that input
+ceiling rather than against written digests, which top out at exactly 40 with nothing above —
+an artifact of right-censoring, not evidence of headroom). A schema violation from an
+over-long list is still not retried; it fails fast rather than burning three identical
+high-token calls before landing on a placeholder.
+
+## Provisional digests and `scribe recover`
+
+v0.2.0 replaced two dead ends a lost digest used to fall into — a suppression read as
+`summarized` (terminal), a schema rejection read as `failed` but left `last_offset` behind, so
+the byte-based scan kept re-offering it (one session reached 12 paid summarization calls and
+could never land, because `append_block` refused the result every time) — with a single
+retryable state:
+
+- **Session status.** A fifth status, `provisional`, in
+  `~/.local/state/scribe/scribe.sqlite3`, alongside `active`/`complete`/`summarized`/`failed`.
+  It means "written, but not with a digest," and is retried a bounded three times
+  (`MAX_PROVISIONAL_ATTEMPTS`).
+- **Anchor attribute.** A digest block's anchor comment can now carry
+  `provisional:placeholder` or `provisional:suppressed`. **No attribute still means a finished
+  digest** — every block written before v0.2.0 reads that way, so nothing needed migrating. A
+  provisional block is replaced in place by the first real digest for that turn; a final block
+  is never overwritten.
+- **`scribe recover [--apply]`** joins on `transcript_path`, not `session_id` — the latter was
+  empty on every row before v0.2.0 (`scan` upserts from a filesystem stat; the session id lives
+  inside the transcript) and is now populated.
+
+**Current production state (2026-09-16):** 444 digest blocks, 442 final, 2 provisional. The 2
+are expected to stay that way — their transcripts are deleted, their event logs survive, and
+nothing can turn one back into a digest (vikunja#873). Seeing "2 provisional" after running
+`scribe recover` is that known gap, not a new fault.
 
 ## Filesystem and permissions
 
@@ -217,9 +259,10 @@ the incumbent `memsearch-summarize` exports over HTTP, not gRPC.
 The initial backfill is done: 436 sessions discovered, 174 digests written across 9 agent
 directories (developer, doc-health, memory-sync, research, security, steward, sysadmin,
 writer, plus `unknown` for unresolvable attribution), 439 event logs persisted. ~96% complete
-— vikunja#868 tracks 9 sessions lost and 10 suppressed by a contamination guard that
-false-positives on any angle-bracketed word; the state DB marks them `summarized` (terminal,
-will not retry).
+at the time — vikunja#868 (contamination guard false-positiving on any angle-bracketed word)
+and #872 (the `done` cap) together left 22 of those sessions with no usable digest. Both fixed
+and 20 of the 22 recovered in `scribe-digest-loss-2026-09` (v0.2.0); 2 are unrecoverable
+(vikunja#873).
 
 ## Dependencies
 
@@ -248,7 +291,9 @@ derive it from `scribe.example.toml` in the repo.
 - vikunja#863 — retirement/cutover build (memsearch removal, hook registration). Not yet
   queued.
 - vikunja#865 — SigNoz dashboard continuity across the gRPC/HTTP exporter change, unconfirmed.
-- vikunja#868 — ~4% of the backfill lost or suppressed; terminal, will not retry.
+- vikunja#868, #872 — the two causes of ~5% of the backfill losing its digest; closed by
+  `scribe-digest-loss-2026-09` (v0.2.0).
+- vikunja#873 — 2 sessions unrecoverable (deleted transcripts, event logs survive); open.
 
 ## Related Docs
 
