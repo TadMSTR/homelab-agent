@@ -1,15 +1,17 @@
 # scribe
 
-Deterministic transcript extractor and session summarizer, built to replace
-[memsearch-summarize](memsearch-summarize.md)'s spool path. **Released (v0.2.0), backfilled,
-not cut over** — the venv at `/opt/venvs/scribe` is still on v0.1.0 pending upgrade (sysadmin
-task `88385bd8`); a one-time backfill has populated digests and event logs on disk, but there
-is no PM2 process, no cron, and the `SessionStart` hook is not registered in
-`~/.claude/settings.json`. `memsearch-summarize` is untouched and remains in production. See
-the repo README for full usage; this page covers what an operator of the memory pipeline needs
-to know.
+Deterministic transcript extractor and session summarizer. It replaced
+[memsearch-summarize](memsearch-summarize.md) on cutover, 2026-09-17
+(`memory-consolidation-2026-09` part 3, vikunja#863): `memsearch-summarize` and the rest of the
+memsearch stack are retired, and scribe's own `SessionStart` hook is now the live injection
+feed. It runs as an hourly cron (`40 * * * *`, `flock -n`), not a PM2 daemon — see the internal
+`pm2-services.md` cron table for the schedule. See the repo README for full usage; this page
+covers what an operator of the memory pipeline needs to know.
 
-Repo: `TadMSTR/scribe` (private) — `~/repos/personal/scribe/README.md`. Tag `v0.2.0`.
+Repo: `TadMSTR/scribe` (private) — `~/repos/personal/scribe/README.md`. Tag **v0.5.0**,
+confirmed deployed at `/opt/venvs/scribe` (`pip show scribe` → `0.5.0`, live 2026-09-17). Merged
+and released is not automatically deployed for this repo — check the running venv rather than
+trusting a build's own completion note, several releases in this sequence shipped hours apart.
 
 ## Why it exists
 
@@ -102,15 +104,16 @@ by querying, not by counting.
 
 scribe also **pushes** a digest, rather than only being retrievable. `python -m scribe journal`
 emits the JSON a Claude Code `SessionStart` hook writes to stdout, built from an agent's two
-most recent digests; `hooks/session-start.sh` in the scribe repo is the wrapper to register.
+most recent digests. The repo carries `hooks/session-start.sh` as the reference wrapper, but
+forge's live registration calls a separate, root-owned copy — see the note under
+[Entry points](#entry-points).
 
-This matters because the `SessionStart` injection is the **only** memory push surface
-confirmed to reach a CloudCLI agent session — measured live 2026-09-15, a hook emitting
-`hookSpecificOutput.additionalContext` is surfaced to the agent, while the sibling
-`user-prompt-submit.sh` hook (see [memsearch.md](memsearch.md)) emits a bare `systemMessage`
-that CloudCLI drops for agent sessions. Ted sees the latter only in his own terminal, which is
-how that gap (vikunja#853) went unnoticed; Ted's call is that it closes on cutover rather than
-being fixed separately.
+This matters because the `SessionStart` injection is the **only** memory push surface confirmed
+to reach a CloudCLI agent session — a hook emitting `hookSpecificOutput.additionalContext` is
+surfaced to the agent, while the old `memsearch` `user-prompt-submit.sh` hook emitted a bare
+`systemMessage` that CloudCLI drops for agent sessions. Ted saw the latter only in his own
+terminal, which is how that gap (vikunja#853) went unnoticed; it closed on cutover rather than
+being fixed separately, and `memsearch`'s hook set no longer exists to compare against.
 
 The format needed no porting: the incumbent consumer's awk parser was extracted verbatim and
 run over a real scribe digest, producing 177 lines of clean output, unmodified — only the
@@ -124,28 +127,40 @@ side (`doc-health` → `doc`, `helm-build` → `helm`, `memory-sync` → `memory
 left their injections permanently and silently empty. If this or another doc states a
 `<agent>/` path derived from the transcript directory name, it is stale.
 
-**Status:** confirmed live on this host — the `SessionStart` hook is registered only for
-`core-context.md`/`directives.md` (`~/.claude/settings.json`), not scribe's. Registration is
-part 3 of the `memory-consolidation-2026-09` programme (vikunja#863), sequenced after the
-backfill (already complete — see above) so no agent sees an empty injection on cutover day.
+**Status:** confirmed live on this host — scribe's `SessionStart` hook is registered
+(`/usr/local/sbin/forge/scribe-session-start.sh` in `~/.claude/settings.json`), alongside the
+existing `core-context.md`/`directives.md` hooks. Registration was part 3 of the
+`memory-consolidation-2026-09` programme (vikunja#863), which is now closed — the cutover
+happened after the backfill so no agent saw an empty injection on cutover day.
 
 ## Entry points
 
-CLI only: `python -m scribe {extract|events|journal|qc|run|recover}`.
+CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|run|recover}`.
 
 - `python -m scribe.extract <transcript.jsonl>` — run the extractor standalone.
 - `python -m scribe events <session-id> [--path]` — print or locate a persisted event log.
   Exit 1 "none kept" is distinct from exit 2 "could not look."
-- `python -m scribe journal` — emit the `SessionStart` hook payload for the calling agent.
+- `python -m scribe journal` — emit the `SessionStart` hook payload for the calling agent. In
+  production this is called by `/usr/local/sbin/forge/scribe-session-start.sh`, a root-owned
+  deployment wrapper — **not** the repo's own `hooks/session-start.sh` directly. A live git
+  checkout under an agent's write root running on every session start was flagged MEDIUM in the
+  part 3 cutover audit; the wrapper is deliberately self-contained and published via
+  `forge-scripts-deploy.sh` instead of calling back into the repo copy.
 - `python -m scribe qc --digest D --events E` — the groundedness gate; exits non-zero on an
-  ungrounded digest. Now reads through the classifier described below for `post_render`
-  fires.
+  ungrounded digest. See [Session dating and the QC gate](#session-dating-and-the-qc-gate) —
+  **still not recommended for per-block cron gating** even after v0.5.0's fix.
+- `python -m scribe qc-survey` — new in v0.5.0. Grades every block in a digest corpus against
+  its own event log and classifies each rejected path claim (`verbatim` / `home-expansion` /
+  `composed` / `suffix` / `absent`). Read-only; writes only to stdout or an explicit `--out`.
+  `--rule literal` grades under the pre-v0.5.0 rule for a same-commit before/after comparison;
+  `--probe` re-derives the segment floors from cross-session controls; `--bucket absent` isolates
+  the control set no tolerance reaches.
 - `python -m scribe run` — **defaults to a dry run.** Discovers finished sessions, extracts
   and reports, without constructing a provider, reading a credential, or writing anything.
   `python -m scribe run --live` runs the full shadow pipeline: summarize and write.
-- `python -m scribe recover [--apply]` — new in v0.2.0. Reopens sessions whose digest was
-  never really written. Dry by default; `--apply` stamps the affected blocks and clears the
-  state, then a following `python -m scribe run --live` re-summarizes them. See
+- `python -m scribe recover [--apply]` — reopens sessions whose digest was never really
+  written. Dry by default; `--apply` stamps the affected blocks and clears the state, then a
+  following `python -m scribe run --live` re-summarizes them. See
   [Provisional digests and `scribe recover`](#provisional-digests-and-scribe-recover) below.
 
 Port 8499 appears in `scribe.example.toml` but **no HTTP server exists** — that block is
@@ -163,6 +178,22 @@ Two behaviours worth knowing if you read a run's output:
   requiring a composed span's tokens to co-occur within 120 characters. A `groundedness_rate`
   of 0.00 on a real digest is a classifier bug, not evidence of fabrication, and should not
   recur under the current gate.
+- **A path claim is grounded when it composes** (v0.5.0, vikunja#876). The gate used to check a
+  path either against the derived rollup set (with containment tolerance) or against the event
+  log corpus (exact substring only) — so a true claim joining a directory the log names to a
+  relative tail the log also names matched neither and graded as a hallucination. That was the
+  dominant cause of QC failure. The tolerance in one sentence: *a path claim is grounded when
+  the log holds it — literally, or as a directory prefix plus the whole remaining relative
+  tail, a one-segment tail only when the two sit within 120 characters (`ADJACENCY_WINDOW`) of
+  each other — and an absolute claim is tested again with its leading directories replaced by
+  `~`.* Measured over 470 blocks: block failure 39.6% → 21.5%, path findings 880 → 158. All 26
+  claims genuinely absent from their own event log still fail — a gate that passes everything
+  is not a gate.
+- **21.5% is still too high to gate per-block in a cron.** The recommendation on vikunja#876
+  (left open) is a corpus-level rate threshold (~30% against the 21.5% baseline) plus an alert
+  on growth in the `absent` bucket, not a per-block exit-code check. With paths fixed, ticket
+  and identifier claims are now the dominant failure driver (vikunja#888 — 52 of 101 failing
+  blocks fail on nothing else).
 
 **The post-render redaction guard now states a cause, not just a fire (vikunja#856).** A fire
 used to be reported as proof extraction had missed something and told the reader to
@@ -192,9 +223,23 @@ still exempt from this until v0.2.0 — capped at 40 while the field it derives 
 `rollup.commands`, reaches 187 — and it was the only field ever observed to violate its cap in
 production (30 rejections at 41–67 items, `MAX_DONE_ITEMS` now **200**, set against that input
 ceiling rather than against written digests, which top out at exactly 40 with nothing above —
-an artifact of right-censoring, not evidence of headroom). A schema violation from an
-over-long list is still not retried; it fails fast rather than burning three identical
-high-token calls before landing on a placeholder.
+an artifact of right-censoring, not evidence of headroom).
+
+**As of v0.4.0, exceeding a cap no longer means the same thing for every field** (vikunja#884).
+The rule three separate cap constants had been approximating for three builds without anyone
+stating it: **a field whose ceiling is knowable from the event log VALIDATES — `done`,
+`tickets`, `artifacts` — because exceeding it is evidence of invention, and rejection is still
+correct.** `found`, `decisions` and `open_items` are free prose with nothing bounding them, so
+*any* cap on them is an arbitrary cliff — they now **truncate**: the surplus is dropped, the
+block carries a visible `_Truncated: N further items dropped at the M-item cap._` line (not a
+bullet — `qc.strip_scribe_markers` removes it before grounding, since it is scribe's own prose
+and appears in no event log), and the digest is still written. Run totals gained `truncated`
+and `truncated_items`. **Do not read a field's written-corpus maximum as proof its cap is
+safe** — the cap censors the corpus by construction; `found` read max 33 across 458 blocks
+right up until it overflowed at 44.
+
+A schema violation from a bounded field is still not retried; it fails fast rather than
+burning three identical high-token calls before landing on a placeholder.
 
 ## Provisional digests and `scribe recover`
 
@@ -213,14 +258,76 @@ retryable state:
   digest** — every block written before v0.2.0 reads that way, so nothing needed migrating. A
   provisional block is replaced in place by the first real digest for that turn; a final block
   is never overwritten.
-- **`scribe recover [--apply]`** joins on `transcript_path`, not `session_id` — the latter was
+- **`scribe recover [--apply]`** joins on `transcript_path`, not `session_id`. `session_id` was
   empty on every row before v0.2.0 (`scan` upserts from a filesystem stat; the session id lives
-  inside the transcript) and is now populated.
+  inside the transcript) and is now populated on every row — the join key did not change, since
+  the two are equivalent only where the basename convention holds.
+- **A stand-in superseded by a later real block is ignored, not counted as loss** (v0.4.1,
+  vikunja#886). A session can leave a stand-in on more than one turn while only the last turn's
+  is ever reachable; the earlier one used to read as recoverable loss forever, which paged the
+  daily detector every morning for something no action could fix.
 
-**Current production state (2026-09-16):** 444 digest blocks, 442 final, 2 provisional. The 2
-are expected to stay that way — their transcripts are deleted, their event logs survive, and
-nothing can turn one back into a digest (vikunja#873). Seeing "2 provisional" after running
-`scribe recover` is that known gap, not a new fault.
+### Recovery is not transcript-bound
+
+As of v0.3.0, a missing transcript is no longer the end of the line. `eventlog.load_eventlog()`
+can rebuild an `EventLog` from its persisted JSON copy, and `pipeline.process_session` falls
+back to it whenever the transcript file is absent (`OSError` from a genuine read failure is
+**not** treated as "transcript absent" — only a file that plainly does not exist takes the
+replay path, so a permissions bug can't hide behind a stale-but-plausible reconstruction).
+`SessionResult.replayed` is `True` whenever this happened, so a run report shows which digests
+are reconstructions rather than direct reads.
+
+This matters because transcripts age out — `cleanupPeriodDays` is now **60**
+(`~/.claude/settings.json`, raised from Claude Code's unconfigured 30-day default by part 5 of
+`memory-consolidation-2026-09`, vikunja#778) — while `~/.local/share/scribe/eventlogs/` has no
+cleanup policy at all. The event log is the durable copy.
+
+**Replay only fires for a session actively being (re)processed, and normally only `scribe
+recover --apply` puts an already-summarized session back in that state.** A session that has
+never been summarized still has its live transcript in the ordinary case; it's specifically an
+*old, finished* digest that recover reopens whose transcript may since be gone. This is the
+useful half of "opt-in": as of this doc, 15 of 463 sessions on forge have no transcript on disk,
+and most already hold real digests written while the transcript still existed — replaying those
+un-prompted would overwrite a good digest with a reconstruction for no reason. `recover` only
+touches a session when its digest is actually missing or provisional.
+
+### Exit codes are an interface, not an implementation detail
+
+A scheduled detector (`scribe-recover-check.sh`, part 5 of `memory-consolidation-2026-09`,
+vikunja#875) is wired to these, so `0`–`3` cannot be renumbered — only added to. v0.4.0 added
+`4` and `5`:
+
+| exit | meaning |
+|---|---|
+| 0 | nothing lost, or `--apply` completed |
+| 1 | unrepaired loss, recoverable |
+| 2 | `ConfigError` |
+| 3 | unrepaired loss that re-running will not fix — needs a human |
+| 4 | **the tool FAILED** — it did not assess the corpus, this is not a finding |
+| 5 | **state DB newer than this build** — upgrade scribe, do not touch the DB |
+
+Before `4` existed, only `ConfigError` was caught in `main()`; a corrupt state DB or any other
+unhandled exception printed a traceback and exited `1` — indistinguishable from a real
+"repairable digest loss" finding, and confirmed live against a scratch corrupt DB. **Poll with
+the dry run; `--apply` returns 0 whenever it completes, even leaving unrecoverable blocks
+behind** — a cron that repairs and then reports failure on its own success would page every
+time it worked.
+
+The state DB is at **schema 2** (`PRAGMA user_version`), and as of v0.4.0 that marker only ever
+**advances** (vikunja#877) — it used to be stamped unconditionally on every open, so an older
+binary meeting a newer DB silently relabelled the marker downward. Opening a DB newer than the
+running binary's `SCHEMA_VERSION` is now refused outright (exit 5 above) rather than silently
+corrupting the marker.
+
+**Current production state (verified live, 2026-09-17):** 0 provisional blocks, `scribe
+recover` exits 0. The two sessions vikunja#873 had declared permanently unrecoverable —
+deleted transcripts, no digest — are **no longer stuck**: part 5 of `memory-consolidation-2026-09`
+found both transcripts intact in 30 consecutive daily Backrest/restic snapshots (a gap in
+*checking the backup*, not in the data) and restored them byte-exact, after which the ordinary
+recover/summarize path produced real digests. #873 is closed. Seeing a residual `provisional:`
+marker in an old digest file (e.g. a stale anchor predating a later real block for the same
+transcript) is expected and is what "superseded, not counted as loss" (above) describes — check
+`scribe recover`'s own exit code and block count before treating a grep hit as a live fault.
 
 ## Filesystem and permissions
 
@@ -252,26 +359,37 @@ Three spans, deliberately named after the **incumbent's** so existing SigNoz das
 the cutover: `memsearch.summarize`, `memsearch.summarize_rejected`, `memsearch.summarize_extract`.
 OTLP over gRPC — the endpoint is the collector's 4317, with no `/v1/traces` suffix. Whether
 those dashboards actually have historical data at this endpoint is unconfirmed (vikunja#865):
-the incumbent `memsearch-summarize` exports over HTTP, not gRPC.
+the retired `memsearch-summarize` exported over HTTP, not gRPC, so a dashboard built against
+its spans may not read scribe's cleanly.
 
-## The backfill
+## The backfill and where the corpus stands now
 
-The initial backfill is done: 436 sessions discovered, 174 digests written across 9 agent
+The initial backfill (2026-09-15) discovered 436 sessions and wrote 174 digests across 9 agent
 directories (developer, doc-health, memory-sync, research, security, steward, sysadmin,
-writer, plus `unknown` for unresolvable attribution), 439 event logs persisted. ~96% complete
-at the time — vikunja#868 (contamination guard false-positiving on any angle-bracketed word)
-and #872 (the `done` cap) together left 22 of those sessions with no usable digest. Both fixed
-and 20 of the 22 recovered in `scribe-digest-loss-2026-09` (v0.2.0); 2 are unrecoverable
-(vikunja#873).
+writer, plus `unknown` for unresolvable attribution), with 439 event logs persisted. ~96%
+complete at the time — vikunja#868 (contamination guard false-positiving on any
+angle-bracketed word) and #872 (the `done` cap) together left 22 of those sessions with no
+usable digest. Both fixed in `scribe-digest-loss-2026-09` (v0.2.0), 20 of 22 recovered
+immediately; the remaining 2 (vikunja#873) were recovered later, from backup, by part 5 of
+`memory-consolidation-2026-09` — see [Recovery is not transcript-bound](#recovery-is-not-transcript-bound)
+above. #873 is closed.
+
+Verified live 2026-09-17: 463 sessions tracked, 185 digest files on disk, 0 provisional blocks.
+The corpus has kept growing on the hourly cron since the backfill; treat any specific count in
+this doc as a snapshot, not a current total — re-derive from `scribe recover`'s dry-run output
+or the digest directory rather than trusting a number here.
 
 ## Dependencies
 
 - A configured LLM provider for the session-digest stage — `mistral-small-latest` by default,
   or [ollama-queue-proxy](../ai-search/ollama-queue-proxy.md) at `127.0.0.1:11435` if
   configured to use Ollama. Daily roll-up uses `claude -p` (no API key).
-- `~/.claude/projects/*/*.jsonl` transcripts — read-only.
+- `~/.claude/projects/*/*.jsonl` transcripts — read-only, and no longer the *only* source (see
+  [Recovery is not transcript-bound](#recovery-is-not-transcript-bound)).
 - qmd (`session-digests` collection) for digest retrieval; `qmd-refresh.sh` (hourly cron) for
   keeping it current.
+- `/usr/local/sbin/forge/scribe-session-start.sh` — the root-owned `SessionStart` hook wrapper;
+  see the note under [Entry points](#entry-points).
 
 **Do not copy the provider claims from [memory-architecture.md](memory-architecture.md) or
 [memsearch-summarize.md](memsearch-summarize.md).** Both were wrong about the LLM provider
@@ -280,24 +398,40 @@ derive it from `scribe.example.toml` in the repo.
 
 ## Related tickets
 
-- vikunja#843 — the original defect this component fixes. Open until cutover.
+- vikunja#843 — the original defect this component fixes. Closed on cutover.
 - vikunja#845 — repo-conform B14 regex gap, filed during the build, unrelated to scribe's
   function.
 - vikunja#846 — `memsearch-spend.sh` reads a log nothing writes, so forge's Mistral spend has
   been under-reported by roughly half. Worth a cross-reference from memory-pipeline cost
   documentation.
 - vikunja#850, #856 — closed by the release-readiness build.
-- vikunja#853 — SessionStart vs UserPromptSubmit injection asymmetry; closes on cutover.
-- vikunja#863 — retirement/cutover build (memsearch removal, hook registration). Not yet
-  queued.
+- vikunja#853 — SessionStart vs UserPromptSubmit injection asymmetry; closed on cutover.
+- vikunja#863 — retirement/cutover build (memsearch removal, scribe hook registration).
+  **Closed 2026-09-17** — see the top of this page.
 - vikunja#865 — SigNoz dashboard continuity across the gRPC/HTTP exporter change, unconfirmed.
 - vikunja#868, #872 — the two causes of ~5% of the backfill losing its digest; closed by
   `scribe-digest-loss-2026-09` (v0.2.0).
-- vikunja#873 — 2 sessions unrecoverable (deleted transcripts, event logs survive); open.
+- vikunja#873 — 2 sessions declared permanently unrecoverable; **closed** — both restored from
+  Backrest/restic backup by part 5 of `memory-consolidation-2026-09`.
+- vikunja#877, #880, #884, #886 — schema marker only-advances, `recover` exit codes 4/5,
+  truncate-don't-discard, superseded-stand-in fix; closed by `scribe-schema-and-exit-contracts-2026-09`
+  (v0.4.0) and the v0.4.1 patch. See [Exit codes are an interface](#exit-codes-are-an-interface-not-an-implementation-detail)
+  and [Run totals](#run-totals-placeholder-and-discarded) above.
+- vikunja#876 — path-composition groundedness tolerance; **left open** even after the v0.5.0
+  fix (39.6% → 21.5% block failure) — the gate still isn't recommended for per-block cron
+  gating. See [Session dating and the QC gate](#session-dating-and-the-qc-gate).
+- vikunja#888 — ticket/identifier claims are now the dominant QC failure driver post-v0.5.0.
+- vikunja#889 — deferred Low from the v0.5.0 audit (unbounded substring scan in the path
+  composition check; not attacker-reachable).
 
 ## Related Docs
 
-- [memsearch-summarize.md](memsearch-summarize.md) — the component scribe is built to replace
-- [memsearch.md](memsearch.md) — the `UserPromptSubmit` injection hook scribe does not touch
+- [memsearch-summarize.md](memsearch-summarize.md) — the retired component scribe replaced
+- [memsearch.md](memsearch.md) — the retired `UserPromptSubmit` injection hook
 - [memory-architecture.md](memory-architecture.md) — full system overview
 - Repo README: `~/repos/personal/scribe/README.md`
+- Phase docs: `host-forge-knowledge-base/phases/scribe-*.md` (sequence runs from
+  `scribe-2026-09.md` through `scribe-qc-path-grounding-2026-09.md`) and
+  `memory-consolidation-2026-09-p3-memsearch-retirement.md` /
+  `memory-consolidation-2026-09-p5-transcript-restore-and-detection.md` for the cutover and
+  backup-restore context
