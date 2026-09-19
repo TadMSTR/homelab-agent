@@ -8,10 +8,12 @@ feed. It runs as an hourly cron (`40 * * * *`, `flock -n`), not a PM2 daemon —
 `pm2-services.md` cron table for the schedule. See the repo README for full usage; this page
 covers what an operator of the memory pipeline needs to know.
 
-Repo: `TadMSTR/scribe` (private) — `~/repos/personal/scribe/README.md`. Tag **v0.5.0**,
-confirmed deployed at `/opt/venvs/scribe` (`pip show scribe` → `0.5.0`, live 2026-09-17). Merged
-and released is not automatically deployed for this repo — check the running venv rather than
-trusting a build's own completion note, several releases in this sequence shipped hours apart.
+Repo: `TadMSTR/scribe` (private) — `~/repos/personal/scribe/README.md`. Tag **v0.7.0**,
+confirmed deployed at `/opt/venvs/scribe` (`pip show scribe` → `0.7.0`, live 2026-09-18). **v0.8.0
+is released, not yet deployed** — a separate sysadmin deploy task is queued. Merged and released
+is not automatically deployed for this repo — check the running venv rather than trusting a
+build's own completion note; four releases shipped in the single day 2026-09-18 alone
+(v0.5.0 → v0.6.0 → v0.7.0 → v0.8.0).
 
 ## Why it exists
 
@@ -41,6 +43,25 @@ Measured across the real 429-transcript, 596 MB corpus on forge:
 - The backfill measured 436 sessions discovered, 49,000 tool events, ~$1.63 one-time and
   ~$1.57/mo steady state. As of this backfill, 174 digests exist across 9 agent directories,
   with 439 persisted event logs.
+
+## Compaction boundaries are not user text (v0.6.0)
+
+At a compaction boundary, Claude Code writes two records; the second is `type: user` with
+`isCompactSummary: true`, whose content is the model's own recap of the conversation, not
+anything a person typed. Before v0.6.0 the parser had no handling for it and read it as an
+ordinary user turn — measured on one real session, 18,859 characters of machine-generated recap
+entered the event log as user text, in the worst-degraded session in the corpus, where the
+byte-budget ladder is forbidden from dropping real tool events (invariant 6) and so the recap
+displaced evidence rather than the reverse.
+
+The guard sits alongside `isMeta` and `_INJECTED_PREFIXES` — a third member of the same family
+of machine-generated text that arrives structurally indistinguishable from a person speaking.
+Prevalence measured across the full 451-transcript corpus: 2 transcripts (0.4%), both
+interactive; headless dispatcher-launched sessions are single-task and never approach the
+compaction threshold. **`turns` drops by one** on any transcript carrying a compact boundary —
+the record was opening its own turn — and `stats.skipped_compact` reports when the guard fires,
+so a zero is distinguishable from "no boundary present." `SCHEMA_VERSION` did not move; the
+field is additive with a default.
 
 ## Three tiers, and how to get between them
 
@@ -135,7 +156,7 @@ happened after the backfill so no agent saw an empty injection on cutover day.
 
 ## Entry points
 
-CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|run|recover}`.
+CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|cap-survey|deps-drift|run|recover}`.
 
 - `python -m scribe.extract <transcript.jsonl>` — run the extractor standalone.
 - `python -m scribe events <session-id> [--path]` — print or locate a persisted event log.
@@ -162,6 +183,13 @@ CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|run|recover}`.
   written. Dry by default; `--apply` stamps the affected blocks and clears the state, then a
   following `python -m scribe run --live` re-summarizes them. See
   [Provisional digests and `scribe recover`](#provisional-digests-and-scribe-recover) below.
+- `python -m scribe cap-survey [--json]` — new in v0.7.0. Re-measures the input distribution
+  the three bounded digest caps derive from, reading persisted event logs directly. See
+  [Bounded caps are derived per session](#bounded-caps-are-derived-per-session-not-hardcoded-v070).
+- `python -m scribe deps-drift [--lock PATH] [--json]` — new in v0.8.0. Compares a deployed
+  venv against `uv.lock`'s pins. Run from a source checkout pointed at the deployed venv, not
+  from the venv itself — see
+  [Dependency drift and the deployed venv](#dependency-drift-and-the-deployed-venv-v080).
 
 Port 8499 appears in `scribe.example.toml` but **no HTTP server exists** — that block is
 forward-looking. Do not add 8499 to `services.md`.
@@ -240,6 +268,72 @@ right up until it overflowed at 44.
 
 A schema violation from a bounded field is still not retried; it fails fast rather than
 burning three identical high-token calls before landing on a placeholder.
+
+## Bounded caps are derived per session, not hardcoded (v0.7.0)
+
+`done`, `tickets` and `artifacts` are the three fields with a countable input (`bounded=True`);
+overflowing them is read as the model inventing entries and rejects the digest non-retryably.
+Through v0.6.0 their caps were global constants set above an observed corpus ceiling — correct
+when set, but a snapshot that decays silently as the corpus grows, with no signal until a digest
+is discarded. `~/.local/share/scribe/digests/research/2026-09-15.md:1433` held exactly that: a
+faithful 103-item `tickets` response rejected against a cap of 100 set when the observed ceiling
+was 76.
+
+As of v0.7.0, `schema.caps_for(log)` reads each field's bound from **that session's own
+persisted event log** — known before the model call, so it cannot go stale:
+
+| field | denominator | why |
+|---|---|---|
+| `done` | `stats.tool_events` | `rollup.commands` (the field it replaced) undercounted 45% of 479 measured blocks, by up to 51x — this fleet's work is mostly not bash |
+| `tickets` | `rollup.tickets` | max ratio 5x, only at a rollup of 1 |
+| `artifacts` | `files_written` ∪ `prs` ∪ `git_refs` | max ratio 42x — needs the most headroom; the prompt also asks for "services" changed, which has no rollup source at all |
+
+The derived cap is `max(ceil(denominator * HEADROOM), FLOOR)`, clamped to `floor *
+MAX_DERIVED_MULTIPLE` (10x, a deliberately unmeasured containment bound — see the security note
+below). The global constants survive as the `FLOOR` and as the fallback for a log with no
+rollup, so the cap only ever moves **up**: no session that would have been accepted before this
+change can be rejected after it.
+
+`python -m scribe cap-survey` (and `--json`) re-measures the input distribution these caps
+derive from, reading persisted event logs directly rather than re-extracting transcripts — the
+documented way to re-check the constants, and it works for sessions whose transcripts have
+aged out at 30 days.
+
+**Security note:** the derived cap's denominator comes from the session's own event log, so
+without the 10x clamp an actor able to write under the event-log directory could inflate
+`stats.tool_events` and remove the `bounded` class's invention guard for that session outright.
+Defence in depth, not a live hole — the same actor already holds a strictly worse primitive in
+editing the log's turn content directly, which the summarizer treats as ground truth.
+
+**Truncation is now visible.** `truncated`/`truncated_items` (the unbounded prose fields —
+`found`, `decisions`, `open_items` — which drop the surplus rather than rejecting) have been
+aggregated correctly since v0.5.0 but printed nowhere except under `--json`, which the cron does
+not pass — the counter existed and was invisible. `scribe run`'s plain output now prints a
+truncation line with a per-field breakdown (`truncated_fields`) when it fires, and a
+`full_read` flag distinguishes a recovery re-read (input-bounded, a whole transcript) from an
+ordinary incremental sweep (a growing one) — pooling the two obscured which one was actually
+truncating.
+
+## Dependency drift and the deployed venv (v0.8.0)
+
+`python -m scribe deps-drift` (and `--json`) compares a deployed venv against `uv.lock`'s pins.
+It exists because the tree CI audits is not the tree forge runs: `venv-deploy.sh` builds a wheel
+and pip-installs it, re-resolving from `pyproject.toml`'s bounded ranges at deploy time, and
+nothing on forge reads the lock. A green dependency audit in CI is therefore a statement about a
+resolution the host may never have installed.
+
+**This is a source-checkout tool, not something run from the deployed venv itself.** It needs
+`uv.lock`, which an installed wheel does not carry — run it from a checkout of the repo,
+pointed at the deployed venv, not from `/opt/venvs/scribe` directly. It always reports and never
+fails; drift here is expected (`venv-deploy.sh` never reads the lock) and is not a fault.
+
+CI gained a dependency audit in v0.8.0 that did not exist before: `uv lock --check` for
+currency, then two `pip-audit --strict --locked` gates, split by runtime and dev directories so
+a production-affecting advisory is distinguishable from a dev-tooling one. A release workflow
+also exists now — it does not generate release notes; a human authors the release and pushes
+the tag, and the workflow attaches verified build artefacts. `httpx` moved from a bare
+`>=0.27` floor to `>=0.27,<0.29`, since a bare floor is what let a sibling repo silently resolve
+two majors past anything tested.
 
 ## Provisional digests and `scribe recover`
 
@@ -423,6 +517,20 @@ derive it from `scribe.example.toml` in the repo.
 - vikunja#888 — ticket/identifier claims are now the dominant QC failure driver post-v0.5.0.
 - vikunja#889 — deferred Low from the v0.5.0 audit (unbounded substring scan in the path
   composition check; not attacker-reachable).
+- vikunja#896, #892, #893, #890 — repo-index `deployed: true` correction, README truth pass,
+  `isCompactSummary` guard, exit-code comment fix; closed by `scribe-truth-pass-2026-09`
+  (v0.6.0). See [Compaction boundaries are not user text](#compaction-boundaries-are-not-user-text-v060).
+- vikunja#897 — `stateful` attribute gates zero conformance requirements; filed during the
+  truth-pass build, left open.
+- vikunja#901, #887 — bounded caps overtaken by the corpus, truncation counter aggregated but
+  never printed; closed by `scribe-schema-cap-derivation-2026-09` (v0.7.0). See
+  [Bounded caps are derived per session](#bounded-caps-are-derived-per-session-not-hardcoded-v070).
+- vikunja#902 — `scribe run` without `--live` is not actually inert against the production
+  state DB (`store.mark_summarized` runs before the dry-run guard); filed during the
+  cap-derivation build, pre-existing, left open.
+- vikunja#904 — CI gained no dependency audit despite declaring `deployed: true, stateful:
+  true`; closed by `scribe-ships-conformance-2026-09` (v0.8.0). See
+  [Dependency drift and the deployed venv](#dependency-drift-and-the-deployed-venv-v080).
 
 ## Related Docs
 
@@ -431,7 +539,9 @@ derive it from `scribe.example.toml` in the repo.
 - [memory-architecture.md](memory-architecture.md) — full system overview
 - Repo README: `~/repos/personal/scribe/README.md`
 - Phase docs: `host-forge-knowledge-base/phases/scribe-*.md` (sequence runs from
-  `scribe-2026-09.md` through `scribe-qc-path-grounding-2026-09.md`) and
+  `scribe-2026-09.md` through `scribe-schema-cap-derivation-2026-09.md`, the latest two being
+  `scribe-truth-pass-2026-09.md` (v0.6.0) and `scribe-schema-cap-derivation-2026-09.md`
+  (v0.7.0)) and
   `memory-consolidation-2026-09-p3-memsearch-retirement.md` /
   `memory-consolidation-2026-09-p5-transcript-restore-and-detection.md` for the cutover and
   backup-restore context
