@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json
+#
+# CodeRabbit review configuration — forge.
+#
+# Deliberately minimal. Every key here is a standing claim about how forge wants its code
+# reviewed, and an over-configured reviewer is harder to reason about than a default one.
+# Add a key only when a default has actually cost a build something.
+
+reviews:
+  pre_merge_checks:
+    docstrings:
+      # Disabled, not lowered.
+      #
+      # forge puts the rationale for a piece of code in a block comment above the thing it
+      # explains — the table, the guard, the constant — rather than in a per-function
+      # docstring. The docstring-coverage check reads that as missing documentation. It
+      # fired on both part-1 PRs of agent-build-workflow-2026-09 and was declined both
+      # times for this same reason, costing two hand-written rebuttals in PR comments.
+      # Settled here rather than re-argued per build.
+      #
+      # This turns off a *coverage metric*, not review of documentation. CodeRabbit still
+      # comments on docstrings that are wrong, stale or misleading — which is the failure
+      # mode forge actually has.
+      #
+      # QUOTED DELIBERATELY. YAML 1.1 parses a bare `off` as the boolean false, which is
+      # not a member of this field's string enum (`off`/`warning`/`error`) — the value is
+      # rejected and the check silently reverts to its `warning` default.
+      mode: "off"
