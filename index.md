@@ -14,7 +14,7 @@ homelab-agent/
 │   ├── components/              # Per-service operational reference (106 docs)
 │   │   ├── foundation/          # Host, reverse proxy, auth, secrets, backups (10)
 │   │   ├── observability/       # Grafana, Loki, SigNoz, Langfuse, exporters (13)
-│   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (12)
+│   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (13)
 │   │   ├── memory/              # Memory architecture, Milvus, memsearch (10)
 │   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (19)
 │   │   ├── apps/                # Nextcloud, Plane, Vikunja, tools stack (8)
@@ -76,6 +76,7 @@ homelab-agent/
 |-----|-------|
 | `docs/components/ai-search/ollama.md` | Local LLM inference |
 | `docs/components/ai-search/ollama-queue-proxy.md` | Queuing/auth layer in front of Ollama |
+| `docs/components/ai-search/llm-providers.md` | Which LLM each memory/search consumer actually calls — single source of truth, kept separate so it can't drift out of sync with per-service docs |
 | `docs/components/ai-search/open-webui.md` | Multi-model chat UI |
 | `docs/components/ai-search/searxng.md` | Private meta-search |
 | `docs/components/ai-search/firecrawl.md` | Web extraction — legacy stack, superseded by firecrawl-v2 |
