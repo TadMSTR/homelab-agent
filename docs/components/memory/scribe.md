@@ -8,12 +8,12 @@ feed. It runs as an hourly cron (`40 * * * *`, `flock -n`), not a PM2 daemon —
 `pm2-services.md` cron table for the schedule. See the repo README for full usage; this page
 covers what an operator of the memory pipeline needs to know.
 
-Repo: `TadMSTR/scribe` (private) — `~/repos/personal/scribe/README.md`. Tag **v0.7.0**,
-confirmed deployed at `/opt/venvs/scribe` (`pip show scribe` → `0.7.0`, live 2026-09-18). **v0.8.0
-is released, not yet deployed** — a separate sysadmin deploy task is queued. Merged and released
-is not automatically deployed for this repo — check the running venv rather than trusting a
-build's own completion note; four releases shipped in the single day 2026-09-18 alone
-(v0.5.0 → v0.6.0 → v0.7.0 → v0.8.0).
+Repo: `TadMSTR/scribe` (private) — `~/repos/personal/scribe/README.md`. Tag **v0.9.0**,
+confirmed deployed at `/opt/venvs/scribe` (`pip show scribe` → `0.9.0`, live 2026-09-21).
+Merged and released is not automatically deployed for this repo — check the running venv
+rather than trusting a build's own completion note or a version pinned to a date in this doc;
+four releases shipped 2026-09-18 alone (v0.5.0 → v0.6.0 → v0.7.0 → v0.8.0), with v0.8.1 and
+v0.9.0 following the next day, 2026-09-19.
 
 ## Why it exists
 
@@ -177,8 +177,13 @@ CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|cap-survey|deps
   `--probe` re-derives the segment floors from cross-session controls; `--bucket absent` isolates
   the control set no tolerance reaches.
 - `python -m scribe run` — **defaults to a dry run.** Discovers finished sessions, extracts
-  and reports, without constructing a provider, reading a credential, or writing anything.
-  `python -m scribe run --live` runs the full shadow pipeline: summarize and write.
+  and reports, without constructing a provider, reading a credential, or writing a digest.
+  **A dry run still writes:** `upsert_observed` records each transcript's size and mtime
+  during discovery — that property is deliberate (invariant 8) and is not the same as "writes
+  nothing." Before v0.8.1, the dry-run guard sat below two calls that retire a session's state,
+  so a plain `scribe run` was advancing `last_offset` and `status` on production state
+  (vikunja#902) — fixed by moving the guard above both; a dry run may observe, it must not
+  process. `python -m scribe run --live` runs the full shadow pipeline: summarize and write.
 - `python -m scribe recover [--apply]` — reopens sessions whose digest was never really
   written. Dry by default; `--apply` stamps the affected blocks and clears the state, then a
   following `python -m scribe run --live` re-summarizes them. See
@@ -220,8 +225,13 @@ Two behaviours worth knowing if you read a run's output:
 - **21.5% is still too high to gate per-block in a cron.** The recommendation on vikunja#876
   (left open) is a corpus-level rate threshold (~30% against the 21.5% baseline) plus an alert
   on growth in the `absent` bucket, not a per-block exit-code check. With paths fixed, ticket
-  and identifier claims are now the dominant failure driver (vikunja#888 — 52 of 101 failing
-  blocks fail on nothing else).
+  and identifier claims were the dominant failure driver next (vikunja#888 — 52 of 101 failing
+  blocks failed on nothing else) — **mostly fixed in v0.9.0**: `_CMD_RE`'s delimiter
+  mis-pairing was fabricating and dropping spans in both directions (measured: 56 fabricated
+  claims across 36 blocks, 30 real spans dropped), and a `\bid` word-boundary gap was missing
+  31 of 62 true id-conflation findings. Block failure fell from 21.9% to 20.0% over the live
+  corpus after the fix; #888 itself is closed, #876's corpus-level-threshold recommendation is
+  still open.
 
 **The post-render redaction guard now states a cause, not just a fire (vikunja#856).** A fire
 used to be reported as proof extraction had missed something and told the reader to
@@ -514,9 +524,11 @@ derive it from `scribe.example.toml` in the repo.
 - vikunja#876 — path-composition groundedness tolerance; **left open** even after the v0.5.0
   fix (39.6% → 21.5% block failure) — the gate still isn't recommended for per-block cron
   gating. See [Session dating and the QC gate](#session-dating-and-the-qc-gate).
-- vikunja#888 — ticket/identifier claims are now the dominant QC failure driver post-v0.5.0.
+- vikunja#888 — ticket/identifier claims were the dominant QC failure driver post-v0.5.0;
+  **closed by v0.9.0** (`_CMD_RE` delimiter mis-pairing fix, `_ID_CONTEXT` word-boundary fix).
 - vikunja#889 — deferred Low from the v0.5.0 audit (unbounded substring scan in the path
-  composition check; not attacker-reachable).
+  composition check; not attacker-reachable); **closed by v0.9.0** (`ADJACENCY_SCAN_CAP`, a
+  length cap chosen to be verdict-neutral on the measured corpus and controls).
 - vikunja#896, #892, #893, #890 — repo-index `deployed: true` correction, README truth pass,
   `isCompactSummary` guard, exit-code comment fix; closed by `scribe-truth-pass-2026-09`
   (v0.6.0). See [Compaction boundaries are not user text](#compaction-boundaries-are-not-user-text-v060).
@@ -525,9 +537,12 @@ derive it from `scribe.example.toml` in the repo.
 - vikunja#901, #887 — bounded caps overtaken by the corpus, truncation counter aggregated but
   never printed; closed by `scribe-schema-cap-derivation-2026-09` (v0.7.0). See
   [Bounded caps are derived per session](#bounded-caps-are-derived-per-session-not-hardcoded-v070).
-- vikunja#902 — `scribe run` without `--live` is not actually inert against the production
-  state DB (`store.mark_summarized` runs before the dry-run guard); filed during the
-  cap-derivation build, pre-existing, left open.
+- vikunja#902 — `scribe run` without `--live` was not actually inert against the production
+  state DB (`store.mark_summarized` ran before the dry-run guard); filed during the
+  cap-derivation build, pre-existing; **closed by v0.8.1** (guard moved above both calls).
+- vikunja#903 — `run_cli.py` recommended a nonexistent `scribe recover --status` flag; found
+  in the same verification pass; **closed by v0.8.1** (advice corrected, and
+  `test_advice_strings.py` added so every printed command is checked against the real parser).
 - vikunja#904 — CI gained no dependency audit despite declaring `deployed: true, stateful:
   true`; closed by `scribe-ships-conformance-2026-09` (v0.8.0). See
   [Dependency drift and the deployed venv](#dependency-drift-and-the-deployed-venv-v080).
@@ -539,9 +554,9 @@ derive it from `scribe.example.toml` in the repo.
 - [memory-architecture.md](memory-architecture.md) — full system overview
 - Repo README: `~/repos/personal/scribe/README.md`
 - Phase docs: `host-forge-knowledge-base/phases/scribe-*.md` (sequence runs from
-  `scribe-2026-09.md` through `scribe-schema-cap-derivation-2026-09.md`, the latest two being
-  `scribe-truth-pass-2026-09.md` (v0.6.0) and `scribe-schema-cap-derivation-2026-09.md`
-  (v0.7.0)) and
+  `scribe-2026-09.md` through `scribe-qc-non-path-grounding-2026-09.md` (v0.9.0, latest) —
+  v0.8.1 was a same-day patch release with no dedicated phase doc, documented only in the
+  repo's own `CHANGELOG.md`) and
   `memory-consolidation-2026-09-p3-memsearch-retirement.md` /
   `memory-consolidation-2026-09-p5-transcript-restore-and-detection.md` for the cutover and
   backup-restore context
