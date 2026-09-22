@@ -153,7 +153,7 @@ homelab-agent/
 | `docs/components/agent/matrix-task-queue-bot.md` | Matrix task queue notification bot |
 | `docs/components/agent/matrix-hitl-bot.md` | Matrix HITL approval bot (scoped-mcp in-session approvals) |
 | `docs/components/agent/nats-mcp.md` | NATS publish/subscribe MCP |
-| `docs/components/agent/harlock.md` | Harlock personal agent |
+| `docs/components/agent/harlock.md` | Harlock personal agent, decommissioned 2026-08-08 |
 | `docs/components/agent/steward.md` | Config steward agent — proposals, countersign, apply |
 | `docs/components/agent/forge-config-mcp.md` | Root-owned config surface MCP (/etc/forge) |
 | `manifests/` | Sanitized agent manifest examples |

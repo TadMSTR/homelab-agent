@@ -1,198 +1,68 @@
-# Harlock (personal-agent)
+# Harlock (personal-agent) — decommissioned 2026-08-08
 
-A resident Matrix bot agent that maintains a persistent Claude Code session and responds in a dedicated Matrix room. Unlike task-queue agents that start and stop per-task, Harlock is always-on and handles open-ended personal assistant work.
+Harlock was a resident Matrix bot agent that maintained a persistent Claude Code session and
+responded in a dedicated Matrix room, handling open-ended personal assistant work. Unlike
+task-queue agents that start and stop per-task, it ran as an always-on PM2 process,
+`personal-agent-harlock`.
 
-## Overview
+## Decommission
 
-Harlock wraps the `personal-agent` manager in a long-running PM2 process. The manager polls a Matrix room, forwards messages into a Claude Code subprocess, and handles session lifecycle — rollover, summarization, and memory harvest.
+Retired 2026-08-08, Phase 0 of the `githost-mcp` workspace-policy build (vikunja#367 records
+the residue this left behind). `/etc/forge/workspace-policy.yml` documents the decision inline:
+Harlock is decommissioned rather than scoped under the policy's per-agent model.
 
-## Process
+Confirmed absent from every live surface as of 2026-09-21: no `personal-agent-harlock` PM2
+process (`pm2 jlist`), no crontab entry, no host process, no Docker container. The
+`agent-harlock` system user (uid 981) and the `~/repos/personal/personal-agent` repo are both
+still present on disk but idle — last session activity (rollover notes, session notes,
+archived transcripts) was 2026-07-09, a full month before the recorded decommission date, so
+the bot appears to have gone quiet before the formal retirement caught up to it.
 
-| Field | Value |
-|-------|-------|
-| PM2 name | `personal-agent-harlock` |
-| Script | `~/repos/personal/personal-agent/start.sh` |
-| Interpreter | bash |
-| Mode | always-on (no cron schedule) |
-| Isolated user | `agent-harlock` |
+**Known incomplete cleanup (vikunja#367, still open):** `githost-mcp`'s `ecosystem.config.js`
+still declares a `harlock` entry, `~/.secrets/githost-mcp-harlock.env` still holds a live
+`AUDIT_SIGNING_KEY` for a process that no longer exists, and
+`~/.claude/manifests/harlock-agent.yml` still exists with no decommission marker in the file
+itself. None of this is reachable — no process loads it — but it hasn't been swept up yet.
 
-## Architecture
+**A leftover you will still find running:** `harlock-archive.service` / `.timer` (systemd,
+not PM2 — `systemctl list-units | grep harlock`) still fire daily, cold-archiving whatever is
+left under `/home/agent-harlock/.claude`. This is expected: it's a oneshot cleanup unit, not
+evidence Harlock itself is alive. vikunja#917 flags the broader gap this exposed — forge's
+service inventory reads only `pm2 jlist`, so a systemd-managed leftover like this one is
+invisible to every existing health check.
 
-```
-Matrix room (#harlock:<homeserver>)
-        │  ▲
-        │  │ manager posts subprocess output back to the room
-        ▼  │ as the bot user (auto-relay)
-manager.py  (personal-agent, runs as operator user)
-        │  polls via Matrix client, owns the only Matrix connection
-        │  launches subprocess
-        ▼
-claude CLI  (runs as agent-harlock)  — no Matrix send tool
-        │  emits stream-json; final text is captured, not sent
-        ├─ Project:       /home/agent-harlock/.claude/projects/harlock/
-        ├─ Working notes: ~/.claude/memory/agents/harlock/working/
-        └─ Session notes: ~/.claude/memory/agents/harlock/session/
-```
+There is no resident personal-assistant bot on forge today. If Harlock or something like it
+is revived, treat this page's architecture section below as a starting reference, not a
+description of anything currently running — it also predates the 2026-09-17 memsearch
+retirement (see [memsearch.md](../memory/memsearch.md#retirement)); Harlock's memory access
+was wired to `memsearch-mcp`, which no longer exists.
 
-## Matrix integration (auto-relay)
+## What it was
 
-Harlock's Claude subprocess has **no Matrix send tool** — its scoped-mcp manifest
-carries no `matrix-mcp` module and no built-in Matrix module. The subprocess never
-posts to Matrix directly.
+- **PM2 name:** `personal-agent-harlock`, script `~/repos/personal/personal-agent/start.sh`,
+  always-on, isolated user `agent-harlock`
+- **Matrix auto-relay:** the Claude subprocess had no Matrix send tool. `manager.py` (running
+  as the operator user) owned the sole Matrix connection, ran the subprocess per turn, and
+  posted its final text back to `#harlock` as the bot user, threaded and chunked. The
+  subprocess itself ran isolated as `agent-harlock` with an AppArmor profile and no way to
+  address Matrix directly.
+- **Identity anchor:** `SOUL.md` at the project root was prepended to the first prompt of every
+  new session, giving Harlock persistent identity context across rollovers.
+- **Memory:** three read paths — `memsearch-mcp` (hybrid vector+BM25+reranker), 
+  `memory-metadata-mcp` (structured filtering), `qmd` (doc search) — plus session/working note
+  tiers under `~/.claude/memory/agents/harlock/`, indexed into memsearch by an idle-harvest
+  process.
+- **Session rollover:** at a configured input-token budget, the manager summarized the
+  conversation tail via Ollama and started a fresh session with the summary injected.
+- **Rollover QC:** a weekly cron (`harlock-rollover-qc`, Sundays) scored the week's rollover
+  notes for quality and posted PASS/FAIL to `#harlock` via `matrix-mcp`.
+- **scoped-mcp surface:** a dedicated manifest — `searxng-mcp`, `memsearch-mcp`,
+  `memory-metadata-mcp`, `qmd`, and read-only `githost-mcp` (no `matrix-mcp` module; all
+  Matrix output went through the manager's auto-relay, not an agent tool call).
 
-Instead, `manager.py` owns the sole Matrix connection (the bot's `AsyncClient`). Each
-turn, the manager runs the subprocess, parses its stream-json output, and posts the
-final text back to the room as the bot user (`@harlock`), threaded as a reply to the
-triggering message and split into `max_message_length` chunks. Turn errors and
-timeouts are surfaced the same way, while verbose detail (stderr, paths) stays in the
-PM2 logs only.
+## Related Docs
 
-Consequences of this model:
-
-- Harlock cannot address arbitrary rooms or users; every reply lands in its own room,
-  in-thread with the message that prompted it.
-- There is no in-band "send a Matrix message" action for the agent to invoke — output
-  is a side effect of finishing a turn, not a tool call.
-- Built-in room commands (`!help`, `!recap`, `!sessions`, `!cancel`, `!mirror`) are
-  handled directly by the manager and likewise reply via the same relay path.
-
-## Configuration (config.harlock.yml)
-
-```yaml
-trusted_sender: "@operator:example.com"
-mention_user: "@operator:example.com"
-
-poll_interval_seconds: 5
-max_message_length: 4000
-subprocess_timeout_seconds: 600
-
-# Roll the session at this input-token fill.
-# 130k sits below Sonnet's ~167k auto-compact trigger
-# (200k window, CLAUDE_CODE_AUTO_COMPACT_WINDOW=180000).
-rollover_budget: 130000
-
-deployment:
-  name: "harlock"
-  room_id: "!<room-id>:<homeserver>"
-  model: "claude-sonnet-4-6"
-  agent_user: "agent-harlock"
-  project_dir: "/home/agent-harlock/.claude/projects/harlock"
-  agent_home: "/home/agent-harlock"
-  working_note_dir: "/home/operator/.claude/memory/agents/harlock/working"
-  session_note_dir: "/home/operator/.claude/memory/agents/harlock/session"
-  ollama_url: "http://localhost:11434"
-  ollama_model: "summarize:latest"
-  ollama_timeout: 60
-  memsearch_bin: "/home/operator/.local/bin/memsearch"
-
-session_retention_days: 30
-```
-
-`rollover_budget` must be re-derived if the model changes — it depends on the context window size and the auto-compact threshold.
-
-## SOUL.md (identity anchor)
-
-On every new session open, the manager reads `project_dir/SOUL.md` and prepends it to the first prompt, before any warm handoff or memsearch injection. This gives Harlock a persistent identity context that survives session rollovers without depending on the agent's own memory of prior sessions.
-
-Location: `<project_dir>/SOUL.md` (e.g. `/home/agent-harlock/.claude/projects/harlock/SOUL.md`)
-
-Behavior when absent: silently skipped — no startup failure.
-
-The rollover handoff preamble also includes a two-line pointer to SOUL.md so Harlock can locate its identity context after a rollover (via `githost-mcp` if needed).
-
-## Memory systems
-
-Harlock has access to three memory systems to compensate for context rollover and idle harvest:
-
-| System | Tool | What it contains |
-|--------|------|-----------------|
-| memsearch | `memsearch-mcp` | Hybrid vector+BM25+reranker search over session, working, and docs tiers |
-| memory-metadata | `memory-metadata-mcp` | List/filter notes by tag, date, or agent |
-| qmd | `qmd` | Semantic search over indexed documentation collections |
-
-**Cold-start injection:** the manager (running as the operator user) runs memsearch before opening a new session that has no warm handoff, and injects the top results into the first prompt. This seeds Harlock with relevant prior context even on a fresh chain with no rollover summary.
-
-**Session and working notes:**
-
-| Path | Tier | Written by |
-|------|------|-----------|
-| `~/.claude/memory/agents/harlock/session/` | session | Harlock; indexed by idle harvest |
-| `~/.claude/memory/agents/harlock/working/` | working | Harlock directly |
-
-Session notes are indexed into memsearch by the idle harvest process and become searchable across future sessions.
-
-## Session rollover
-
-When input tokens reach `rollover_budget`, the manager:
-
-1. Sends the tail of the conversation to Ollama for summarization
-2. Falls back to raw tail if Ollama times out (60s)
-3. Starts a fresh Claude Code session with the summary injected as context
-
-## Idle harvest
-
-When the session is idle, the manager calls memsearch to index the session notes into the memsearch session tier. This makes recent conversation context retrievable in future sessions.
-
-## Rollover QC
-
-A weekly PM2 cron job, `harlock-rollover-qc` (`0 13 * * 0`, Sundays 08:00 EST), scores the past
-7 days of rollover notes for quality — a safety net that catches thin or generic summaries before
-they degrade Harlock's cross-session continuity.
-
-**Script:** `~/.claude/scripts/harlock-rollover-qc.sh`
-
-1. Skips the Claude QC pass entirely if no `rollover-*.md` notes exist in
-   `~/.claude/memory/agents/harlock/working/` for the window — cheap pre-check, no LLM call.
-2. Otherwise launches a headless `claude -p` session that reads each rollover note and scores it
-   on three dimensions (good / acceptable / poor): topic coverage, decision capture, and detail
-   level.
-3. Posts a PASS/FAIL summary to `#harlock` via `matrix-mcp`, and maintains a streak counter at
-   `~/.claude/memory/agents/sysadmin/harlock-rollover-qc-streak.md` (increments on PASS, resets to
-   0 on FAIL or no notes found).
-
-Lock file: `~/.claude/harlock-rollover-qc.lock` (stale after 30 min). Logs to
-`~/.claude/logs/harlock-rollover-qc-<date>.log` (60-day retention).
-
-## Isolation
-
-- Claude subprocess runs as `agent-harlock` (dedicated system user, no login shell)
-- AppArmor profile enforced on the subprocess
-- Bot credentials in `~/.claude-secrets/personal-agent.env` — sourced by `start.sh`, not stored in the config file
-
-## Operations
-
-Restart:
-```bash
-pm2 restart personal-agent-harlock
-```
-
-View logs:
-```bash
-pm2 logs personal-agent-harlock
-```
-
-Status:
-```bash
-pm2 show personal-agent-harlock
-```
-
-Stop gracefully:
-```bash
-pm2 stop personal-agent-harlock
-```
-
-## scoped-mcp integration
-
-Harlock has a dedicated scoped-mcp manifest separate from task-queue agents. The manifest reflects personal assistant use — broad read access, no destructive system operations, and **no Matrix send capability** (see [Matrix integration](#matrix-integration-auto-relay)).
-
-Modules exposed to the subprocess:
-
-| Module | Access | Notes |
-|--------|--------|-------|
-| `searxng-mcp` | search + fetch | `clear_cache` denied |
-| `memsearch-mcp` | hybrid memory search | bearer-token auth |
-| `memory-metadata-mcp` | list/filter notes | read-only |
-| `qmd` | doc search | read-only |
-| `githost-mcp` | git read | `git_add`/`git_commit`/`git_push` denied |
-
-There is deliberately no `matrix-mcp` module: Harlock's replies reach Matrix only through the manager's auto-relay, not through a tool the agent can call.
+- [memsearch.md](../memory/memsearch.md) — the search backend Harlock's memory access depended
+  on, itself retired 2026-09-17
+- [scoped-mcp.md](scoped-mcp.md) — manifest structure and the workspace-policy model that
+  formally excludes Harlock
