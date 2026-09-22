@@ -54,16 +54,17 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`hister.md`](ai-search/hister.md) | Browser history semantic search |
 | [`kiwix.md`](ai-search/kiwix.md) | Offline Wikipedia / Stack Overflow / Arch Wiki |
 
-## [`memory/`](memory/) — Memory & Knowledge Graph (8)
+## [`memory/`](memory/) — Memory & Knowledge Graph (9)
 
 | Doc | Service |
 |-----|---------|
 | [`memory-architecture.md`](memory/memory-architecture.md) | **Start here** — full three-tier memory system overview with diagrams |
-| [`memory-stack.md`](memory/memory-stack.md) | Milvus + OpenSearch Docker stack |
+| [`memory-stack.md`](memory/memory-stack.md) | Milvus (stopped) + OpenSearch (live) Docker stack |
 | [`memory-services.md`](memory/memory-services.md) | PM2 indexing services and promotion pipeline |
-| [`memsearch.md`](memory/memsearch.md) | Hybrid vector+BM25 search library |
-| [`memsearch-mcp.md`](memory/memsearch-mcp.md) | memsearch MCP server (:8493) |
-| [`memsearch-summarize.md`](memory/memsearch-summarize.md) | Session transcript summarizer (Anthropic API) |
+| [`scribe.md`](memory/scribe.md) | Transcript extractor + session digest writer |
+| [`memsearch.md`](memory/memsearch.md) | Hybrid vector+BM25 search library, retired 2026-09-17 |
+| [`memsearch-mcp.md`](memory/memsearch-mcp.md) | memsearch MCP server, retired 2026-09-17 |
+| [`memsearch-summarize.md`](memory/memsearch-summarize.md) | Session transcript summarizer, retired 2026-09-17 (replaced by scribe) |
 | [`memory-expire.md`](memory/memory-expire.md) | Expired note eviction cron |
 | [`graphiti.md`](memory/graphiti.md) | Temporal knowledge graph (Neo4j backend), retired 2026-08-05 |
 

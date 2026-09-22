@@ -162,12 +162,11 @@ docker exec -it vault vault kv put secret/<path> key=<new-value>
 
 ## Memory and Knowledge Base
 
-### Trigger an immediate memory index
+### Trigger an immediate memory reindex
 ```bash
-pm2 restart memsearch-watch-fast  # will poll immediately on start (working/session tiers)
-pm2 restart memsearch-watch-templates  # event-driven; restart re-runs one startup pass
-# Or run directly:
-memsearch index ~/.claude/memory
+# memsearch/Milvus retired 2026-09-17 — qmd is the semantic index now
+qmd update && qmd embed
+# Or wait for the hourly qmd-refresh cron (0 * * * *)
 ```
 
 ### Refresh the docs cache

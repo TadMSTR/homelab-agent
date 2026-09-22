@@ -93,11 +93,11 @@ homelab-agent/
 | `docs/components/memory/memory-architecture.md` | Full memory system overview |
 | `docs/components/memory/memory-stack.md` | Milvus + OpenSearch |
 | `docs/components/memory/memory-services.md` | PM2 indexing services and promotion pipeline |
-| `docs/components/memory/memsearch.md` | Hybrid vector+BM25 search library |
-| `docs/components/memory/memsearch-mcp.md` | memsearch MCP server (:8493) |
-| `docs/components/memory/memsearch-summarize.md` | Session transcript summarizer |
+| `docs/components/memory/memsearch.md` | Hybrid vector+BM25 search library, retired 2026-09-17 |
+| `docs/components/memory/memsearch-mcp.md` | memsearch MCP server, retired 2026-09-17 |
+| `docs/components/memory/memsearch-summarize.md` | Session transcript summarizer, retired 2026-09-17 (replaced by scribe) |
 | `docs/components/memory/memory-expire.md` | Expired note eviction |
-| `docs/components/memory/scribe.md` | Transcript extractor — built, shadow-tested, NOT deployed |
+| `docs/components/memory/scribe.md` | Transcript extractor + session digest writer — deployed, live since 2026-09-17 |
 | `docs/components/memory/graphiti.md` | Knowledge graph, retired 2026-08-05 |
 
 **Agent Infrastructure:**
@@ -192,7 +192,7 @@ homelab-agent/
 | Doc | Topic |
 |-----|-------|
 | `docs/components/ai-search/searxng-mcp.md` | Web search + fetch cascade MCP |
-| `docs/components/memory/memsearch-mcp.md` | Hybrid memory search MCP |
+| `docs/components/memory/memsearch-mcp.md` | Hybrid memory search MCP, retired 2026-09-17 — see `docs/components/memory/memsearch.md` |
 
 **Memory system:**
 
@@ -262,11 +262,10 @@ Key cross-references:
 | Component | Depends On | Used By |
 |-----------|-----------|---------|
 | `scoped-mcp` | All MCP servers | All agents |
-| `memsearch-mcp` | Milvus, Reranker | All agents |
 | `matrix-dispatcher` | Synapse | All agents |
 | `matrix-mcp` | Synapse | All agents |
 | `agent-bus` | NATS | All agents |
-| `qmd` | File system | All agents |
+| `qmd` | File system | All agents — semantic memory recall since memsearch-mcp retired 2026-09-17 |
 | `task-queue-mcp` | DragonflyDB | All agents (cross-agent handoffs) |
 | `task-dispatcher` | task-queue-mcp, scoped-mcp | Platform (headless launches) |
 | `system-ops` | Host OS | sysadmin, developer, writer |

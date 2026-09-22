@@ -1,74 +1,28 @@
 # Memory Services
 
-PM2-managed services that form the agent memory layer on top of the
-[memory-stack](memory-stack.md) Docker containers (Milvus + OpenSearch). Two groups:
-**indexing and search** (always-on) and **promotion pipeline** (scheduled).
+PM2-managed services that form the agent memory layer. Two groups: **indexing and search**
+(always-on) and **promotion pipeline** (scheduled).
 
-## memsearch-watch-fast
-
-Polls the working and session memory directories every 60 seconds and re-indexes changed
-files into Milvus. Fast tier — these directories change constantly during active sessions.
-
-**Script:** `~/scripts/memsearch-watch-fast.sh`
-
-Directories indexed:
-
-| Directory | Tier |
-|-----------|------|
-| `~/.claude/memory/` | working |
-| `~/.claude/projects/*/.memsearch/memory/` | session (per-project) |
-
-Logs to `~/logs/memsearch/watch-fast-<timestamp>.log` (30-day retention).
-
-## memsearch-watch-templates
-
-Event-driven watcher (`inotifywait`) for `~/.claude/templates/`. Indexes only when files
-actually change, debounced 30 seconds to absorb bulk writes. Always runs one index pass on
-startup to catch anything missed while the process was down.
-
-**Script:** `~/scripts/memsearch-watch-templates.sh`
-
-Directories indexed:
-
-| Directory | Tier |
-|-----------|------|
-| `~/.claude/templates/` | templates |
-
-Logs to `~/logs/memsearch/watch-templates-<timestamp>.log` (30-day retention).
-
-Note: an earlier version used a single polling `memsearch-watch` service across all three
-directories (itself a replacement for an inotify-based version with a threading bug — concurrent
-file changes caused silent indexing failures). Split into two PM2 services in July 2026: a 60s
-poller for the working/session tiers, which change constantly during active sessions, and an
-event-driven `inotifywait` watcher for templates, which change rarely and don't need polling.
-See [memsearch.md](memsearch.md) for full details.
-
-## memsearch-mcp
-
-FastMCP server exposing hybrid vector+BM25+reranker memory search to forge agents over
-streamable-http MCP transport.
-
-```bash
-/opt/venvs/memsearch/bin/python3 ~/repos/personal/memsearch-mcp/server.py
-```
-
-- **Endpoint:** `http://127.0.0.1:8493/mcp`
-- **Transport:** streamable-http
-
-See [memsearch-mcp.md](memsearch-mcp.md) for tool surface, agent access matrix, and operations.
+> **memsearch retired 2026-09-17.** `memsearch-watch-fast`, `memsearch-watch-templates`,
+> `memsearch-mcp`, and `memsearch-summarize` were stopped and deleted from PM2 the same day,
+> along with the Milvus backend they indexed into — see
+> [memsearch.md](memsearch.md#retirement) for the full cutover record. This page now lists only
+> the services still running.
 
 ## qmd
 
-Semantic + keyword search MCP server over ~9 000 markdown documents across 40+
-collections (docs cache, component docs, build reports, agent memory, etc.). Supports
-BM25 (lexical), vector (semantic), and HyDE (hypothetical document) sub-queries.
+Semantic + keyword search MCP server over ~9,000 markdown documents across 40+ collections
+(docs cache, component docs, build reports, agent memory, session digests, etc.). Supports
+BM25 (lexical), vector (semantic), and HyDE (hypothetical document) sub-queries. Replaced
+memsearch-mcp as the primary semantic recall path for agent memory on 2026-09-17.
 
 ```bash
 qmd mcp --http --port 8181 --host 127.0.0.1
 ```
 
 - **Endpoint:** `http://127.0.0.1:8181`
-- **Collections:** see `qmd status` for the full list and per-collection doc counts
+- **Collections:** see `qmd status` for the full list and per-collection doc counts —
+  including `session-digests`, fed by [scribe](scribe.md)'s hourly cron
 
 ## qmd-webhook
 
@@ -116,9 +70,9 @@ metadata, enabling queries that require matching note content rather than just f
 Scope: personal-agent use only (not in the global scoped-mcp manifest).
 
 > **Renamed 2026-07-23** (commit `0e649ad`, agent-platform-agents) from `memory-search-mcp`
-> to `memory-fulltext-mcp` — the old name was easily confused with `memsearch-mcp`
-> (a different, vector+BM25 service). Same service, same port, same PM2 process name
-> under the hood; only the name changed.
+> to `memory-fulltext-mcp` — the old name was easily confused with the (now retired)
+> `memsearch-mcp`. Same service, same port, same PM2 process name under the hood; only the
+> name changed.
 
 ```bash
 /home/ted/repos/personal/memory-fulltext-mcp/server.py
@@ -128,34 +82,27 @@ Scope: personal-agent use only (not in the global scoped-mcp manifest).
 - **Backend:** OpenSearch at `127.0.0.1:9202`
 - **Transport:** streamable-http
 
-## memsearch-summarize
+## scribe
 
-FastMCP server and background daemon that summarizes raw session transcripts in memsearch
-spool directories via the Anthropic API. Replaces verbose logs with 3–6 bullet summaries.
-
-```bash
-/opt/venvs/memsearch/bin/python3 ~/repos/gitea/host-forge-scripts/scripts/memsearch-summarize.py
-```
-
-- **Endpoint:** `http://127.0.0.1:8494/mcp`
-- **Transport:** streamable-http
-- **Poll interval:** 10 seconds
-
-See [memsearch-summarize.md](memsearch-summarize.md) for tools, configuration, and operations.
+Deterministic transcript extractor and session digest writer, replaced memsearch-summarize
+2026-09-17. Runs as an hourly cron (`40 * * * *`), not a PM2 daemon. See
+[scribe.md](scribe.md) for the full page.
 
 ## Promotion Pipeline (scheduled)
 
-Five cron jobs + two always-on daemons drive the memory tier lifecycle on forge.
-Scripts live in `host-forge-scripts/scripts/`, symlinked to `~/scripts/`.
+Cron jobs that drive the memory tier lifecycle on forge. Scripts live in
+`host-forge-scripts/scripts/`, symlinked to `~/scripts/`.
 
 ```mermaid
 flowchart LR
-    session["**Session tier**\n.memsearch/spool/\n(per-project)"]
+    transcripts["**Raw transcripts**\n~/.claude/projects/*/*.jsonl"]
+    digests["**scribe digests**\n~/.local/share/scribe/digests/"]
     working["**Working tier**\n~/.claude/memory/"]
     distilled["**Distilled tier**\n~/.claude/memory/\n(distilled/)"]
     archive["**NFS archive**\natlas <nas-ip>"]
 
-    session -- "memory-promote-daily\n23:00 daily" --> working
+    transcripts -- "scribe\nhourly :40" --> digests
+    digests -- "memory-promote-daily\n23:00 daily" --> working
     working -- "memory-sync-weekly\nMon 07:00" --> distilled
     working -- "memory-archive-mirror\n02:30 daily" --> archive
     distilled -- "memory-archive-mirror\n02:30 daily" --> archive
@@ -166,16 +113,25 @@ flowchart LR
 | `memory-os-sync` | always-on | — | Syncs `.metadata.db` → OpenSearch every 30s |
 | `memory-promote-daily` | cron | `0 23 * * *` | Steps 1–3, 8 of memory-sync: session scan, promote to working, LibreChat import |
 | `memory-sync-weekly` | cron | `0 7 * * 1` | Steps 4–8: working → distilled, expiry, dedup, metrics |
-| `memory-pipeline` | cron | `0 4 * * *` | memsearch-compact + qmd-refresh |
+| `memory-pipeline` | cron | `0 4 * * *` | qmd-refresh (Step 1 is nominally memsearch-compact — see caveat below) |
 | `memory-archive-mirror` | cron | `30 2 * * *` | rsync durable notes to NFS (atlas) with versioned change backups |
 | `qmd-refresh` | cron | `0 * * * *` | `qmd update` + `qmd embed` — keeps agent-memory collection current hourly |
+
+**Known gap (vikunja#885, open as of 2026-09-21):** the memsearch cutover updated the
+services above but not two live cron scripts. `memory-promote-daily.sh`'s Step 1 still
+instructs the launcher to scan `.memsearch/memory/` journals rather than scribe's digest
+directory — those journals froze at cutover, so the daily promote step risks going silently
+no-op. `memory-pipeline.sh` still gates its qmd-reindex step on `memsearch-compact.sh`, a
+script for a library that no longer runs. Neither has broken output yet as of this writing;
+treat both scripts' actual content, not this table, as ground truth until #885 closes.
 
 The promotion jobs drive headless Claude Code sessions via `~/.claude/projects/memory-sync/CLAUDE.md`.
 Matrix notifications go to `#sysadmin` on forge's Synapse homeserver.
 
 `memory-archive-mirror` logs to `~/.claude/logs/memory-archive-mirror.log`. NFS target:
 `<nas-ip>:/mnt/storage/forge` (atlas). Append-only: source-side deletions are preserved in the
-archive under `changes/YYYY-MM-DD/`.
+archive under `changes/YYYY-MM-DD/`. Scribe digests are not currently mirrored under this
+layout — see [scribe.md](scribe.md).
 
 ---
 
@@ -183,21 +139,16 @@ archive under `changes/YYYY-MM-DD/`.
 
 ```mermaid
 flowchart TD
+    transcripts["**~/.claude/projects/*/*.jsonl**\nraw transcripts"]
     files["**~/.claude/memory/**\nmarkdown files"]
 
-    files --> summarize["memsearch-summarize\nalways-on :8494"]
-    summarize <--> anthropic["Anthropic API\nclaude-sonnet-4-6"]
-    summarize --> files
-
-    files --> watch_fast["memsearch-watch-fast\npoll 60s"]
-    files --> watch_tmpl["memsearch-watch-templates\nevent-driven"]
-    watch_fast --> milvus[("Milvus\nvectors :19530")]
-    watch_tmpl --> milvus
-    milvus --> memsearch_mcp["memsearch-mcp\n:8493"]
-    milvus --> qmd_svc["qmd\n:8181"]
+    transcripts --> scribe["scribe\nhourly cron :40"]
+    scribe --> digests["scribe digests\n~/.local/share/scribe/digests/"]
+    digests --> files
 
     files --> qmd_refresh["qmd-refresh\nhourly cron"]
-    qmd_refresh --> qmd_svc
+    digests --> qmd_refresh
+    qmd_refresh --> qmd_svc["qmd\n:8181"]
 
     files --> meta_mcp["memory-metadata-mcp\n:8490"]
     meta_mcp --> sqlite[("SQLite\n.metadata.db")]
@@ -209,23 +160,21 @@ flowchart TD
     archive --> nfs[("NFS — atlas\n<nas-ip>")]
 
     subgraph "MCP servers (agents query these)"
-        memsearch_mcp
         qmd_svc
         meta_mcp
         search_mcp
     end
 
     subgraph "Storage backends"
-        milvus
         sqlite
         opensearch
         nfs
     end
 ```
 
-All always-on services depend on the [memory-stack](memory-stack.md) containers being healthy.
-If Milvus or OpenSearch is down, the respective MCP server will fail silently on search
-but will not crash.
+All always-on OpenSearch-backed services depend on the [memory-stack](memory-stack.md)
+OpenSearch container being healthy — Milvus, the other memory-stack container, is stopped
+(memsearch retirement) and nothing here depends on it anymore.
 
 **Note:** `memory-metadata-mcp` (SQLite, `:8490`) has zero overlap with `memory-fulltext-mcp`
 (OpenSearch, `:8491`) — the metadata server queries structured note frontmatter (tier,
@@ -234,8 +183,7 @@ tags, dates), the fulltext server queries note bodies.
 ## Related Docs
 
 - [memory-architecture.md](memory-architecture.md) — full system map: tiers and indices
-- [memory-stack.md](memory-stack.md) — Milvus + OpenSearch storage backends
-- [memsearch.md](memsearch.md) — memsearch library, polling watch daemon, reranker
-- [memsearch-mcp.md](memsearch-mcp.md) — MCP server wrapping memsearch
-- [memsearch-summarize.md](memsearch-summarize.md) — session transcript summarizer
+- [memory-stack.md](memory-stack.md) — Milvus (stopped) + OpenSearch (still live) storage backends
+- [scribe.md](scribe.md) — transcript extraction + session digest writer
+- [memsearch.md](memsearch.md) — hybrid vector+BM25 search library, retired 2026-09-17
 - [graphiti.md](graphiti.md) — knowledge graph, retired 2026-08-05

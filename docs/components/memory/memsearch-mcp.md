@@ -1,95 +1,29 @@
-# memsearch-mcp
+# memsearch-mcp (retired 2026-09-17)
 
-FastMCP server wrapping the memsearch semantic memory search library. Exposes hybrid
-vector+BM25+reranker search and index-refresh tools to forge agents over streamable-http MCP
-transport.
+memsearch-mcp was the FastMCP server wrapping the [memsearch](memsearch.md) semantic memory
+search library. It exposed hybrid vector+BM25+reranker search and index-refresh tools
+(`search_memory`, `index_memory`) to forge agents over streamable-http MCP transport at
+`http://127.0.0.1:8493/mcp`.
 
-- **PM2 process:** `memsearch-mcp`
-- **Endpoint:** `http://127.0.0.1:8493/mcp`
-- **Transport:** streamable-http
-- **Interpreter:** `/opt/venvs/memsearch/bin/python3`
-- **Repo:** `~/repos/personal/memsearch-mcp/`
+## Retirement
 
-## What It Does
+Retired 2026-09-17 alongside the rest of the memsearch stack — see
+[memsearch.md](memsearch.md#retirement) for the full cutover record
+(`memory-consolidation-2026-09` part 3, vikunja#863).
 
-Agents call `search_memory` with a natural-language query and get ranked results from all
-indexed memory: session notes (per-project `.memsearch/memory/` dirs), working-tier notes
-(`~/.claude/memory/`), and docs. Each result includes the path, a text snippet, the nearest
-heading, a relevance score, and a tier label so the agent knows where the information lives.
+- PM2 process stopped and deleted; port 8493 freed.
+- Removed from all 6 agent manifests. This needed an explicit pass — a running scoped-mcp
+  process caches its tool inventory at startup, so `search_memory` stayed registered and
+  failing at call time rather than disappearing on its own until each manifest was edited.
+- The `archival-search` skill, which used memsearch-mcp as its primary search backend, was
+  rewritten to query [qmd](../ai-search/ollama.md) directly instead.
 
-`index_memory` lets agents trigger a re-index after writing new memory files — useful when
-an agent wants to search notes it just wrote in the same session. It's path-whitelisted
-(`~/.claude/memory/`, `~/.claude/projects/`, `/opt/agents/memory/`) and is denylisted for
-security, research, and writer agents.
-
-## Configuration
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `MEMSEARCH_MCP_PORT` | `8493` | Listen port |
-| `LOG_LEVEL` | `INFO` | structlog log level |
-
-Configuration for the underlying memsearch library (Milvus URI, embedding model, reranker) is
-read from the memsearch config file. See [memsearch.md](memsearch.md) for details.
-
-## Dependencies
-
-| Service | Required | Purpose |
-|---------|----------|---------|
-| `milvus` (19530) | Yes | Vector store — search fails without it |
-| `ollama-queue-proxy` (11435) | Yes | Embedding inference for `index_memory` |
-| `memsearch-watch-fast` (PM2) | Indirect | Keeps the working/session-tier index current; `search_memory` is stale if it's down |
-| `memsearch-watch-templates` (PM2) | Indirect | Keeps the templates-tier index current (event-driven, not polled) |
-
-memsearch-mcp starts successfully even if its dependencies are down. Individual tool calls
-will return `{"error": "..."}` rather than crashing.
-
-## Operations
-
-```bash
-# Status
-pm2 status memsearch-mcp
-
-# Logs
-tail -f ~/logs/memsearch-mcp.log
-
-# Restart (e.g., after memsearch library update)
-pm2 restart memsearch-mcp
-
-# Health check
-curl -s http://127.0.0.1:8493/mcp
-```
-
-## scoped-mcp Integration
-
-All 5 forge agent manifests include memsearch-mcp:
-
-| Agent | index_memory | search_memory |
-|-------|-------------|---------------|
-| research | denylisted | available |
-| developer | available | available |
-| writer | denylisted | available |
-| security | denylisted | available |
-| sysadmin | available | available |
-
-Manifest snippet:
-
-```yaml
-- name: memsearch-mcp
-  type: mcp_proxy
-  url: "http://127.0.0.1:8493/mcp"
-  tool_denylist:
-    - "index_memory"   # present for research, writer, security
-```
-
-The `archival-search` skill (`~/.claude/skills/archival-search/SKILL.md`) uses memsearch-mcp
-as its primary search backend, replacing the older `memory-search-mcp` (itself renamed to
-[`memory-fulltext-mcp`](memory-services.md#memory-fulltext-mcp) on 2026-07-23 — a separate,
-still-running OpenSearch-backed service, not superseded by memsearch-mcp).
+Agents that need semantic recall across memory notes should query **qmd** (port 8181,
+`session-digests` and related collections) — see
+[memory-architecture.md](memory-architecture.md) for the current query-path table.
 
 ## Related Docs
 
-- [memsearch.md](memsearch.md) — memsearch library, polling watch daemon, reranker
-- [memory-services.md](memory-services.md) — overview of all memory layer PM2 services
-- [memory-stack.md](memory-stack.md) — Milvus + OpenSearch storage backends
+- [memsearch.md](memsearch.md) — the library this server wrapped, retired the same day
+- [memory-architecture.md](memory-architecture.md) — current memory system map and query paths
 - [scoped-mcp.md](../agent/scoped-mcp.md) — manifest structure and agent tool surfaces
