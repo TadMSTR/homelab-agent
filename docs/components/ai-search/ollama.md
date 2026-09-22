@@ -24,11 +24,22 @@ RTX 2000 Ada (16 GB VRAM). All model layers offloaded to GPU. The NVIDIA Contain
 
 ## Models
 
+Live as of 2026-09-20 (`docker exec ollama ollama list`) — `qwen3:14b` is **not installed**;
+`qwen3:8b` is the current primary text model:
+
 | Model | Size | Purpose |
 |-------|------|---------|
-| `qwen3:14b` | 9.3 GB | Primary inference — fits in VRAM |
+| `qwen3:8b` | 5.2 GB | Primary text inference |
+| `summarize:latest` | 9.3 GB | Legacy modelfile from the retired `memsearch-summarize` service — no longer read by any live process, see [memsearch-summarize.md](../memory/memsearch-summarize.md) |
+| `bge-m3:latest` | 1.2 GB | Embeddings |
 | `qwen3:4b` | 2.5 GB | Fast/lightweight, lower context cost |
 | `nomic-embed-text:latest` | 274 MB | Embeddings |
+
+**For which service actually calls which model today, see
+[llm-providers.md](llm-providers.md)** — this table lists what's installed, not who's
+consuming it, and that mapping has gone stale here before (vikunja#402: this doc named
+Ollama/qwen3:14b weeks after the live config had moved on). Cross-link the two rather than
+letting a model table and a provider table drift apart again.
 
 Models stored at `/opt/appdata/ollama/models/`.
 
@@ -68,7 +79,7 @@ Destructive operations (pull/delete) must go through the authenticated root path
 
 ```bash
 # From forge host — direct API, no proxy
-docker exec ollama ollama pull qwen3:14b
+docker exec ollama ollama pull qwen3:8b
 docker exec ollama ollama list
 docker exec ollama ollama rm <model>
 ```
