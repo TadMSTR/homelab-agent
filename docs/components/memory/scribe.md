@@ -8,12 +8,14 @@ feed. It runs as an hourly cron (`40 * * * *`, `flock -n`), not a PM2 daemon —
 `pm2-services.md` cron table for the schedule. See the repo README for full usage; this page
 covers what an operator of the memory pipeline needs to know.
 
-Repo: `TadMSTR/scribe` (private) — `~/repos/personal/scribe/README.md`. Tag **v0.9.0**,
-confirmed deployed at `/opt/venvs/scribe` (`pip show scribe` → `0.9.0`, live 2026-09-21).
-Merged and released is not automatically deployed for this repo — check the running venv
-rather than trusting a build's own completion note or a version pinned to a date in this doc;
-four releases shipped 2026-09-18 alone (v0.5.0 → v0.6.0 → v0.7.0 → v0.8.0), with v0.8.1 and
-v0.9.0 following the next day, 2026-09-19.
+Repo: `TadMSTR/scribe` — `~/repos/personal/scribe/README.md`. **Private today**; a public
+release is in preparation and has not happened yet, so treat the repo as unreadable outside
+forge until that flip is confirmed. Tag **v0.11.0**, confirmed deployed at `/opt/venvs/scribe`
+(`pip show scribe` → `0.11.0`, live 2026-09-24). Merged and released is not automatically
+deployed for this repo — check the running venv rather than trusting a build's own completion
+note or a version pinned to a date in this doc; four releases shipped 2026-09-18 alone (v0.5.0
+→ v0.6.0 → v0.7.0 → v0.8.0), v0.8.1 and v0.9.0 followed the next day (2026-09-19), and v0.10.0
+and v0.11.0 both shipped 2026-09-24.
 
 ## Why it exists
 
@@ -96,12 +98,57 @@ python -m scribe events <session-id> --path     # just the path, for piping
 python -m scribe qc --digest D --events "$(python -m scribe events ID --path)"
 ```
 
-Retention is settled: **keep everything**. 429 sessions in ~39 MB, ~0.46 GB/year. No pruning
-exists and none is planned.
+Retention is settled: **keep everything, by decision, not by omission** (Ted, 2026-09-24,
+vikunja#954; `AGENTS.md` invariant 18). After Claude Code's own 30-day transcript expiry, the
+event log is the only surviving source a digest can be re-summarized from — a retention knob
+that pruned it would quietly turn a recoverable loss into an unrecoverable one. 429 sessions in
+~39 MB, ~0.46 GB/year; growth is watched outside scribe, not by scribe itself (sysadmin,
+vikunja#965). No pruning exists and none is planned; if a retention setting is ever added, it
+must default off and every deletion must be counted in the run totals (invariant 13).
 
 **Digests are not mirrored to atlas** by `memory-archive-mirror.sh` under this layout. If that
 durability is wanted it is an explicit choice nobody has made yet — a known gap, not an
 assumed backup.
+
+## The indexer contract, and why qmd isn't a dependency (v0.10.0)
+
+Nothing in `src/` imports or knows about qmd; forge's use of it is a configuration choice, not
+a dependency. As of v0.10.0 (`scribe-indexer-portability-2026-09`, vikunja#891) that claim is
+backed by a documented, testable contract rather than just a clean `grep`. Any indexer,
+including a push/API one that can't glob a directory, has two rules to follow — stated in full
+in the repo README's **"Using a different indexer"** section, summarized here:
+
+1. **Index `output_dir`.** Every digest is a `.md` file under it.
+2. **Never index `eventlog_dir`.** It's evidence reached *from* a digest, not a search target,
+   and it sits as a sibling of `output_dir` rather than a child specifically so a glob can't
+   pick it up by accident.
+
+A pull indexer (qmd's glob) needs nothing else. A **push** indexer gets two more things:
+
+- **`index.jsonl`** — an append-only manifest, one line per digest block written, living next
+  to `output_dir` by default (mode `0600`). Each line carries the block's identity
+  (`path` relative to `output_dir`, `session_id`, `turn_uuid`), a `sha256` of **the block, not
+  the file**, and `provisional` (`""` for a real digest, `"placeholder"`/`"suppressed"` for a
+  stand-in — filter on `provisional == ""` for real digests only). Digests aren't write-once,
+  so a consumer needs both of these, not just one: **record identity is `(path, turn_uuid)`,
+  last line wins**, and **the indexable document is the whole file** — re-ingest the entire
+  `path` whenever a line names it, rather than assembling content from block records.
+  `scribe index --rebuild` regenerates the manifest from the digests on disk (how a corpus
+  predating the manifest gets backfilled); `scribe index --check` re-derives it in memory and
+  exits non-zero on any drift, which is what makes the manifest trustworthy rather than just
+  present.
+- **`[index] on_digest_written`**, an optional argv-list hook run once per digest, after its
+  manifest line lands. It gets a fixed, minimal environment (never scribe's own — the
+  summarizer's API key has no reason to reach an indexer process) plus any names listed in
+  `on_digest_written_env`, a bounded timeout, and a shell string is refused at config load
+  rather than risking a command-injection surface built from the digest path. Failures are
+  counted and never affect whether the digest itself was written.
+- **`[discovery] emit_frontmatter = true`**, optional and off by default: adds `agent`, `date`,
+  `source`, `session_ids` as YAML frontmatter on each digest file without moving the per-block
+  anchors — the `SessionStart` journal preview (below) reads identically either way.
+
+Nothing about forge's own qmd-based setup changed in this build — every new key defaults to
+current behaviour.
 
 ## Digests are indexed
 
@@ -126,8 +173,9 @@ by querying, not by counting.
 scribe also **pushes** a digest, rather than only being retrievable. `python -m scribe journal`
 emits the JSON a Claude Code `SessionStart` hook writes to stdout, built from an agent's two
 most recent digests. The repo carries `hooks/session-start.sh` as the reference wrapper, but
-forge's live registration calls a separate, root-owned copy — see the note under
-[Entry points](#entry-points).
+forge's live registration calls a separate, root-owned wrapper script instead — matching the
+generic shape in the repo README's "Example deployment" table, not the repo's own script
+directly. See the note under [Entry points](#entry-points).
 
 This matters because the `SessionStart` injection is the **only** memory push surface confirmed
 to reach a CloudCLI agent session — a hook emitting `hookSpecificOutput.additionalContext` is
@@ -148,25 +196,26 @@ side (`doc-health` → `doc`, `helm-build` → `helm`, `memory-sync` → `memory
 left their injections permanently and silently empty. If this or another doc states a
 `<agent>/` path derived from the transcript directory name, it is stale.
 
-**Status:** confirmed live on this host — scribe's `SessionStart` hook is registered
-(`/usr/local/sbin/forge/scribe-session-start.sh` in `~/.claude/settings.json`), alongside the
-existing `core-context.md`/`directives.md` hooks. Registration was part 3 of the
+**Status:** confirmed live on this host — scribe's `SessionStart` hook is registered as a
+root-owned wrapper in `~/.claude/settings.json`, alongside the existing
+`core-context.md`/`directives.md` hooks. Registration was part 3 of the
 `memory-consolidation-2026-09` programme (vikunja#863), which is now closed — the cutover
 happened after the backfill so no agent saw an empty injection on cutover day.
 
 ## Entry points
 
-CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|cap-survey|deps-drift|run|recover}`.
+CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|cap-survey|deps-drift|run|recover|index}`.
 
 - `python -m scribe.extract <transcript.jsonl>` — run the extractor standalone.
 - `python -m scribe events <session-id> [--path]` — print or locate a persisted event log.
   Exit 1 "none kept" is distinct from exit 2 "could not look."
 - `python -m scribe journal` — emit the `SessionStart` hook payload for the calling agent. In
-  production this is called by `/usr/local/sbin/forge/scribe-session-start.sh`, a root-owned
-  deployment wrapper — **not** the repo's own `hooks/session-start.sh` directly. A live git
-  checkout under an agent's write root running on every session start was flagged MEDIUM in the
-  part 3 cutover audit; the wrapper is deliberately self-contained and published via
-  `forge-scripts-deploy.sh` instead of calling back into the repo copy.
+  production this is called by a root-owned deployment wrapper (matching the generic shape in
+  the repo README's "Example deployment" table) — **not** the repo's own
+  `hooks/session-start.sh` directly. A live git checkout under an agent's write root running on
+  every session start was flagged MEDIUM in the part 3 cutover audit; the wrapper is
+  deliberately self-contained and published via `forge-scripts-deploy.sh` instead of calling
+  back into the repo copy.
 - `python -m scribe qc --digest D --events E` — the groundedness gate; exits non-zero on an
   ungrounded digest. See [Session dating and the QC gate](#session-dating-and-the-qc-gate) —
   **still not recommended for per-block cron gating** even after v0.5.0's fix.
@@ -195,6 +244,10 @@ CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|cap-survey|deps
   venv against `uv.lock`'s pins. Run from a source checkout pointed at the deployed venv, not
   from the venv itself — see
   [Dependency drift and the deployed venv](#dependency-drift-and-the-deployed-venv-v080).
+- `python -m scribe index [--rebuild|--check]` — new in v0.10.0. `--rebuild` regenerates
+  `index.jsonl` from the digests on disk; `--check` re-derives it in memory and exits non-zero
+  on drift. See
+  [the indexer contract](#the-indexer-contract-and-why-qmd-isnt-a-dependency-v0100) above.
 
 Port 8499 appears in `scribe.example.toml` but **no HTTP server exists** — that block is
 forward-looking. Do not add 8499 to `services.md`.
@@ -487,13 +540,18 @@ or the digest directory rather than trusting a number here.
 
 - A configured LLM provider for the session-digest stage — `mistral-small-latest` by default,
   or [ollama-queue-proxy](../ai-search/ollama-queue-proxy.md) at `127.0.0.1:11435` if
-  configured to use Ollama. Daily roll-up uses `claude -p` (no API key).
+  configured to use Ollama. Daily roll-up uses `claude -p` (no API key). As of v0.11.0
+  (`scribe-public-readiness-2026-09`, vikunja#961), that subprocess runs with a named
+  environment (`src/scribe/childenv.py`) — an enumerated allowlist, not the sweep's full
+  environment, so a session's roll-up call can no longer see credentials for providers it
+  doesn't use.
 - `~/.claude/projects/*/*.jsonl` transcripts — read-only, and no longer the *only* source (see
   [Recovery is not transcript-bound](#recovery-is-not-transcript-bound)).
 - qmd (`session-digests` collection) for digest retrieval; `qmd-refresh.sh` (hourly cron) for
   keeping it current.
-- `/usr/local/sbin/forge/scribe-session-start.sh` — the root-owned `SessionStart` hook wrapper;
-  see the note under [Entry points](#entry-points).
+- A root-owned `SessionStart` hook wrapper — matching the generic shape in the repo README's
+  "Example deployment" table, not the repo's own script directly; see the note under
+  [Entry points](#entry-points).
 
 **Do not copy the provider claims from [memory-architecture.md](memory-architecture.md) or
 [memsearch-summarize.md](memsearch-summarize.md).** Both were wrong about the LLM provider
@@ -546,6 +604,29 @@ derive it from `scribe.example.toml` in the repo.
 - vikunja#904 — CI gained no dependency audit despite declaring `deployed: true, stateful:
   true`; closed by `scribe-ships-conformance-2026-09` (v0.8.0). See
   [Dependency drift and the deployed venv](#dependency-drift-and-the-deployed-venv-v080).
+- vikunja#891 (folds in #899) — the indexer-agnosticism contract for push indexers; closed by
+  `scribe-indexer-portability-2026-09` (v0.10.0). See
+  [the indexer contract](#the-indexer-contract-and-why-qmd-isnt-a-dependency-v0100) above.
+- vikunja#962 — `coderabbit-review-assert` misreads an incremental "files skipped as similar"
+  review as stale; filed during the indexer-portability build, still open. Reproduced a second
+  time on the public-readiness build's PR (#967, below).
+- vikunja#963 — public-readiness tracker; **open** until Ted flips the repo's visibility and
+  PR-B (CodeQL + Scorecard) merges.
+- vikunja#961 — `claude -p`'s subprocess inherited the sweep's full environment; closed by
+  `scribe-public-readiness-2026-09` (v0.11.0). See the `childenv` note under
+  [Dependencies](#dependencies).
+- vikunja#964 — a setuptools licence-metadata deprecation with a 2027-02-18 removal date;
+  closed by v0.11.0 (SPDX `license` string).
+- vikunja#952 — the README's deploy section carried a version row that went stale every
+  release; closed by v0.11.0 (dropped, replaced with the generic "Example deployment" table).
+- vikunja#954 — event-log retention decided (keep indefinitely); closed by v0.11.0. See
+  [Three tiers](#three-tiers-and-how-to-get-between-them) above and `AGENTS.md` invariant 18.
+- vikunja#965 — event-log growth alert for `scribe-recover-check.sh`; filed for sysadmin during
+  the public-readiness build, not yet built.
+- vikunja#966, #968 — filed during the public-readiness build; see that build's report for
+  detail.
+- vikunja#967 — `coderabbit-review-assert` reproducing the same stale-review misread as #962,
+  on a different PR the same day.
 
 ## Related Docs
 
@@ -554,9 +635,9 @@ derive it from `scribe.example.toml` in the repo.
 - [memory-architecture.md](memory-architecture.md) — full system overview
 - Repo README: `~/repos/personal/scribe/README.md`
 - Phase docs: `host-forge-knowledge-base/phases/scribe-*.md` (sequence runs from
-  `scribe-2026-09.md` through `scribe-qc-non-path-grounding-2026-09.md` (v0.9.0, latest) —
-  v0.8.1 was a same-day patch release with no dedicated phase doc, documented only in the
-  repo's own `CHANGELOG.md`) and
+  `scribe-2026-09.md` through `scribe-public-readiness-2026-09.md` (v0.11.0, latest), by way of
+  `scribe-indexer-portability-2026-09.md` (v0.10.0) — v0.8.1 was a same-day patch release with
+  no dedicated phase doc, documented only in the repo's own `CHANGELOG.md`) and
   `memory-consolidation-2026-09-p3-memsearch-retirement.md` /
   `memory-consolidation-2026-09-p5-transcript-restore-and-detection.md` for the cutover and
   backup-restore context
