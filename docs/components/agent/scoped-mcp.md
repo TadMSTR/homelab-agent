@@ -187,8 +187,14 @@ The sysadmin agent requires human approval before executing high-impact tools:
 
 **Approval timeout:** 300 seconds
 
-**Approval flow:** Matrix is used for notification only, posted to the requesting agent's
-own notify room via [matrix-hitl-bot](matrix-hitl-bot.md). Approval is via the CLI:
+**Approval flow (as of `operator-panel-2026-09` p1, live under `enforce` 2026-09-27):**
+`hitl.mode: enforce` + `hitl.signing.mode: enforce` retired every route an agent could use to
+approve its own gated call. Matrix still carries the **notification** (`notify.type: matrix`,
+posted to the requesting agent's own room), but the [matrix-hitl-bot](matrix-hitl-bot.md) that
+used to receive the approval action is stopped and removed — its `POST /hitl/approve` caller no
+longer exists, and that route is unregistered under `enforce` regardless. Approval is
+**terminal-only**, run by Ted as the dedicated `forge-approver` system account, which alone
+holds the Ed25519 private key:
 
 ```mermaid
 sequenceDiagram
@@ -197,34 +203,30 @@ sequenceDiagram
     participant SM as scoped-mcp
     participant Matrix
 
-    Agent->>Ted: asks in-chat for approval
-    Ted->>Agent: confirms in-chat
-
     Agent->>SM: tool call (e.g. dockhand-mcp_container_action)
     SM->>SM: gate: HITL required
-    SM->>Matrix: POST notification to agent's notify room
+    SM->>Matrix: notify agent's room (Ted reads it there)
     SM-->>Agent: pending — approval needed
 
-    Agent->>SM: scoped-mcp hitl list (via system-ops)
-    Agent->>SM: scoped-mcp hitl approve [id] (via system-ops)
-    SM->>SM: approval recorded
+    Ted->>SM: sudo -u forge-approver scoped-mcp-approve <id> (terminal, password-prompted)
+    SM->>SM: verify Ed25519 signature, args_hash, expiry (<=120s), approval_id unconsumed
     SM->>SM: execute tool call
     SM-->>Agent: tool result
 ```
 
 ```bash
-# List pending approvals
-/opt/venvs/scoped-mcp/bin/scoped-mcp hitl list \
-  --manifest ~/.claude/manifests/sysadmin-agent.yml
-
-# Approve (must complete within 300s of the tool call)
-/opt/venvs/scoped-mcp/bin/scoped-mcp hitl approve \
-  --manifest ~/.claude/manifests/sysadmin-agent.yml <id>
+# Ted runs this at a terminal — not something an agent calls via system-ops
+sudo -u forge-approver /opt/venvs/scoped-mcp/bin/scoped-mcp-approve <approval_id>
 ```
 
-The sysadmin agent is instructed (via its CLAUDE.md) to ask in-chat for approval first,
-then call the tool, then immediately run the HITL list + approve commands via system-ops.
-Ted's in-chat confirmation is the signal to proceed.
+`scoped-mcp-approve` shows Ted the agent, tool and sanitised arguments and asks `y/N`;
+`timestamp_timeout=0` means a cached sudo credential can't be reused by another process. No
+agent instruction should ask an agent to run the HITL list/approve commands or the in-session
+`scoped_mcp_hitl_confirm` tool via system-ops — both are gone under `enforce`
+(`scoped-mcp hitl approve` refuses and names the new command; a manifest combining
+`hitl.mode: interactive` with `signing.mode: enforce` fails startup validation). Full build
+record: `host-forge-knowledge-base/phases/operator-panel-2026-09-p1-signed-approvals.md`.
+`sysadmin` and `developer` both run `enforce`.
 
 **State backend:** Dragonfly (Redis-compatible) stores pending HITL state:
 ```yaml
