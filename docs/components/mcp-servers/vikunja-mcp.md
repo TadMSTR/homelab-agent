@@ -6,9 +6,14 @@ assignees, relations/reminders, backlinks, kanban buckets/views, labels, comment
 attachments, teams, and webhooks. It targets Vikunja's `/api/v2`, so it requires **Vikunja
 2.4.0 or newer** (v1 is frozen upstream at 2.4.0 and removed at 4.0).
 
-- **Package:** `vikunja-mcp` (`~/repos/personal/vikunja-mcp`, installed into
-  `/opt/venvs/vikunja-mcp/`)
-- **Transport:** streamable-http — `127.0.0.1:8501` (PM2, `/opt/appdata/vikunja-mcp/run.sh`)
+- **Package:** `vikunja-mcp` (`~/repos/personal/vikunja-mcp`), published as
+  `ghcr.io/tadmstr/vikunja-mcp:v0.11.0`
+- **Transport:** streamable-http — `127.0.0.1:8501`. **Container**, not PM2 — moved into the
+  `~/docker/vikunja/` compose stack (alongside the `vikunja` app and `vikunja-db`) at v0.6.0. A
+  `vikunja-mcp` PM2 entry still shows in `pm2 jlist` but is `stopped`, a dormant leftover
+  (vikunja#468/#498, both still open), not the live service — verified live 2026-09-28
+  (`docker ps` shows the container `Up`/`healthy`; PM2 shows `stopped`). See
+  [vikunja.md](../apps/vikunja.md) for the full stack.
 - **Vikunja URL:** `https://vikunja.helmforge.me`
 - **Auth:** stateless bearer-token passthrough (see below) — no credentials stored here
 - **GitHub:** `TadMSTR/vikunja-mcp`
@@ -27,16 +32,10 @@ in-flight request's token, never the full credential set.
 
 ## Launch
 
-`ecosystem.config.js` points at `/opt/appdata/vikunja-mcp/run.sh`:
-
-```bash
-#!/bin/bash
-set -euo pipefail
-set -a
-source /opt/appdata/vikunja-mcp/env   # VIKUNJA_URL, VIKUNJA_PORT — NO token here
-set +a
-exec /opt/venvs/vikunja-mcp/bin/vikunja-mcp
-```
+Runs as the `vikunja-mcp` container in `~/docker/vikunja/docker-compose.yml`
+(`ghcr.io/tadmstr/vikunja-mcp:<tag>`), configured via `~/docker/vikunja/.env` — `VIKUNJA_URL`,
+`VIKUNJA_PORT`, and the other vars below. **No token in the compose env** — see
+[Why it's shaped this way](#why-its-shaped-this-way--token-passthrough) above.
 
 ## Configuration
 
@@ -58,7 +57,8 @@ model. Per-agent tokens live in Vault at `secret/data/vikunja/agent-<role>`.
 ## Tools
 
 73 tools spanning the full Vikunja resource surface — 71 as of v0.2.0, plus
-`backlog_summary` (v0.7.0) and `task_link_commit` (v0.8.0). See the [repo
+`backlog_summary` (v0.7.0) and `task_link_commit` (v0.8.0); still 73 at v0.11.0, reverified
+live against a `tools/list` call against the running container 2026-09-28. See the [repo
 README](https://github.com/TadMSTR/vikunja-mcp#tools) for the full table.
 Notable points:
 
@@ -83,18 +83,23 @@ An extension-hook system (`hooks.py`) wraps every tool call with a pre/post hand
 
 ## Dependencies
 
-- Vikunja app at `https://vikunja.helmforge.me` ([vikunja.md](../apps/vikunja.md))
-- `/opt/venvs/vikunja-mcp/` Python venv
+- Vikunja app at `https://vikunja.helmforge.me` ([vikunja.md](../apps/vikunja.md)) — same
+  compose stack, `vikunja-db` as the shared datastore
 - Vault (`secret/data/vikunja/agent-<role>`) for per-agent tokens
 
 ## Operations
 
 ```bash
-pm2 show vikunja-mcp
-pm2 logs vikunja-mcp --lines 50
-pm2 restart vikunja-mcp
+docker ps --filter name=vikunja-mcp --format 'table {{.Names}}\t{{.Status}}'
+docker logs vikunja-mcp --tail 50
+cd ~/docker/vikunja && docker compose restart vikunja-mcp
 curl -s http://127.0.0.1:8501/health
 ```
+
+Restarting the whole stack (`docker compose down && docker compose up -d` from
+`~/docker/vikunja/`) also restarts this container — see [vikunja.md](../apps/vikunja.md#operations)
+for the full-stack procedure. There is no PM2 command for the live service; `pm2 show
+vikunja-mcp` shows the stopped ghost entry, not this container.
 
 ## scoped-mcp Wiring
 
