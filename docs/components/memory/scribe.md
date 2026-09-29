@@ -8,14 +8,15 @@ feed. It runs as an hourly cron (`40 * * * *`, `flock -n`), not a PM2 daemon —
 `pm2-services.md` cron table for the schedule. See the repo README for full usage; this page
 covers what an operator of the memory pipeline needs to know.
 
-Repo: `TadMSTR/scribe` — `~/repos/personal/scribe/README.md`. **Private today**; a public
-release is in preparation and has not happened yet, so treat the repo as unreadable outside
-forge until that flip is confirmed. Tag **v0.11.0**, confirmed deployed at `/opt/venvs/scribe`
-(`pip show scribe` → `0.11.0`, live 2026-09-24). Merged and released is not automatically
-deployed for this repo — check the running venv rather than trusting a build's own completion
-note or a version pinned to a date in this doc; four releases shipped 2026-09-18 alone (v0.5.0
-→ v0.6.0 → v0.7.0 → v0.8.0), v0.8.1 and v0.9.0 followed the next day (2026-09-19), and v0.10.0
-and v0.11.0 both shipped 2026-09-24.
+Repo: **public**, [`TadMSTR/scribe`](https://github.com/TadMSTR/scribe) —
+`~/repos/personal/scribe/README.md`. CodeQL (Python and Actions) and OSSF Scorecard run on it
+(#26, merged `8126d19`); Scorecard published a 5.3 baseline on 2026-09-28. Tag **v0.12.0**,
+confirmed deployed at `/opt/venvs/scribe` (`pip show scribe` → `0.12.0`, live 2026-09-28).
+Merged and released is not automatically deployed for this repo — check the running venv
+rather than trusting a build's own completion note or a version pinned to a date in this doc;
+four releases shipped 2026-09-18 alone (v0.5.0 → v0.6.0 → v0.7.0 → v0.8.0), v0.8.1 and v0.9.0
+followed the next day (2026-09-19), v0.10.0 and v0.11.0 both shipped 2026-09-24, and v0.12.0
+shipped 2026-09-28.
 
 ## Why it exists
 
@@ -248,6 +249,8 @@ CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|cap-survey|deps
   `index.jsonl` from the digests on disk; `--check` re-derives it in memory and exits non-zero
   on drift. See
   [the indexer contract](#the-indexer-contract-and-why-qmd-isnt-a-dependency-v0100) above.
+- `python -m scribe qc-report [--backfill]` — new in v0.12.0. Turns the run record into a
+  trend. See [QC tracking](#qc-tracking-the-run-record-and-qc-report-v0120) below.
 
 Port 8499 appears in `scribe.example.toml` but **no HTTP server exists** — that block is
 forward-looking. Do not add 8499 to `services.md`.
@@ -292,6 +295,27 @@ investigate `redact.py` — it could not know that from a single fire. It now co
 persisted event log and classifies each fire as `extraction-miss` / `model-output` /
 `undetermined`. "There is no log" supports neither cause; treat `undetermined` accordingly
 rather than assuming the worse (or better) reading.
+
+## QC tracking: the run record and `qc-report` (v0.12.0)
+
+Before v0.12.0, scribe graded every digest against its own event log and then discarded the
+verdict — the only trace was a line in a PM2 log with 14-day rotation. There was no way to ask
+"is quality trending down" without re-running `qc-survey` over the whole corpus by hand.
+
+- Each live sweep (`scribe run --live`) now appends one line per session to a run record,
+  default `~/.local/share/scribe/runs.jsonl`, mode `0600`.
+- `python -m scribe qc-report` turns that record into a trend, broken out by finding kind and
+  bucket. It reports the pass rate (per session, all checks) and the groundedness failure rate
+  (per block) separately — the two must never be compared as one number. Exit codes: `0` ok,
+  `1` regression, `2` usage, `3` insufficient data, `4` tool failure.
+- `--backfill` grades existing digests to establish a baseline rather than waiting for new runs
+  to accumulate one.
+- `scribe.qc.*` attributes are now on the `memsearch.summarize` span (see
+  [Telemetry](#telemetry) above for why the span keeps its incumbent name).
+
+**Thresholds are unset by default** — `qc-report` is report-only until something configures a
+threshold; it does not fail a sweep on its own. Scheduling it and gating on the result is a
+separate, not-yet-built piece of work.
 
 ## Run totals, `placeholder`, and `discarded`
 
@@ -627,6 +651,10 @@ derive it from `scribe.example.toml` in the repo.
   detail.
 - vikunja#967 — `coderabbit-review-assert` reproducing the same stale-review misread as #962,
   on a different PR the same day.
+- vikunja#988 — GitHub security settings (branch protection, push protection, private
+  vulnerability reporting, Dependabot alerts) deferred by Ted at the public flip; open.
+- TadMSTR/scribe#32 — the run-record/`qc-report` build; closed by v0.12.0. See
+  [QC tracking](#qc-tracking-the-run-record-and-qc-report-v0120) above.
 
 ## Related Docs
 
@@ -635,7 +663,8 @@ derive it from `scribe.example.toml` in the repo.
 - [memory-architecture.md](memory-architecture.md) — full system overview
 - Repo README: `~/repos/personal/scribe/README.md`
 - Phase docs: `host-forge-knowledge-base/phases/scribe-*.md` (sequence runs from
-  `scribe-2026-09.md` through `scribe-public-readiness-2026-09.md` (v0.11.0, latest), by way of
+  `scribe-2026-09.md` through `scribe-qc-monitoring-2026-09-p1-run-record-and-report.md`
+  (v0.12.0, latest), by way of `scribe-public-readiness-2026-09.md` (v0.11.0) and
   `scribe-indexer-portability-2026-09.md` (v0.10.0) — v0.8.1 was a same-day patch release with
   no dedicated phase doc, documented only in the repo's own `CHANGELOG.md`) and
   `memory-consolidation-2026-09-p3-memsearch-retirement.md` /
