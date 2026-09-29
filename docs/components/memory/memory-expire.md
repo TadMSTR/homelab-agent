@@ -15,7 +15,10 @@ files to a dated archive directory and prunes the metadata database.
 2. Moves matched files to `~/.claude/memory/.expired/YYYY-MM-DD/` preserving relative paths
 3. Runs `memory-metadata-index.py --prune` to remove stale DB rows
 4. Sends summary to `#sysadmin` Matrix room via `send-matrix.sh`
-5. `memsearch-watch-fast` drops evicted files from Milvus on its next 60-second polling cycle (split from `memsearch-watch` 2026-07-20)
+5. qmd's `agent-memory`/`agent-automemory` collections pick up the deletion on the hourly
+   `qmd-refresh.sh` run. (Before the 2026-09-17 memsearch retirement, this step was
+   `memsearch-watch-fast` dropping the file from Milvus on a 60s poll — see
+   [memsearch.md](memsearch.md#retirement).)
 
 ## Configuration
 
@@ -32,7 +35,9 @@ files to a dated archive directory and prunes the metadata database.
 ## Dependencies
 
 - **memory-metadata-index.py** — SQLite indexer, provides the `--prune` flag
-- **memsearch-watch-fast** — picks up file deletions and updates Milvus index (60s poll, working/session tiers — split from `memsearch-watch` 2026-07-20)
+- **qmd-refresh.sh** — hourly cron; picks up file deletions and re-embeds the `agent-memory`/
+  `agent-automemory` collections (memsearch-watch-fast did this before the 2026-09-17
+  retirement — see [memsearch.md](memsearch.md#retirement))
 - **send-matrix.sh** — Matrix notifications
 - **.metadata.db** — SQLite database with note metadata including `expires` field
 

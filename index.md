@@ -11,11 +11,11 @@ homelab-agent/
 ├── CHANGELOG.md                 # Build history
 ├── index.md                     # THIS FILE — navigation index
 ├── docs/
-│   ├── components/              # Per-service operational reference (106 docs)
+│   ├── components/              # Per-service operational reference (107 docs)
 │   │   ├── foundation/          # Host, reverse proxy, auth, secrets, backups (10)
 │   │   ├── observability/       # Grafana, Loki, SigNoz, Langfuse, exporters (13)
 │   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (13)
-│   │   ├── memory/              # Memory architecture, Milvus, memsearch (10)
+│   │   ├── memory/              # Memory architecture, scribe, retired Milvus/memsearch (10)
 │   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (19)
 │   │   ├── apps/                # Nextcloud, Plane, Vikunja, tools stack (8)
 │   │   ├── mcp-servers/         # system-ops, githost, dockhand, patchmon, pm2 (12)
@@ -92,7 +92,7 @@ homelab-agent/
 | Doc | Topic |
 |-----|-------|
 | `docs/components/memory/memory-architecture.md` | Full memory system overview |
-| `docs/components/memory/memory-stack.md` | Milvus + OpenSearch |
+| `docs/components/memory/memory-stack.md` | OpenSearch (full-text); Milvus stopped 2026-09-17 with the memsearch retirement |
 | `docs/components/memory/memory-services.md` | PM2 indexing services and promotion pipeline |
 | `docs/components/memory/memsearch.md` | Hybrid vector+BM25 search library, retired 2026-09-17 |
 | `docs/components/memory/memsearch-mcp.md` | memsearch MCP server, retired 2026-09-17 |
@@ -200,7 +200,7 @@ homelab-agent/
 | Doc | Topic |
 |-----|-------|
 | `docs/components/memory/memory-architecture.md` | Three-tier memory system overview |
-| `docs/components/memory/memsearch.md` | Hybrid memory search library |
+| `docs/components/memory/memsearch.md` | Hybrid memory search library, retired 2026-09-17 |
 
 **Monitoring probes (PM2 cron jobs):**
 
@@ -215,7 +215,7 @@ homelab-agent/
 | `docs/components/platform/build-unblock-scan.md` | Stalled build detection |
 | `docs/components/platform/git-drift-alert.md` | Uncommitted git drift alerting |
 | `docs/components/platform/git-remote-cred-check.md` | Plaintext credentials in git remote URLs |
-| `docs/components/memory/memory-compact-qc.md` | Weekly QC on `memsearch compact` output |
+| `docs/components/memory/memory-compact-qc.md` | Weekly QC on `memsearch compact` output — failing nightly since the 2026-09-17 memsearch retirement, pending retirement itself in `scribe-qc-monitoring-2026-09` part 2 |
 | `docs/components/plugin-drift-sentinel.md` | Claude Code plugin marketplace drift detection |
 | `docs/components/dep-update-check.md` | Dependency update scanner |
 | `docs/components/forge-reboot-gate.md` | Reboot-required gate check |

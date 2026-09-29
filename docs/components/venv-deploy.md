@@ -85,7 +85,6 @@ mitigation for agent-writable code paths.
 | Service | Venv | PM2 process(es) |
 |---------|------|------------------|
 | `memory-metadata-mcp` | `/opt/venvs/memory-metadata-mcp` | `memory-metadata-mcp` |
-| `memsearch-mcp` | `/opt/venvs/memsearch` | `memsearch-mcp` |
 | `memory-fulltext-mcp` | `/opt/venvs/memory-fulltext-mcp` | `memory-fulltext-mcp` |
 | `githost-mcp` | `/opt/venvs/githost-mcp` | `githost-mcp-{developer,sysadmin,security,writer,research,harlock}` |
 | `datastore-mcp` | `/opt/venvs/datastore-mcp` | `datastore-mcp` |
@@ -97,10 +96,14 @@ always deploy it with `--no-restart`, then restart the four non-sysadmin brokers
 `scoped-mcp-sysadmin` is restarted by the operator, never by the sysadmin agent itself: a
 failed self-restart would remove the very channel needed to diagnose and roll back.
 
-`/opt/venvs/memsearch` additionally hosts the `memsearch` Claude Code plugin package, which is
-**deliberately editable** (it carries un-versioned forge-local patches a reinstall would
-revert) — don't confuse its dist-info with the non-editable `memsearch-mcp` package that
-shares the same venv.
+**`memsearch-mcp` is retired** (2026-09-17, see [memsearch-mcp.md](memory/memsearch-mcp.md)) —
+removed from the registered-services table above; there is no `memsearch-mcp` PM2 process for
+this script to deploy or check anymore. `/opt/venvs/memsearch` is still present on disk (a
+residual, not cleaned up) and also still hosts the `memsearch` Claude Code plugin package,
+which was **deliberately editable** (it carried un-versioned forge-local patches a reinstall
+would revert) — that plugin is itself uninstalled now (see
+[forks.md](../operations/forks.md#memsearch--retired-2026-09-17-fork-no-longer-actively-synced)),
+so don't treat anything under this venv as live.
 
 Dependency-only venvs with no self-package (`agent-bus`, `doc-sync`, `graphiti-ingest`,
 `langfuse-hook`) are out of scope — there is no install mode to standardize.
@@ -110,7 +113,7 @@ Dependency-only venvs with no self-package (`agent-bus`, `doc-sync`, `graphiti-i
 Check drift for one service (safe, read-only, no privileges needed):
 
 ```bash
-~/scripts/venv-deploy.sh --service memsearch-mcp --check
+~/scripts/venv-deploy.sh --service memory-metadata-mcp --check
 ```
 
 Deploy the highest semver tag on the remote:

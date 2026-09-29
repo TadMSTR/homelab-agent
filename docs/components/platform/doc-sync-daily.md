@@ -1,8 +1,9 @@
 # doc-sync-daily
 
 Scheduled job that fetches, converts, and caches upstream documentation for homelab services.
-Saves chunked markdown files to `~/.claude/memory/docs/<service>/` where memsearch indexes
-them for agent retrieval.
+Saves chunked markdown files to `~/.claude/memory/docs/<service>/`, indexed for agent retrieval
+by qmd's `docs` collection (hourly `qmd-refresh.sh`) since the 2026-09-17 memsearch retirement
+— see [memsearch.md](../memory/memsearch.md#retirement).
 
 As of ADR-0006 (2026-07-07), this script's `sync_service()` logic is shared with
 [doc-cache-mcp](../mcp-servers/doc-cache-mcp.md): the cron below drives an unattended sweep
@@ -29,7 +30,13 @@ source-URL allowlist at fetch time (see Configuration).
 3. Converts to markdown and chunks into sized segments (150–4000 chars)
 4. Writes chunks to `~/.claude/memory/docs/<service>/`
 5. Updates state in `~/docs/doc-sync-state.json` to avoid re-fetching unchanged docs
-6. `memsearch-watch-fast` picks up new/changed files on its next 60s polling cycle (split from `memsearch-watch` 2026-07-20)
+6. The hourly `qmd-refresh.sh` cron picks up new/changed files on its next run and re-embeds
+   them into the `docs` collection. (Before the 2026-09-17 memsearch retirement, this step was
+   `memsearch-watch-fast` on a 60s poll — see [memsearch.md](../memory/memsearch.md#retirement).
+   **`~/scripts/doc-sync.py` itself still shells out to `memsearch` internally and that call
+   has been failing nightly against the now-dead Milvus backend** — not fixed here, flagged to
+   sysadmin separately; don't read this step as currently working end-to-end even though the
+   qmd-side indexing it feeds is fine.)
 
 ## Configuration
 
@@ -42,8 +49,10 @@ source-URL allowlist at fetch time (see Configuration).
 
 ## Dependencies
 
-- memsearch venv at `/opt/venvs/doc-sync/` — Python runtime
-- Ollama queue proxy at `127.0.0.1:11435` — embedding (via memsearch)
+- `/opt/venvs/doc-sync/` — Python runtime (dependency-only venv, no self-package)
+- qmd's `docs` collection (`~/.config/qmd/index.yml`), refreshed hourly by `qmd-refresh.sh` —
+  the live indexing path since the 2026-09-17 memsearch retirement; qmd's own embedding model
+  runs locally and does not go through the Ollama queue proxy
 - Internet access — fetches upstream documentation
 - `host-forge-scripts/doc-cache-allowlist.yml` — default-deny source-URL allowlist enforced at fetch time (ADR-0006)
 
@@ -62,4 +71,5 @@ if the upstream source is unreachable.
 
 - [doc-cache-mcp.md](../mcp-servers/doc-cache-mcp.md) — MCP server sharing this script's core sync logic; supersedes the old research agent system-ops doc-sync grant (ADR-0006)
 - [memory-services.md](../memory/memory-services.md) — memory indexing pipeline
-- [memsearch.md](../memory/memsearch.md) — memsearch library that indexes the output
+- [memsearch.md](../memory/memsearch.md) — retired 2026-09-17; qmd's `docs` collection replaced
+  it as the indexer for this script's output
