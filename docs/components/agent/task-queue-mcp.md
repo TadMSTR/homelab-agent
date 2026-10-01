@@ -2,16 +2,18 @@
 
 task-queue-mcp is a containerized FastMCP server that exposes the forge agent task queue
 as an MCP tool surface. Agents submit, retrieve, and transition tasks via MCP tool calls;
-task state is persisted to per-task YAML files on disk. As of v0.3.0 it also serves a
-shared-secret HTTP control API on the same port — the single validated mutation path for
-non-MCP clients (the CloudCLI plugin and the Matrix bot). As of v0.7.0/v0.8.x, both
-surfaces on the port require a credential — see [Authentication](#authentication) below.
+task state is persisted to per-task YAML files on disk. As of v0.3.0 it also serves an HTTP
+control API on the same port for non-MCP clients (the CloudCLI plugin and the Matrix bot) —
+the single validated mutation path for everything that can't import the Python core. As of
+v0.11.0 that API also serves authenticated **reads**, gated by its own per-client scoped
+tokens rather than the one shared secret it used through v0.10.x — see
+[HTTP Control and Read API](#http-control-and-read-api) below.
 
 - **Source:** `~/repos/personal/task-queue-mcp` (TadMSTR/task-queue-mcp)
-- **Version:** v0.10.0 (`agent-workflow-interop-2026-08` Phase 1) — merged and tagged
-  2026-08-29; **not yet deployed**, the running container is still pre-0.10.0 code as of
-  this writing
-- **Port:** `127.0.0.1:8485` — MCP (`/mcp`) and the HTTP control API (`/tasks/...`) share it
+- **Version:** v0.13.0 — deployed as a pinned, published GHCR image (not a local build) —
+  see [Deployment](#deployment)
+- **Port:** `127.0.0.1:8485` — MCP (`/mcp`) and the HTTP control/read API (`/tasks/...`)
+  share it
 - **Queue dir:** `~/.claude/task-queue/` (host-mounted)
 - **Network:** `forge-net`
 - **Wiring:** registered globally in `~/.claude.json`, so all Claude Code agent sessions
@@ -30,6 +32,9 @@ tmpfs: /tmp
 The container filesystem is read-only. Only the mounted task queue directory and `/tmp`
 are writable. The port is not proxied externally via SWAG and the host firewall blocks
 external access — reachable on loopback/LAN only.
+
+Since v0.13.0 the container runs from a published, digest-pinned GHCR image rather than a
+local build — see [Deployment](#deployment).
 
 ## Tool Surface
 
@@ -125,34 +130,110 @@ found by running it against the live one:
   `include_dead_letters=True, limit=200` returned 200 rows and zero dead letters. Ordering
   within each group is unchanged.
 
-## HTTP Control API
+## HTTP Control and Read API
 
-Non-MCP clients can't import the Python core, so their mutations go through a thin HTTP
-control API mounted as FastMCP custom routes on the **same port 8485**. Each route delegates
-to the tool handlers above, inheriting transition validation, `fcntl` locking, and atomic
-writes — so there is exactly one validated write path for the whole system (this ended the
-prior three-writer divergence between the core, the plugin, and the bot).
+Non-MCP clients can't import the Python core, so they read and write the queue through a
+thin HTTP API mounted as FastMCP custom routes on the **same port 8485**. Each route
+delegates to the tool handlers above, inheriting transition validation, `fcntl` locking,
+atomic writes, and (since v0.11.0) the TTL and dead-letter rules — so there is one validated
+write path and one read path for the whole system, instead of every client parsing the
+queue YAML itself (this ended the prior three-writer divergence between the core, the
+plugin, and the bot, and the divergent-reader problem that preceded it).
 
-| Method | Path | Delegates to |
-|--------|------|--------------|
-| `POST` | `/tasks/{id}/approve` | `set_task_status(approved)` |
-| `POST` | `/tasks/{id}/cancel` | `cancel_task` |
-| `POST` | `/tasks/{id}/status` | `set_task_status` (body: `status`, `note`, `allow_override`) |
-| `POST` | `/tasks/{id}/park` | `park_task` |
-| `POST` | `/tasks/{id}/unpark` | `unpark_task` (body: optional `status`) |
-| `POST` | `/tasks/{id}/amend` | `amend_task` (body: `amendment`, optional `reason`) |
-| `POST` | `/tasks/{id}/update` | `update_task` (body: `status`, `note`, `output`, optional `on_behalf_of`) — the operator sweep, see below |
-| `POST` | `/tasks/{id}/requeue` | `requeue_dead_letter` (body: optional `note`), since v0.10.0 |
-| `GET` | `/queue/summary` | Counts by status across the active queue — bucketed under `"unknown"` for any out-of-vocabulary status rather than dropped. `dead_letters` is a **sibling** of `counts`, not a member of it (since v0.10.0) — every dead letter carries `failed`, so counting it by status would bury it among genuinely finished work |
+| Method | Path | Scope | Delegates to |
+|--------|------|-------|--------------|
+| `GET` | `/tasks` | `read` | `list_tasks`, plus `count` and `truncated` — see below |
+| `GET` | `/tasks/{id}` | `read` | `get_task`: queue, `archive/`, then `dead-letters/` |
+| `GET` | `/queue/summary` | `read` | Counts by status across the active queue, plus `dead_letters` |
+| `POST` | `/tasks/{id}/approve` | `operator-write` | `set_task_status(approved)` |
+| `POST` | `/tasks/{id}/cancel` | `operator-write` | `cancel_task` |
+| `POST` | `/tasks/{id}/status` | `operator-write` | `set_task_status` (body: `status`, `note`, `allow_override`) |
+| `POST` | `/tasks/{id}/park` | `operator-write` | `park_task` |
+| `POST` | `/tasks/{id}/unpark` | `operator-write` | `unpark_task` (body: optional `status`) |
+| `POST` | `/tasks/{id}/amend` | `operator-write` | `amend_task` (body: `amendment`, optional `reason`) |
+| `POST` | `/tasks/{id}/update` | `operator-write` | `update_task` (body: `status`, `note`, `output`, optional `on_behalf_of`) — the operator sweep, see below |
+| `POST` | `/tasks/{id}/requeue` | `operator-write` | `requeue_dead_letter` (body: optional `note`), since v0.10.0 |
 
-**Auth.** Custom routes bypass the MCP tool-path auth (see below), so a shared-secret header
-gates them instead: send `X-Task-Queue-Secret: $TASK_QUEUE_API_SECRET` on every mutation. The
-server compares it in constant time (`hmac.compare_digest`) and **fails closed** (`401`) when
-the secret is missing, wrong, non-ASCII, or unconfigured. The secret lives in
-`~/.secrets/forge.env` and is injected via env into the container, bot, and plugin — never
-committed to source. `actor` is **pinned to `operator`** on every control route as of v0.8.0
-— not read from the request body — so a future non-operator client here cannot quietly
-acquire the identity every ownership check exempts.
+`GET /queue/summary` moved from `operator-write` to `read` in v0.11.0 — a behaviour change
+from earlier releases, not just an addition. Responses map the canonical result: `200` ok,
+`404` not found, `400` validation/transition error. Auth failures are `401` (no valid token)
+or `403` (a valid token lacking the route's scope).
+
+**Auth: per-client scoped tokens (since v0.11.0).** Through v0.10.x every custom route,
+including the only read route, was gated by one shared secret —
+`X-Task-Queue-Secret: $TASK_QUEUE_API_SECRET`. That secret turned out to be ambient rather
+than held by its three intended clients: a `/proc` sweep on forge found it in 23 `ted`-owned
+processes, including every session the CloudCLI host launched (vikunja#396). v0.11.0
+replaced it with one token per client, each with its own scopes:
+
+```bash
+TASK_QUEUE_CLIENT_CLOUDCLI=sha256:<64 lowercase hex>
+TASK_QUEUE_CLIENT_SCOPES_CLOUDCLI=read,operator-write
+```
+
+- **Scopes** (`read`, `operator-write`) are a closed vocabulary; neither implies the other.
+- **Header:** the plaintext token travels as `X-Task-Queue-Token`, **never**
+  `Authorization`. FastMCP's authentication middleware runs on every route, not only `/mcp`,
+  so a valid *agent* bearer would otherwise authenticate a custom-route request at the
+  Starlette layer even though the route never checks it. Client tokens use their own header
+  specifically so that a client token grants nothing on `/mcp` and an agent bearer grants
+  nothing here.
+- **Digests only, server-side.** The server stores `sha256(token)`, never the plaintext —
+  reading its env file yields no usable credential. This is a real boundary only for a
+  client whose plaintext lives under a separate OS user; for the CloudCLI plugin and the
+  Matrix bot, both of which run as `ted` like every agent, it buys containment and
+  attribution (revocable, no longer ambient) rather than a boundary.
+- The server **refuses to start** on a malformed digest, a digest shared by two clients, an
+  empty or unknown scope, a channel named `operator` or after an agent identity, or a client
+  digest equal to an agent token's.
+- **`TASK_QUEUE_API_SECRET` is gone as of v0.12.0.** The shared-secret path (and the
+  `legacy-shared` transitional channel v0.11.0 briefly accepted it under) is deleted
+  outright. If the variable is still set, the server logs a startup warning to delete it;
+  setting it again re-enables nothing, and a request carrying only the old header gets a
+  flat `401`.
+
+**`actor` is pinned to `operator`** on every one of these routes and is not read from the
+body (since v0.8.0) — a future non-operator client here cannot quietly acquire the identity
+every ownership check exempts.
+
+**Every write now records its `channel`** (since v0.11.0): which client made it. `actor`
+says the operator acted; `channel` says through what.
+
+```yaml
+history:
+  - timestamp: ...
+    status: approved
+    actor: operator
+    channel: matrix-bot
+    note: ""
+```
+
+MCP tool calls write no `channel`, and records written before v0.11.0 are not rewritten.
+
+### Reading the queue — `GET /tasks`, `GET /tasks/{id}`
+
+`GET /tasks` takes the same filters as `list_tasks` (`target_agent`, `source_agent`,
+`status`, `task_type`, `include_archived`, `include_dead_letters`) plus `limit` (default
+200, max 1000), and returns `{"ok": true, "tasks": [...], "count": 612, "truncated": true}`.
+`count` is how many records **matched**, not how many came back; `truncated` is true
+whenever that's more than `len(tasks)`. The bare-list MCP tool has no way to say it cut
+anything off — that silence is how a dead-letter listing once returned 200 rows and missed
+exactly the records it was asked for. A client rendering this should show `truncated`, not
+hide it. An unknown status, an unrecognised query parameter, a non-boolean flag, or a
+`limit` outside 1–1000 is a `400` rather than a silently-unfiltered or silently-clamped
+response.
+
+**Read performance (since v0.13.0).** Task files are parsed with libyaml's `CSafeLoader`
+— `yaml.safe_load` is hard-wired to the pure-Python `SafeLoader` regardless of whether
+libyaml is installed, and the two produced byte-identical output across every file in the
+live queue. A lookup by id, for `get_task` and every mutation, now parses only the file
+named for the id's first 8 hex characters; a miss falls back to the existing full scan and
+logs a warning naming the misnamed file, so a record whose filename doesn't match its id is
+still found, never reported `404`. Every HTTP route runs its handler on a worker thread, the
+same way FastMCP already runs synchronous MCP tools, so one slow scan no longer blocks every
+other caller — concurrent writes to one task are still serialised by its `fcntl` lock.
+Measured on the live queue: `GET /tasks?limit=1000` went from 0.95 s to about 0.11 s, and a
+single archived-record lookup from 2.67 s to about 0.002 s.
 
 ### The operator sweep — `POST /tasks/{id}/update`
 
@@ -217,8 +298,10 @@ v0.7.0 it requires a per-agent bearer token, `TASK_QUEUE_TOKEN_<AGENT>`, verifie
 `StaticTokenVerifier`. **The server refuses to start with no tokens configured at all** — this
 cannot silently fail open. Missing or unknown token → `401`.
 
-**HTTP control routes** are unchanged by this: still gated solely by the
-`X-Task-Queue-Secret` shared-secret header described above, not by a bearer token.
+**HTTP control routes** use a separate mechanism — see
+[Auth: per-client scoped tokens](#reading-the-queue--get-tasks-get-tasksid) above. Through
+v0.10.x they were gated by one shared secret; since v0.11.0 each client holds its own
+scoped token, and since v0.12.0 the shared secret grants nothing at all.
 
 ### Identity binding (since v0.8.0)
 
@@ -259,9 +342,16 @@ Follow this framing exactly — it is deliberately narrower than "the queue is s
 > on the host is readable by any of them. Closing that needs per-agent OS users or a
 > credential broker, and is out of scope for this server.
 
-That residual gap is tracked separately (vikunja#396) — `TASK_QUEUE_API_SECRET` is ambient in
-every agent's environment, so the control routes remain agent-reachable as `operator` by an
-agent willing to read its own env and call the HTTP API directly. Not fixed by this build.
+That residual gap was tracked as vikunja#396 — `TASK_QUEUE_API_SECRET` was ambient in every
+agent's environment, so the control routes were agent-reachable as `operator` by an agent
+willing to read its own env and call the HTTP API directly. **Closed as of v0.12.0**: the
+shared secret is gone, and each HTTP client now holds its own scoped, revocable token
+(see [Auth](#reading-the-queue--get-tasks-get-tasksid) above). This closes the *ambient,
+shared-across-everything* half of the gap. It does not, and cannot from inside this server,
+close the underlying one: agents still run as the same OS user (`ted`) as the clients whose
+token files they could, in principle, read. A client token's value is contained and
+attributable rather than secured against a co-resident process with shell access — the same
+framing as the MCP bearer tokens above.
 
 ### Deployment prerequisite and order
 
@@ -279,6 +369,12 @@ agent out of the queue at once, because scoped-mcp's manifest loader raises on s
 manifest references an undefined `${TASK_QUEUE_TOKEN}`. Rollback is simply removing the
 `TASK_QUEUE_TOKEN_*` lines from the server's env file and rebuilding; that reopens the
 pre-v0.7.0 gap but restores service without touching manifests or agent env files.
+
+HTTP client tokens (`TASK_QUEUE_CLIENT_<NAME>` / `TASK_QUEUE_CLIENT_SCOPES_<NAME>`) follow
+the same append-before-cut shape: mint and distribute each client's plaintext token first,
+confirm it authenticates, only then delete `TASK_QUEUE_API_SECRET` and restart every process
+that still held it. Deleting the secret before every client has migrated locks every
+HTTP-only client out at once, the same failure mode as the MCP token case above.
 
 ## Queue Directory Layout
 
@@ -330,8 +426,10 @@ place. Writes use `yaml.dump` (never string interpolation) to prevent YAML injec
 |----------|---------|---------|
 | `TASK_QUEUE_DIR` | `/task-queue` | Queue directory inside the container (host `~/.claude/task-queue/`) |
 | `MCP_HOST` | `0.0.0.0` | Bind host for the HTTP server |
-| `MCP_PORT` | `8485` | Port for MCP + the HTTP control API |
-| `TASK_QUEUE_API_SECRET` | — | Shared secret for the HTTP control API. **Required** for any control-API mutation — fails closed (`401`) if unset. The MCP tools do not use it. |
+| `MCP_PORT` | `8485` | Port for MCP + the HTTP control/read API |
+| `TASK_QUEUE_CLIENT_<NAME>` | — | `sha256:<hex>` digest of one HTTP client's token, e.g. `TASK_QUEUE_CLIENT_CLOUDCLI`. Needs a matching `TASK_QUEUE_CLIENT_SCOPES_<NAME>`. Since v0.11.0 — see [Auth](#reading-the-queue--get-tasks-get-tasksid) |
+| `TASK_QUEUE_CLIENT_SCOPES_<NAME>` | — | Comma-separated scopes for that client: `read`, `operator-write`, or both |
+| `TASK_QUEUE_API_SECRET` | — | **Removed in v0.12.0.** Ignored; if still set, the server logs a startup warning to delete it. Never used by the MCP tools |
 | `TASK_QUEUE_TOKEN_<AGENT>` | — | Per-agent bearer token for the MCP tool path, e.g. `TASK_QUEUE_TOKEN_DEVELOPER`. **At least one is required** — the server refuses to start with none. Suffix lowercased with `_` → `-` becomes the agent identity (`TASK_QUEUE_TOKEN_DOC_HEALTH` → `doc-health`). Each agent needs its own distinct token — a shared, empty, sub-16-character, or `operator`-named token is refused at startup. |
 
 ## Scoped-MCP Registration
@@ -357,6 +455,18 @@ Tool access is now genuinely per-agent, not uniform: which agent a caller is det
 it may do, enforced by [identity binding](#identity-binding-since-v080) at the server, not
 just by manifest-level tool grants.
 
+## Deployment
+
+Since v0.13.0, forge runs a **published, pinned GHCR image**
+(`ghcr.io/tadmstr/task-queue-mcp:vX.Y.Z@sha256:<digest>`) rather than building from the
+working tree. The release workflow builds and smoke-tests the image, attests build
+provenance, and verifies that attestation inside the same CI job before publishing — forge's
+own `gh` predates the `attestation` command entirely, so that in-job check is the only place
+provenance can be confirmed (vikunja#1004). A deploy pulls the tag, confirms the pulled
+`RepoDigests` matches the digest recorded in the GitHub Release notes, and swaps the
+compose file's `build:` block for `image:`. The startup log names which YAML loader is
+active (`CSafeLoader` is the fast path) — that is the line to check after any redeploy.
+
 ## Operations
 
 ```bash
@@ -364,9 +474,11 @@ just by manifest-level tool grants.
 # response (connection refused, 5xx) is what indicates the server itself is down
 curl -s http://127.0.0.1:8485/mcp -o /dev/null -w '%{http_code}\n'
 
-# Container lifecycle — REBUILD when task-queue-mcp code changes, plain restart is not
-# enough to pick up a new image; restart is fine for picking up an env-file-only change
-docker compose -f ~/docker/task-queue-mcp/compose.yaml up -d --build
+# Container lifecycle — since v0.13.0 this pulls and swaps a pinned, published image
+# (see Deployment above) rather than rebuilding from the working tree. Restart alone is
+# fine for picking up an env-file-only change.
+docker compose -f ~/docker/task-queue-mcp/compose.yaml pull
+docker compose -f ~/docker/task-queue-mcp/compose.yaml up -d
 docker logs task-queue-mcp --tail 50
 ```
 
