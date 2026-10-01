@@ -4,14 +4,9 @@ FastMCP Python MCP server wrapping the Dockhand REST API. Gives forge agents str
 access to Docker container, stack, image, volume, network, and host state, with the
 ability to take container and compose stack actions.
 
-- **Version:** 0.5.0, tagged 2026-09-07 — merged and tagged; the doc below describes the
-  merged **code**, not necessarily the **running** service. Verified live: the PM2
-  process's uptime predates this build and it has not been restarted since 0.4.0.
-  Because `mcp_proxy` freezes its upstream tool list at proxy start, the 9 new tools
-  below — and the `update_container` fix — are **not yet reachable through scoped-mcp**.
-  The running service still exposes the old 9-tool surface, including the pre-0.5.0
-  (broken) `update_container`. A sysadmin deploy/restart task closes this gap; check the
-  PM2 process uptime against the deploy time before assuming any of 0.5.0 is live.
+- **Version:** 0.6.0 — deployed and verified live. Adds a `pin_assessment` overlay to
+  `check_updates` / `get_pending_updates` for digest-pinned images — see
+  [Digest-Pinned Images](#digest-pinned-images-pin_assessment) below.
 - **Repo:** `TadMSTR/dockhand-mcp` (public)
 - **Transport:** long-lived PM2 HTTP service since 0.3.0, bound to `127.0.0.1:8505/mcp`
   and fronted by scoped-mcp via `url:` (the memsearch-mcp pattern). `stdio` remains the
@@ -25,8 +20,7 @@ ability to take container and compose stack actions.
 
 ## Tools
 
-As of the 0.5.0 code (not yet deployed — see **Version** above), the surface is 18
-tools. All are read-only except `container_action`, `stack_action`, and
+The surface is 18 tools. All are read-only except `container_action`, `stack_action`, and
 `update_container`.
 
 | Tool | Description |
@@ -42,17 +36,13 @@ tools. All are read-only except `container_action`, `stack_action`, and
 | `get_container_logs` | Combined stdout/stderr, `tail` bounded to 100 by default |
 | `get_container_stats` | One-shot CPU / memory / network / block-IO snapshot |
 | `get_stack_compose` | A stack's compose content and resolved compose/env paths |
-| `get_pending_updates` | Containers with an image update available, from the last `check_updates` run — the one route where Dockhand documents `env` as required rather than optional |
+| `get_pending_updates` | Containers with an image update available, from the last `check_updates` run — the one route where Dockhand documents `env` as required rather than optional. Digest-pinned images never appear here; see [Digest-Pinned Images](#digest-pinned-images-pin_assessment) |
 | `container_action` | Perform an action on a container: `start`, `stop`, `restart`, `pause`, `unpause`, or `remove` |
 | `stack_action` | Perform an action on a stack: `start`, `stop`, `restart`, or `deploy` — see [Stack Actions](#stack-actions) for `deploy`'s pull/build/force-recreate options |
-| `check_updates` | Run an image update check across all containers (synchronous; contacts a registry per image, can be slow) |
+| `check_updates` | Run an image update check across all containers (synchronous; contacts a registry per image, can be slow). Since 0.6.0, every digest-pinned row carries a `pin_assessment` overlay — see [Digest-Pinned Images](#digest-pinned-images-pin_assessment) |
 | `update_container` | Pull and recreate a container with the latest image — see [Update Workflow](#update-workflow) |
 | `scan_image` | Run a vulnerability scan on a container image |
 | `get_activity` | Recent Dockhand activity log (deployments, restarts, etc.) |
-
-The 9 tools added in 0.5.0 are: `inspect_container`, `get_container_logs`,
-`get_container_stats`, `get_stack_compose`, `list_images`, `list_volumes`,
-`list_networks`, `get_pending_updates`, `get_host_info` — all read-only.
 
 Every tool except `get_health` and `get_activity` accepts an optional `environment_id`,
 resolved as `explicit argument → DOCKHAND_DEFAULT_ENV → config error`.
@@ -114,6 +104,58 @@ Recommended sequence:
 A container labelled `dockhand.update=false` now comes back as `{"success": true,
 "skipped": true, "reason": "..."}` rather than being reported as a plain success — read
 `skipped` explicitly rather than treating any `success: true` as "updated."
+
+## Digest-Pinned Images: `pin_assessment`
+
+Dockhand cannot detect an update for a digest-pinned image. It resolves `repo@sha256:X` to
+`X` to check for updates, so a pinned container **always** reads `hasUpdate: false` through
+this server, whether or not the tag it's pinned under has actually moved. For a pinned row
+that means *Dockhand cannot tell*, not *current* — and pinned images never appear in
+`get_pending_updates` at all, because Dockhand only lists rows it has already flagged.
+
+The answer comes from a separate scheduled checker that compares each pin against the
+registry (index-vs-platform-manifest aware, so it doesn't false-positive on multi-arch
+images) and writes a JSON report to disk. This server reads that report — it never contacts
+a registry or runs the checker itself — and overlays it onto Dockhand's response:
+
+- Every row whose image ref contains `@sha256:` gets
+  `pin_assessment: {status, detail, report_generated, report_state}`.
+- Floating-tag rows get no `pin_assessment` key at all.
+- Dockhand's own fields (`hasUpdate`, `hasImageUpdate`, `updatesFound`, …) are passed
+  through unchanged — `updatesFound` still excludes pins.
+- The top level gains a `digest_pins` summary:
+  `{report_state, report_generated, report_age_hours, report_reason, pinned, by_status}`.
+  Every pinned row is counted in exactly one `by_status` bucket.
+
+`status` is the report's status **verbatim**: `current`, `update`, `exempt`,
+`exempt-expired`, `unresolvable`, `error`, `known-stale`, `known-stale-expired`, `drift`
+(the running container differs from its own compose declaration), or `undeclared`. An
+unrecognised status passes through rather than being rejected. The one status this server
+adds is **`not_assessed`** — it means *unknown*, never *current* — used whenever:
+
+| `report_state` | Why every pinned row reads `not_assessed` |
+|---|---|
+| `missing` | No report at the configured path |
+| `unreadable` | Not JSON, not an object, no `containers` list, or `generated` is missing, naive, unparseable, or in the future |
+| `schema_mismatch` | `schema_version` is anything other than `1` |
+| `stale` | `generated` is older than `DIGEST_PIN_MAX_AGE_H` (default 30 h: a daily run plus slack) |
+
+With `report_state: ok`, a single row is still `not_assessed` when the container isn't in
+the report, when it's running a different image than the one the report assessed (recreated
+on one side of the report's run), or when it's matched only by image ref and that ref maps
+to conflicting statuses. Rows join on container name first, falling back to the exact image
+ref only when unambiguous.
+
+A report problem never fails the tool — Dockhand's own data always comes back.
+
+**Schema versions.** This server reads report schema **1** only and fails closed on any
+other version. A checker change that bumps the schema turns every pinned row `not_assessed`
+until this reader is updated for the new version.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DIGEST_PIN_REPORT` | `~/.local/state/digest-pin-check/report.json` | Path to the checker's report. Env only — **never a tool argument**, so a caller can't point the server at an arbitrary file |
+| `DIGEST_PIN_MAX_AGE_H` | `30` | Report age, in hours, past which every pinned row reads `not_assessed` (`stale`). Invalid or non-positive values fall back to `30` |
 
 ## Secrets in `inspect_container`
 
