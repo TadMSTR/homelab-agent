@@ -1,17 +1,19 @@
 # memory-compact-qc
 
-**Failing nightly since 2026-09-17** — the daily compact step this QC checks
-(`memsearch-compact`) calls into memsearch, which was retired that day
-([memsearch.md#retirement](memsearch.md#retirement)); every run since has exited 1 against the
-now-dead Milvus backend (`memory-pipeline.sh` log, e.g. 2026-09-23 through 2026-09-28: "FAILED
-(exit 1)" every night, `qmd-reindex` skipped as a consequence — though the hourly
-`qmd-refresh.sh` cron reindexes qmd independently, so search over docs/memory itself is not
-starved by this). **Scheduled for retirement itself**, not just its dependency, in
+**The step this QC checks no longer exists.** `memsearch-compact` — retired along with the
+rest of memsearch on 2026-09-17 ([memsearch.md#retirement](memsearch.md#retirement)) — failed
+nightly against the dead Milvus backend through late September, then was removed outright on
+2026-09-29 (`memsearch-retirement-finish-2026-09` p2, commit `e0aa4a4` in
+host-forge-scripts): `memory-pipeline.sh` no longer has a compact step to gate on, and
+`memsearch-compact.sh` itself is deleted. `qmd-reindex` runs unconditionally now and was never
+affected either way. **Scheduled for retirement itself**, not just its dependency, in
 `scribe-qc-monitoring-2026-09` part 2 (sysadmin, not yet queued) — scribe's own `qc.py` +
 `qc-report` (see [scribe.md](scribe.md)) is the deterministic, per-digest replacement for what
-this weekly LLM grader checked. Until part 2 lands, do not describe this check as a working
-safety net; its coverage-and-staleness logic below is preserved as a design record, not a
-statement that any of it currently runs successfully.
+this weekly LLM grader checked. Until part 2 lands this script has nothing to check — there is
+no compact output, scorable or otherwise — so every run from here on reports `MISSING` for the
+full window. Do not describe this check as a working safety net; its coverage-and-staleness
+logic below is preserved as a design record, not a statement that any of it currently runs
+successfully.
 
 Weekly quality check on `memsearch compact` output — the safety net for the daily compact
 step in the memory pipeline. Rewritten 2026-08-16 from a single quality spot-check into two
@@ -141,11 +143,12 @@ grading. As of 2026-08-16 both `compact` and `summarize` run `mistral-medium-lat
 
 ## Dependencies
 
-- **memsearch-compact** — the `memory-pipeline` cron step (`0 4 * * *`) that this QC checks
-  the output of; model/provider read from `~/.memsearch/config.toml`, see above. **Retired
-  2026-09-17 along with the rest of memsearch — this step has failed every night since**
-  (verified live in `~/.local/share/logs/memory-pipeline.log`), so there has been no new
-  compact output for this QC to check since that date.
+- **memsearch-compact** — formerly the `memory-pipeline` cron step (`0 4 * * *`) that this QC
+  checked the output of; model/provider read from `~/.memsearch/config.toml`, see above.
+  Retired 2026-09-17 along with the rest of memsearch, failed nightly through late September,
+  then removed outright from `memory-pipeline.sh` on 2026-09-29
+  (`memsearch-retirement-finish-2026-09` p2, commit `e0aa4a4`) — there is no compact output
+  for this QC to check, and no step left to produce one.
 - **mistral-canary** — a daily liveness probe for the LLM endpoint the pipeline depends on,
   scheduled before `memory-pipeline` so a dead endpoint is known before the run that needs it
 - **system-ops** — `read_directory`/`read_file` used to read compact output and raw `.jsonl` transcripts

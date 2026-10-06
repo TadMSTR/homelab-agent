@@ -37,9 +37,6 @@ full redesign.
 | `memory-sync-weekly.sh` | Syncs memory across tiers and to backup | PM2 cron, weekly |
 | `memory-archive-mirror.sh` | Mirrors memory archives to NAS | PM2 cron |
 | `memory-expire.py` | Expires aged working memory notes | PM2 cron |
-| `memsearch-compact.sh` | Compacts memsearch index | PM2 cron |
-| `memsearch-watch-fast.sh` | Polls for new memory files and indexes them (60s, working/session tiers) | PM2 always-on |
-| `memsearch-watch-templates.sh` | Event-driven (`inotifywait`) indexing of template memory files | PM2 always-on |
 
 ## Documentation & Search
 

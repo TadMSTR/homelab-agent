@@ -42,7 +42,7 @@ Three layers, each independently useful. You can run just the Docker services wi
 ├────────────────────────────────────────────────────────────────┤
 │  Layer 2: Docker Service Stack (60+ containers, 21 stacks)     │
 │  SWAG/Authentik · Ollama (NVIDIA GPU) · Langfuse · SigNoz      │
-│  Synapse · SearXNG · Milvus · Temporal · NATS                 │
+│  Synapse · SearXNG · OpenSearch · Temporal · NATS              │
 ├────────────────────────────────────────────────────────────────┤
 │  Layer 1: Host                                                 │
 │  Minisforum MS-A2 · AMD Ryzen 9 9955HX (16c/32t) · 96 GB      │

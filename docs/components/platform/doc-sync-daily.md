@@ -33,10 +33,11 @@ source-URL allowlist at fetch time (see Configuration).
 6. The hourly `qmd-refresh.sh` cron picks up new/changed files on its next run and re-embeds
    them into the `docs` collection. (Before the 2026-09-17 memsearch retirement, this step was
    `memsearch-watch-fast` on a 60s poll — see [memsearch.md](../memory/memsearch.md#retirement).
-   **`~/scripts/doc-sync.py` itself still shells out to `memsearch` internally and that call
-   has been failing nightly against the now-dead Milvus backend** — not fixed here, flagged to
-   sysadmin separately; don't read this step as currently working end-to-end even though the
-   qmd-side indexing it feeds is fine.)
+   The memsearch index call `doc-sync.py` used to make internally was removed 2026-09-29
+   (`memsearch-retirement-finish-2026-09` p2, commit `e0aa4a4`) — qmd's `docs` collection is
+   now the only indexer for this script's output. The 2026-10-04 run reported "Sync complete.
+   269 entries synced, 14 errors" — all 14 were upstream 404s or allowlist denials, none from
+   memsearch.)
 
 ## Configuration
 

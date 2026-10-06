@@ -37,7 +37,6 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `qmd` | 8181 | Semantic + keyword search over 9000+ docs |
 | `memory-metadata-mcp` | 8490 | Structured queries over memory note metadata |
 | `memory-fulltext-mcp` | 8491 | Full-text search via OpenSearch (renamed from `memory-search-mcp` 2026-07-23) |
-| `memsearch-mcp` | 8493 | Hybrid vector+BM25+reranker memory search |
 | `system-ops` | 8282 | Shell, file, and process operations |
 | `patchmon-mcp` | 8484 | Apt package tracking and approval |
 | `pm2-mcp` | 8486 | PM2 process management tool surface |
@@ -54,9 +53,6 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `matrix-dispatcher` | Routes operator Matrix messages → agent project dirs |
 | `matrix-admin-bot` | Matrix account provisioning |
 | `matrix-task-queue-bot` | Task queue notifications via Matrix |
-| `memsearch-watch-fast` | Polls for new memory files and indexes them (60s poll, working/session tiers — split from `memsearch-watch` 2026-07-20) |
-| `memsearch-watch-templates` | Indexes template memory files (event-driven `inotifywait` — split from `memsearch-watch` 2026-07-20) |
-| `memsearch-summarize` | Summarises raw session transcripts via Anthropic API |
 | `memory-os-sync` | Syncs OS-level metrics to memory |
 | `temporal-build-worker` | Temporal worker for autonomous build pipelines |
 | `cloudcli` | CloudCLI web UI |
@@ -81,7 +77,6 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `memory-sync-weekly` | Mondays 07:00 | Cross-tier memory sync |
 | `memory-archive-mirror` | Daily 02:30 | Mirrors memory to NAS |
 | `memory-expire` | Daily 03:00 | Expires aged memory notes |
-| `memsearch-compact` | Sundays 05:00 | Compacts memsearch index |
 | `btrbk-daily` | Daily 03:00 | Btrfs snapshot creation |
 | `btrfs-scrub-monthly` | 1st of month 02:00 | Btrfs filesystem scrub |
 | `snapshot-capacity-probe` | Every 15 min | Whole-filesystem free-space metrics → InfluxDB, warn/critical alerting — the real safety net; replaces the retired `snapshot-space-probe` (see [snapshot-monitoring.md](../docs/components/platform/snapshot-monitoring.md)) |

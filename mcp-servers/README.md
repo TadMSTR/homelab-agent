@@ -24,7 +24,7 @@ See [`docs/components/agent/scoped-mcp.md`](../docs/components/agent/scoped-mcp.
 |--------|-----|-----------------|---------|
 | system-ops | [doc](../docs/components/mcp-servers/system-ops.md) | :8282 HTTP | Shell, files, processes |
 | qmd | [doc](../docs/components/cicd/owners-manual.md) | :8181 HTTP | Semantic + keyword search |
-| memsearch-mcp | [doc](../docs/components/memory/memsearch-mcp.md) | :8493 HTTP | Hybrid memory search |
+| memsearch-mcp | [doc](../docs/components/memory/memsearch-mcp.md) | :8493 HTTP | Hybrid memory search — **retired 2026-09-17**, see doc |
 | memory-metadata-mcp | [doc](../docs/components/memory/memory-services.md) | :8490 HTTP | Memory note metadata queries |
 | memory-fulltext-mcp | [doc](../docs/components/memory/memory-services.md) | :8491 HTTP | Full-text memory search (renamed from `memory-search-mcp` 2026-07-23) |
 | patchmon-mcp | [doc](../docs/components/mcp-servers/patchmon-mcp.md) | subprocess | Apt patch tracking |

@@ -17,7 +17,7 @@ docker/
 ├── langfuse/             # LLM observability
 ├── librechat/            # Multi-model chat UI
 ├── matrix/               # Matrix homeserver (Synapse + Ketesa)
-├── memory-stack/         # Milvus + OpenSearch — vector and full-text search
+├── memory-stack/         # OpenSearch — full-text search (Milvus stopped, memsearch retired 2026-09-17)
 ├── nvidia-exporter/      # NVIDIA GPU metrics exporter for Prometheus
 ├── observability/        # Grafana + Loki + Alloy + InfluxDB + Prometheus + Telegraf
 ├── ollama/               # Local LLM inference

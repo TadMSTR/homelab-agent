@@ -113,17 +113,16 @@ flowchart LR
 | `memory-os-sync` | always-on | — | Syncs `.metadata.db` → OpenSearch every 30s |
 | `memory-promote-daily` | cron | `0 23 * * *` | Steps 1–3, 8 of memory-sync: session scan, promote to working, LibreChat import |
 | `memory-sync-weekly` | cron | `0 7 * * 1` | Steps 4–8: working → distilled, expiry, dedup, metrics |
-| `memory-pipeline` | cron | `0 4 * * *` | qmd-refresh (Step 1 is nominally memsearch-compact — see caveat below) |
+| `memory-pipeline` | cron | `0 4 * * *` | plugin-drift sentinel check, Ollama `summarize:latest` unload, then qmd-reindex |
 | `memory-archive-mirror` | cron | `30 2 * * *` | rsync durable notes to NFS (atlas) with versioned change backups |
 | `qmd-refresh` | cron | `0 * * * *` | `qmd update` + `qmd embed` — keeps agent-memory collection current hourly |
 
-**Known gap (vikunja#885, open as of 2026-09-21):** the memsearch cutover updated the
-services above but not two live cron scripts. `memory-promote-daily.sh`'s Step 1 still
-instructs the launcher to scan `.memsearch/memory/` journals rather than scribe's digest
-directory — those journals froze at cutover, so the daily promote step risks going silently
-no-op. `memory-pipeline.sh` still gates its qmd-reindex step on `memsearch-compact.sh`, a
-script for a library that no longer runs. Neither has broken output yet as of this writing;
-treat both scripts' actual content, not this table, as ground truth until #885 closes.
+**vikunja#885 closed 2026-09-29** (`memsearch-retirement-finish-2026-09` p2, commit `e0aa4a4`
+in host-forge-scripts). The gap this tracked — `memory-promote-daily.sh` still scanning
+frozen `.memsearch/memory/` journals, and `memory-pipeline.sh` gating its qmd-reindex step on
+the now-dead `memsearch-compact.sh` — is closed: both scripts' memsearch references were
+removed along with the rest of memsearch's `*.sh` scripts. The 2026-10-04 pipeline log shows
+`qmd-reindex: ok` and `pipeline complete`.
 
 The promotion jobs drive headless Claude Code sessions via `~/.claude/projects/memory-sync/CLAUDE.md`.
 Matrix notifications go to `#sysadmin` on forge's Synapse homeserver.
