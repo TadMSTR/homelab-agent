@@ -11,8 +11,8 @@ This repo has two audiences: humans learning to build a similar platform, and AI
 
 ## Resident Agents
 
-Eight agents run as scoped Claude Code projects on forge, each behind its own
-`scoped-mcp-*` PM2 process. A ninth, `steward`, runs separately under systemd rather
+Nine agents run as scoped Claude Code projects on forge, each behind its own
+`scoped-mcp-*` PM2 process. A tenth, `steward`, runs separately under systemd rather
 than PM2 (its tool broker needs to read a mode-400 `.env` and write a root-owned
 proposal store, neither of which a PM2 process owned by the regular user can do) — see
 [`docs/components/agent/steward.md`](docs/components/agent/steward.md).
@@ -27,6 +27,7 @@ proposal store, neither of which a PM2 process owned by the regular user can do)
 | `doc-health` | Weekly automated documentation staleness audit — report-first, only index fixes auto-committed | its own room | system-ops, matrix-mcp, task-queue-mcp |
 | `jobsearch` | Personal job-search tooling — find/rank/assess/track openings. Not a build agent; no task-queue work, no commits | its own room | system-ops |
 | `memory-sync` | Memory lifecycle — promote session notes to working tier, distill to permanent records, expire stale entries | its own room | system-ops, matrix-mcp |
+| `fleet` | Operations on homelab hosts other than forge (argus first, then atlas and unraid) — compose stacks, DNS (Technitium), monitoring (Gatus), host health. Reaches hosts only through approval-gated `system-ops-<host>` modules; repo write limited to `host-<name>/stacks` on Gitea | `#agents:` (no dedicated room) | system-ops-\<host\>, dockhand-mcp, githost-mcp, task-queue-mcp, vikunja-mcp |
 | `steward` | Sole proposer of changes to forge's root-owned config surface (`/etc/forge/manifests/*.yml`, `workspace-policy.yml`) — proposes only, never applies | its own room | githost-mcp-steward, forge-config-mcp |
 
 ## scoped-mcp Architecture
@@ -45,6 +46,12 @@ Sanitized manifest examples are in [`manifests/`](manifests/). The full manifest
 
 ## Recent Agent Framework Changes
 
+- **fleet agent added (2026-10-04):** a tenth resident agent, scoped to homelab hosts other
+  than forge — argus first, with atlas and unraid planned. It is the first agent whose
+  `system-ops-*` reach is per-host (`system-ops-<host>`) rather than a single forge-wide
+  module, and the first whose repo write is scoped to a host's own `host-<name>/stacks`
+  repo rather than a platform repo. Landed as programme `fleet-argus-2026-10` (parts 1-3,
+  vikunja#1015).
 - **HITL interactive-mode contract (2026-07-21):** scoped-mcp v1.11.0 added an
   `hitl.mode: interactive` option, currently enabled for the developer and sysadmin
   manifests. Under this contract the operator can verbally authorize a gated action in
