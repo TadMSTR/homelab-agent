@@ -108,6 +108,7 @@ homelab-agent/
 | `docs/components/agent/synapse.md` | Matrix homeserver |
 | `docs/components/agent/nats.md` | Event bus |
 | `docs/components/agent/dragonfly.md` | Agent state backend |
+| `docs/components/agent/postgres.md` | Agent session registry + HITL audit |
 | `docs/components/agent/webhook-doorman.md` | Inbound webhook router (GitHub, Vikunja, Grafana) |
 | `docs/components/foundation/dockhand.md` | Docker stack management UI |
 | `docs/components/cicd/code-server.md` | VS Code in the browser |

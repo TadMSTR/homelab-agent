@@ -68,7 +68,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`memory-expire.md`](memory/memory-expire.md) | Expired note eviction cron |
 | [`graphiti.md`](memory/graphiti.md) | Temporal knowledge graph (Neo4j backend), retired 2026-08-05 |
 
-## [`agent/`](agent/) — Agent Infrastructure (14)
+## [`agent/`](agent/) — Agent Infrastructure (15)
 
 | Doc | Service |
 |-----|---------|
@@ -86,6 +86,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`nats.md`](agent/nats.md) | NATS JetStream event bus |
 | [`nats-mcp.md`](agent/nats-mcp.md) | NATS publish/subscribe MCP server |
 | [`dragonfly.md`](agent/dragonfly.md) | Agent state backend (Redis-compatible) |
+| [`postgres.md`](agent/postgres.md) | Agent session registry + HITL approval audit (PostgreSQL) |
 
 ## [`mcp-servers/`](mcp-servers/) — Infrastructure MCP Servers (8)
 
