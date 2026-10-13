@@ -6,7 +6,8 @@ Monitoring, logging, and tracing for the entire platform. Three stacks cover dif
 
 | Doc | Service | Port / Endpoint |
 |-----|---------|----------------|
-| [grafana-alloy.md](grafana-alloy.md) | Grafana + Loki + Alloy stack | 3000 (Grafana), 3100 (Loki) |
+| [grafana-alloy.md](grafana-alloy.md) | Grafana + Loki + Alloy stack, Loki tenancy | 3000 (Grafana), 3100 (Loki) |
+| [alloy-relay.md](alloy-relay.md) | Ingest relay for remote host Loki pushes | 3500 (internal) |
 | [grafana-dashboards.md](grafana-dashboards.md) | Dashboard inventory and management | — |
 | [grafana-image-renderer.md](grafana-image-renderer.md) | Grafana image renderer sidecar | 8081 |
 | [grafana-mcp.md](grafana-mcp.md) | Grafana query MCP server | 8489 |

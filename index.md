@@ -59,7 +59,8 @@ homelab-agent/
 **Observability:**
 
 | Doc | Topic |
-|-----|-------|
+| `docs/components/observability/grafana-alloy.md` | Grafana, Loki (multi-tenant), Alloy |
+| `docs/components/observability/alloy-relay.md` | Remote-host Loki ingest relay (tenant forcing) |
 | `docs/components/observability/grafana-alloy.md` | Grafana, Loki, Alloy |
 | `docs/components/observability/grafana-dashboards.md` | Dashboard inventory |
 | `docs/components/observability/grafana-image-renderer.md` | Grafana image renderer |

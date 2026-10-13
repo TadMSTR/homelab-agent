@@ -1,6 +1,6 @@
 # docs/components
 
-Per-service operational reference for the homelab-agent platform. 80 docs covering every service, MCP server, and background job running on forge, organized into 9 categories.
+Per-service operational reference for the homelab-agent platform. 81 docs covering every service, MCP server, and background job running on forge, organized into 9 categories.
 
 Each doc covers: what the service is, where it runs, configuration, dependencies, how to restart/check health/view logs, and scoped-mcp integration where applicable.
 
@@ -21,11 +21,12 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`vault.md`](foundation/vault.md) | Secret management, AppRole auth, transit engine |
 | [`dockhand.md`](foundation/dockhand.md) | Docker stack manager UI |
 
-## [`observability/`](observability/) — Metrics, Logs & Traces (13)
+## [`observability/`](observability/) — Metrics, Logs & Traces (14)
 
 | Doc | Service |
 |-----|---------|
-| [`grafana-alloy.md`](observability/grafana-alloy.md) | Grafana, Loki, Alloy stack |
+| [`grafana-alloy.md`](observability/grafana-alloy.md) | Grafana, Loki, Alloy stack (Loki multi-tenant) |
+| [`alloy-relay.md`](observability/alloy-relay.md) | Alloy ingest relay for remote host Loki pushes |
 | [`grafana-dashboards.md`](observability/grafana-dashboards.md) | Dashboard inventory and management |
 | [`grafana-image-renderer.md`](observability/grafana-image-renderer.md) | Grafana image renderer sidecar |
 | [`grafana-mcp.md`](observability/grafana-mcp.md) | Grafana query MCP server |
