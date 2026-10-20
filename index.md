@@ -11,12 +11,12 @@ homelab-agent/
 ├── CHANGELOG.md                 # Build history
 ├── index.md                     # THIS FILE — navigation index
 ├── docs/
-│   ├── components/              # Per-service operational reference (107 docs)
+│   ├── components/              # Per-service operational reference (110 docs)
 │   │   ├── foundation/          # Host, reverse proxy, auth, secrets, backups (10)
-│   │   ├── observability/       # Grafana, Loki, SigNoz, Langfuse, exporters (13)
+│   │   ├── observability/       # Grafana, Loki, SigNoz, Langfuse, Healthchecks (15)
 │   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (13)
 │   │   ├── memory/              # Memory architecture, scribe, retired Milvus/memsearch (10)
-│   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (19)
+│   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (20)
 │   │   ├── apps/                # Nextcloud, Plane, Vikunja, tools stack (8)
 │   │   ├── mcp-servers/         # system-ops, githost, dockhand, patchmon, pm2 (12)
 │   │   ├── cicd/                # Woodpecker, Temporal, Renovate, CloudCLI (7)
@@ -67,6 +67,7 @@ homelab-agent/
 | `docs/components/observability/influxdb.md` | Time-series metrics |
 | `docs/components/observability/telegraf.md` | Metrics collection |
 | `docs/components/observability/prometheus.md` | Prometheus scraping |
+| `docs/components/observability/healthchecks.md` | Cron liveness (Healthchecks, hc-run.sh wrapper, CronJobDown) |
 | `docs/components/observability/signoz.md` | APM + distributed tracing |
 | `docs/components/observability/langfuse.md` | LLM observability |
 | `docs/components/observability/nvidia-exporter.md` | GPU metrics export |

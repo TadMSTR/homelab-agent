@@ -20,6 +20,7 @@ Monitoring, logging, and tracing for the entire platform. Three stacks cover dif
 | [langfuse-mcp.md](langfuse-mcp.md) | Langfuse query MCP server | 8486 |
 | [loki-mcp.md](loki-mcp.md) | Loki log query MCP server | 8485 |
 | [nvidia-exporter.md](nvidia-exporter.md) | GPU metrics exporter | 9835 |
+| [healthchecks.md](healthchecks.md) | Cron job liveness (Healthchecks, own stack) | 8509 (loopback) |
 
 ## MCP Servers
 
