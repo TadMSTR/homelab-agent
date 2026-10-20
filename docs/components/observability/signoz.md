@@ -6,7 +6,7 @@ SigNoz is an open-source APM and observability platform built on OpenTelemetry. 
 - **URL:** `https://signoz.helmforge.me`
 - **Compose:** `~/docker/signoz/docker-compose.yml`
 - **Appdata:** `/opt/appdata/signoz/`
-- **Network:** `signoz-internal` (isolated) + `forge-net` (signoz and signoz-otel-collector only)
+- **Network:** `signoz-internal` (isolated) + `forge-net` (signoz and signoz-otel-collector only) + `grafana-datasources` (signoz-clickhouse-proxy only)
 - **SWAG proxy:** `signoz.helmforge.me` → `signoz:8080`
 
 ## Network Topology
@@ -17,16 +17,17 @@ SigNoz is an open-source APM and observability platform built on OpenTelemetry. 
 
 ## Stack
 
-Six services: four long-running and two one-shot (init and migration). One-shot containers have `restart: on-failure` — they run once and exit 0 on success.
+Seven services: five long-running and two one-shot (init and migration). One-shot containers have `restart: on-failure` — they run once and exit 0 on success.
 
 | Container | Image | Role |
 |-----------|-------|------|
 | `signoz` | `signoz/signoz:v0.118.0` | Web UI and API — port 8080 |
-| `signoz-otel-collector` | `signoz/signoz-otel-collector:v0.144.2` | OTLP receiver — ports 4317 (gRPC) / 4318 (HTTP) |
-| `signoz-clickhouse` | `clickhouse/clickhouse-server:25.5.6` | Primary datastore — traces, metrics, logs |
+| `signoz-otel-collector` | `signoz/signoz-otel-collector:v0.144.8` | OTLP receiver — ports 4317 (gRPC) / 4318 (HTTP) |
+| `signoz-clickhouse` | `clickhouse/clickhouse-server:25.12.5` | Primary datastore — traces, metrics, logs |
+| `signoz-clickhouse-proxy` | `nginxinc/nginx-unprivileged:1.28-alpine-slim` (digest pinned) | Grafana's only path into ClickHouse — TCP pass-through to `:8123`. See [Grafana → ClickHouse](#grafana--clickhouse) |
 | `signoz-zookeeper` | `signoz/zookeeper:3.7.1` | ClickHouse cluster coordination |
-| `signoz-init-clickhouse` | `clickhouse/clickhouse-server:25.5.6` | One-shot: stage `histogramQuantile` UDF binary |
-| `signoz-migrator` | `signoz/signoz-otel-collector:v0.144.2` | One-shot: run schema migrations |
+| `signoz-init-clickhouse` | `clickhouse/clickhouse-server:25.12.5` | One-shot: stage `histogramQuantile` UDF binary |
+| `signoz-migrator` | `signoz/signoz-otel-collector:v0.144.8` | One-shot: run schema migrations |
 
 ## Appdata Layout
 
@@ -48,10 +49,46 @@ Config files were sourced from the SigNoz repo at tag `v0.118.0`. Do not regener
 
 ## Networking
 
-Two Docker networks:
+Three Docker networks:
 
-- **`signoz-internal`** — all six containers. Isolated from the rest of forge. Internal DNS resolves `signoz-clickhouse`, `signoz-zookeeper`, `signoz-otel-collector`, `signoz-migrator`.
+- **`signoz-internal`** — all seven containers. Declared `internal: true` (no egress): ClickHouse and ZooKeeper need nothing outside it. Internal DNS resolves `signoz-clickhouse`, `signoz-zookeeper`, `signoz-otel-collector`, `signoz-migrator`.
 - **`forge-net`** — `signoz` (web/API) and `signoz-otel-collector` only. SWAG proxies to `signoz:8080`; OTLP traffic from the LAN hits `signoz-otel-collector` on ports 4317/4318.
+- **`grafana-datasources`** (external) — `signoz-clickhouse-proxy` only, shared with Grafana.
+
+## Grafana → ClickHouse
+
+Grafana's `SigNoz ClickHouse` datasource (`grafana-clickhouse-datasource` plugin) queries SigNoz's ClickHouse directly over HTTP. It reaches ClickHouse **only** through `signoz-clickhouse-proxy`:
+
+```
+Grafana ── network: grafana-datasources ──▶ signoz-clickhouse-proxy :8123
+                                               │  nginx stream proxy (TCP pass-through)
+                                               ▼  ── network: signoz-internal
+                                            signoz-clickhouse :8123 (HTTP)
+```
+
+**Why a proxy and not a second network on ClickHouse:** ClickHouse must stay on `signoz-internal` alone. When it was also attached to `grafana-datasources`, it resolved its own hostname to that network's address and broke the migrator's and collector's cluster lookups. The proxy is dual-homed instead.
+
+**What it passes:** ClickHouse HTTP (`:8123`) only. The native protocol (`9000`) and interserver ports aren't reachable from Grafana. The proxy has no published host port.
+
+**Config:** `~/docker/signoz/clickhouse-proxy.conf`, mounted read-only as `/etc/nginx/nginx.conf`. It's a stream-only nginx config (no `http {}` block):
+
+- `resolver 127.0.0.11 valid=10s` with the upstream in a variable, so `signoz-clickhouse` is resolved per connection. A literal upstream would be resolved once at start, and the nightly backup recreates ClickHouse with a new IP.
+- `proxy_connect_timeout 5s`; a one-line access log per connection to stdout.
+- It holds no secret — Grafana authenticates to ClickHouse itself.
+
+**Container hardening:**
+
+```yaml
+user: "101:101"          # the image's own nginx user
+read_only: true
+tmpfs: [/tmp]
+cap_drop: [ALL]
+security_opt: [no-new-privileges:true]
+mem_limit: 64m
+cpus: 0.25
+```
+
+**ClickHouse side:** Grafana logs in as a dedicated user, `grafana_ro`, defined in `users.xml` — never as `default`. It's restricted to connections from the `signoz-clickhouse-proxy` host, granted `SELECT` on `signoz_metrics.*`, `signoz_traces.*` and `signoz_logs.*` only, and bound to a `grafana_ro` profile with `readonly=2` and pinned constraints on memory, execution time and threads (so a client can't raise them per query). Its password is supplied to Grafana through an environment variable in the datasource provisioning, not stored in the repo.
 
 ## OTLP Ports
 
