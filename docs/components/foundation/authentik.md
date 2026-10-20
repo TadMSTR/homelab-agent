@@ -5,9 +5,23 @@ services via both domain-level forward auth (a single login gate covering all pr
 subdomains) and per-service OIDC for apps that support it natively. All admin-facing
 UIs on `helmforge.me` route through Authentik before reaching their backend.
 
-- **Image:** `ghcr.io/goauthentik/server:2026.2.1`
+- **Image:** `ghcr.io/goauthentik/server:2026.8.4`
 - **URL:** `auth.helmforge.me`
 - **Appdata:** `/opt/appdata/authentik/`
+
+## Version and Upgrades
+
+The server and worker run `2026.8.4`. It was reached on 2026-10-18 in two hops,
+`2026.5.5` → `2026.5.7` → `2026.8.4`, each pinned to an exact tag. Upgrade one
+pinned hop at a time rather than jumping several releases in one go. That way each
+hop's database migrations run on their own and can be checked before the next.
+
+The `2026.8.4` upgrade also set `AUTHENTIK_WEB__BASE_URL` on both the server and the
+worker, to the public HTTPS URL of the Authentik instance (for example
+`https://auth.example.com`). This is the external URL Authentik uses for links and
+redirects it builds when there's no incoming request to take the host from, such as
+links in emails sent by the worker. The setting becomes required in 2026.11. It isn't
+a secret, so it's set inline in the compose file rather than in `.env`.
 
 ## What Authentik Provides
 
@@ -32,9 +46,40 @@ uses this to map Authentik group membership to admin/viewer roles.
 worker bridge both networks: `authentik-internal` for the database, `forge-net` for SWAG
 proxy access.
 
-The worker container mounts `docker.sock` for Docker outpost management. The
-**Embedded Outpost** (built into the server container) handles all forward auth and
-OIDC flows — no separate outpost deployment needed for a single-host setup. SWAG proxies
+### Database hardening
+
+`authentik-postgres` runs with the following container hardening, applied in the
+compose file:
+
+- **Resource limits:** `mem_limit: 1g` and `cpus: "1.0"`. Idle use is about 150-290 MiB.
+- **`no-new-privileges:true`** set in `security_opt`.
+- **Capabilities:** `cap_drop: ALL`, then `cap_add` adds back only `CHOWN`,
+  `DAC_OVERRIDE`, `SETGID` and `SETUID`. The entrypoint needs these to chown the data
+  directory and drop to the `postgres` user. The running Postgres processes end up
+  with no effective capabilities.
+
+`user:` is deliberately not set. The stock Postgres image has to start as root to run
+initdb and chown before it drops privileges. Without `FOWNER`, the entrypoint logs two
+`chmod: Operation not permitted` lines at startup. They're harmless: both calls are
+non-fatal and the directory modes are already correct.
+
+### Outposts and the Docker socket
+
+The worker does **not** mount `docker.sock`. The upstream compose file includes that
+mount so Authentik can create and manage outpost containers itself. It was removed on
+2026-10-18 because it couldn't be used in this setup. The worker runs as a non-root
+user, the socket is `root:docker` with mode `660`, and connections to it failed with
+`EACCES`.
+
+So **Authentik can't deploy or manage outposts as Docker containers automatically.**
+Any outpost other than the embedded one has to be deployed and updated by hand, for
+example as a separate compose service. Adding the socket back by running the worker
+as root or in the `docker` group would make the worker root-equivalent on the host,
+so treat it as a security decision rather than a config fix.
+
+The **Embedded Outpost** (built into the server container) handles all forward auth and
+OIDC flows. It needs no Docker access, so a single-host setup doesn't need a separate
+outpost deployment. SWAG proxies
 auth challenges to the Authentik server using LSIO-provided `authentik-server.conf` and
 `authentik-location.conf` include files.
 
@@ -109,6 +154,12 @@ docker exec -it authentik-worker ak create_recovery_key 10 akadmin
 Generates a recovery link valid for 10 uses.
 
 ## Accepted Risks
+
+**Published server ports:** `authentik-server` still publishes its HTTP/HTTPS ports in
+addition to being reachable through SWAG. All normal traffic should go through SWAG.
+Keeping the published ports is a known, deferred audit finding. It's recorded in a
+`SECURITY[deferred]` comment at the `ports:` block of the compose file, together with
+the planned fix: stop publishing the ports, or bind them to `127.0.0.1`.
 
 **Grafana break-glass:** Grafana's local login form is disabled
 (`GF_AUTH_DISABLE_LOGIN_FORM=true`). If Authentik becomes unavailable, Grafana is
