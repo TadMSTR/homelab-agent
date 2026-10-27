@@ -102,7 +102,8 @@ rather than attaching ClickHouse itself to the `grafana-datasources` network.
 
 ### Redis/Dragonfly/Valkey Fleet
 
-Health monitoring dashboard for all 7 Redis-compatible instances running on forge.
+Health monitoring dashboard for all 6 Redis-compatible instances running on forge. (A seventh,
+`plane-valkey`, and its panel were removed when the Plane stack was parked on 2026-10-25.)
 
 **Datasources:**
 
@@ -120,7 +121,6 @@ Health monitoring dashboard for all 7 Redis-compatible instances running on forg
 | `firecrawl-redis` | firecrawl | Firecrawl job queue |
 | `oqp-valkey` | agent-platform | Ollama queue proxy embedding cache |
 | `patchmon-valkey` | patchmon | PatchMon cache |
-| `plane-valkey` | plane | Plane project management cache |
 
 **Key panels:**
 - Connected clients per instance

@@ -76,7 +76,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`scoped-mcp.md`](agent/scoped-mcp.md) | Per-agent MCP proxy — manifest schema, Phase 7 hardening, Vault integration |
 | [`agent-bus.md`](agent/agent-bus.md) | Inter-agent event log, HMAC signing, NATS federation |
 | [`task-queue-mcp.md`](agent/task-queue-mcp.md) | Task queue MCP server |
-| [`task-queue-widget.md`](agent/task-queue-widget.md) | Task queue dashboard widget (React, embedded in Matrix) |
+| [`task-queue-widget.md`](agent/task-queue-widget.md) | Task queue dashboard widget (React, embedded in Matrix), retired 2026-10-25 |
 | [`task-dispatcher.md`](agent/task-dispatcher.md) | Task routing and headless agent session launcher |
 | [`pool-manager.md`](agent/pool-manager.md) | Ephemeral agent session directory pre-warming |
 | [`synapse.md`](agent/synapse.md) | Matrix homeserver |
@@ -96,10 +96,10 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`system-ops.md`](mcp-servers/system-ops.md) | File, directory, and command execution MCP |
 | [`githost-mcp.md`](mcp-servers/githost-mcp.md) | Git + GitHub / Gitea / GitLab MCP (32 tools) |
 | [`dockhand-mcp.md`](mcp-servers/dockhand-mcp.md) | Docker container and stack management MCP |
-| [`patchmon-mcp.md`](mcp-servers/patchmon-mcp.md) | Apt patch management MCP |
+| [`patchmon-mcp.md`](mcp-servers/patchmon-mcp.md) | Apt patch management MCP, retired 2026-10-26 |
 | [`pm2-mcp.md`](mcp-servers/pm2-mcp.md) | PM2 process management MCP |
 | [`code-server-mcp.md`](mcp-servers/code-server-mcp.md) | code-server management MCP |
-| [`plane-mcp.md`](mcp-servers/plane-mcp.md) | Plane issue tracking MCP |
+| [`plane-mcp.md`](mcp-servers/plane-mcp.md) | Plane issue tracking MCP, retired 2026-10-25 |
 | [`backrest-mcp.md`](mcp-servers/backrest-mcp.md) | Backup plan status, snapshots, restore MCP (Backrest) |
 
 ## [`cicd/`](cicd/) — CI/CD & Dev Tools (7)
@@ -107,9 +107,9 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | Doc | Service |
 |-----|---------|
 | [`woodpecker.md`](cicd/woodpecker.md) | Woodpecker CI |
-| [`temporal.md`](cicd/temporal.md) | Temporal workflow engine |
+| [`temporal.md`](cicd/temporal.md) | Temporal workflow engine, retired 2026-10-25 |
 | [`renovate.md`](cicd/renovate.md) | Automated dependency updates |
-| [`patchmon.md`](cicd/patchmon.md) | Apt patch tracking and approval |
+| [`patchmon.md`](cicd/patchmon.md) | Apt patch tracking (operator patches fleet hosts in the UI) |
 | [`code-server.md`](cicd/code-server.md) | VS Code in the browser |
 | [`cloudcli.md`](cicd/cloudcli.md) | Browser Claude Code UI |
 | [`owners-manual.md`](cicd/owners-manual.md) | Auto-generated platform reference (MkDocs site) |

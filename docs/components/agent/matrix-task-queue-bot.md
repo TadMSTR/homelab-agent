@@ -1,7 +1,7 @@
 # matrix-task-queue-bot
 
-Matrix bot for task queue management on forge. Provides text commands, widget event
-handling, headless session launching, and inotify-based status notifications in Matrix
+Matrix bot for task queue management on forge. Provides text commands, headless session
+launching, and inotify-based status notifications in Matrix
 rooms.
 
 ## Service
@@ -20,7 +20,7 @@ rooms.
 Three concurrent subsystems:
 
 1. **Text command handler** — responds to `!queue`, `!task`, `!help` commands in the `#task-queue` Matrix room
-2. **Widget event handler** — processes custom helmforge event types from the task-queue-widget for task actions
+2. **Widget event handler** — processes the custom room event types the task-queue-widget sent for task actions. The widget was retired 2026-10-25, so nothing sends these events now; the handler is dormant
 3. **File watcher** — monitors `~/.claude/task-queue/` via inotify for task file changes and
    drives the pinned per-agent boards and the daily morning brief (see below)
 
@@ -75,7 +75,6 @@ Workflow mode tags still appear on a task when it transitions to `approved`:
 
 - **Synapse** — Matrix homeserver
 - **task-queue-mcp** — task queue data (YAML files in `~/.claude/task-queue/`)
-- **task-queue-widget** — optional web UI communicating via room events
 - **Python deps:** matrix-nio, httpx, watchdog, pyyaml, python-dotenv
 
 ## Operations
@@ -93,6 +92,6 @@ pm2 restart matrix-task-queue-bot
 
 ## Related Docs
 
-- [task-queue-widget.md](task-queue-widget.md) — web widget UI
+- [task-queue-widget.md](task-queue-widget.md) — former web widget UI (retired 2026-10-25)
 - [task-queue-mcp.md](task-queue-mcp.md) — MCP server for task queue
 - [task-dispatcher.md](task-dispatcher.md) — dispatcher that processes tasks

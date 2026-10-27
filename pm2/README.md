@@ -38,11 +38,9 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `memory-metadata-mcp` | 8490 | Structured queries over memory note metadata |
 | `memory-fulltext-mcp` | 8491 | Full-text search via OpenSearch (renamed from `memory-search-mcp` 2026-07-23) |
 | `system-ops` | 8282 | Shell, file, and process operations |
-| `patchmon-mcp` | 8484 | Apt package tracking and approval |
 | `pm2-mcp` | 8486 | PM2 process management tool surface |
 | `signoz-mcp` | 8492 | SigNoz APM queries (v0.3.0) |
 | `matrix-mcp` | 8487 | Matrix messaging tool surface |
-| `plane-mcp` | 8495 | Plane issue tracking |
 | `code-server-mcp` | 8498 | VS Code server integration |
 | `backrest-mcp` | 8626 | Backup plan status, snapshots, restore (Backrest) |
 
@@ -54,9 +52,17 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `matrix-admin-bot` | Matrix account provisioning |
 | `matrix-task-queue-bot` | Task queue notifications via Matrix |
 | `memory-os-sync` | Syncs OS-level metrics to memory |
-| `temporal-build-worker` | Temporal worker for autonomous build pipelines |
 | `cloudcli` | CloudCLI web UI |
 | `vault-seal-watcher` | Monitors Vault seal status (runs every 5 min via cron) |
+
+### Retired Processes
+
+No longer run on forge:
+
+- `plane-mcp`, `temporal-build-worker` and `datastore-mcp` — removed 2026-10-25 (Plane is
+  parked, Temporal retired, datastore-mcp parked; see their component docs)
+- `patchmon-mcp` — removed 2026-10-26 (see
+  [patchmon-mcp.md](../docs/components/mcp-servers/patchmon-mcp.md))
 
 ### Scheduled Jobs
 

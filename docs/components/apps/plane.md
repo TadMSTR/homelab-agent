@@ -1,115 +1,69 @@
-# Plane
+# Plane (parked 2026-10-25)
 
-Self-hosted project and issue tracking (makeplane/plane) on forge. Twelve-container Docker
-stack — Next.js frontends, a Django REST backend, Celery workers, and its own PostgreSQL,
-Valkey, RabbitMQ, and MinIO datastores. Forge agents file and query work items through
-[plane-mcp](../mcp-servers/plane-mcp.md); GitHub/CI events flow in via the
-`plane-webhook-listener` PM2 service.
+Plane (makeplane/plane) was forge's self-hosted project and issue tracker until the
+2026-07-19 move to [Vikunja](vikunja.md). It is **parked, not retired**: the stack is stopped
+but kept intact, so it can be started again on demand.
 
----
+## Why parked
 
-## Architecture
+Nothing has used Plane day to day since the Vikunja migration. It is kept rather than deleted
+because a later gap-fill may copy across the comments and links that migration dropped, and
+the gap-fill tool reads Plane's REST API — so Plane has to stay restartable. Parked under the
+`service-retirement-2026-10` build, alongside the retirement of
+[plane-mcp](../mcp-servers/plane-mcp.md).
 
-| Container | Image | Purpose |
-|-----------|-------|---------|
-| `plane-web` | `makeplane/plane-frontend:stable` | Main web UI (Next.js) |
-| `plane-space` | `makeplane/plane-space:stable` | Public/shared views |
-| `plane-admin` | `makeplane/plane-admin:stable` | Instance admin console |
-| `plane-live` | `makeplane/plane-live:stable` | Real-time collaboration (WebSocket) |
-| `plane-api` | `makeplane/plane-backend:stable` | Django REST API (gunicorn) |
-| `plane-worker` | `makeplane/plane-backend:stable` | Celery async worker |
-| `plane-beat` | `makeplane/plane-backend:stable` | Celery beat scheduler |
-| `plane-migrator` | `makeplane/plane-backend:stable` | One-shot DB migration job |
-| `plane-db` | `postgres:16-alpine` | Primary database |
-| `plane-valkey` | `valkey/valkey:8-alpine` | Cache / Celery result backend |
-| `plane-rabbitmq` | `rabbitmq:4-alpine` | Celery broker |
-| `plane-minio` | `minio/minio` | S3-compatible object storage (attachments) |
+## Parked state
 
-All backend images are pinned by digest in the compose file.
+- **Containers stopped, not removed** (`docker compose stop`). Every service has
+  `restart: "no"`, so nothing comes back on a reboot or a Docker daemon restart.
+- **Data untouched** in the stack's bind mounts (PostgreSQL, MinIO, Valkey, RabbitMQ, logs).
+- **Archive copy on the NAS:** a `pg_dump -Fc` of the `plane` database (checked with
+  `pg_restore --list`) and a tarball of the MinIO attachment store.
+- **SWAG route disabled** by renaming `plane.subdomain.conf` to `plane.subdomain.conf.parked`.
+- **No consumers left:** plane-mcp is removed from PM2 and from every scoped-mcp manifest, the
+  Plane helper scripts are deleted, and Grafana's Plane Valkey data source and its panel are
+  removed. The `plane-webhook-listener` was already replaced by
+  [webhook-doorman](../agent/webhook-doorman.md) in 2026-08.
+- **Secrets kept:** the Plane API credentials and the gap-fill tool's credentials stay in
+  place; the webhook secret was deleted.
 
----
-
-## Endpoints
-
-| URL / bind | Purpose | Auth |
-|------------|---------|------|
-| `https://plane.helmforge.me` | Main web UI | Plane login |
-| `127.0.0.1:3007` → `plane-api:8000` | REST API (used by plane-mcp) | API token |
-| `127.0.0.1:9203` → `plane-minio:9000` | MinIO S3 API | MinIO credentials |
-| `127.0.0.1:9204` → `plane-minio:9090` | MinIO console | MinIO credentials |
-
-`plane.helmforge.me` is proxied by SWAG. Plane uses its own account/login system (no
-Authentik forward auth). The API is the single loopback port other forge services consume.
-
----
-
-## Networks
-
-| Network | Members |
-|---------|---------|
-| `plane-internal` | All 12 containers — isolated stack mesh |
-| `forge-net` | Frontends (`plane-web`, `plane-space`, `plane-admin`, `plane-live`) + `plane-api` — SWAG access |
-| `grafana-datasources` | `plane-db`, `plane-valkey` — Grafana/observability read access |
-
-The datastores (`plane-db`, `plane-valkey`, `plane-rabbitmq`, `plane-minio`) are not on
-`forge-net`; only the web tier and API are proxied.
-
----
-
-## Configuration
-
-- Stack directory: `~/docker/plane/`
-- Secrets in `~/docker/plane/.env`: `WEB_URL`, `CORS_ALLOWED_ORIGINS`, PostgreSQL
-  (`POSTGRES_USER`/`POSTGRES_DB` + password), `RABBITMQ_USER`, `MINIO_ROOT_USER`, and the
-  Valkey/Django secret keys.
-
----
-
-## Dependencies
-
-| Depends on | Why |
-|------------|-----|
-| `plane-db`, `plane-valkey`, `plane-rabbitmq`, `plane-minio` | Persistence, cache, broker, object store |
-| `plane-migrator` | Must complete before API/workers start |
-| SWAG + `forge-net` | TLS termination and subdomain routing |
-
-| Depended on by | How |
-|----------------|-----|
-| [plane-mcp](../mcp-servers/plane-mcp.md) | Wraps the API at `127.0.0.1:3007` for agents |
-| `plane-webhook-listener` (PM2) | Receives GitHub/CI webhooks, creates work items |
-
----
-
-## Operations
-
-### Restart
+## Restarting it for a gap-fill
 
 ```bash
-cd ~/docker/plane && docker compose down && docker compose up -d
+cd ~/docker/plane && docker compose start          # containers still exist
+mv <swag-proxy-confs>/plane.subdomain.conf.parked <swag-proxy-confs>/plane.subdomain.conf
+docker exec swag nginx -t && docker exec swag nginx -s reload
 ```
 
-The `plane-migrator` container runs migrations on startup and then exits — an `Exited (0)`
-status for it is normal.
+Use the compose CLI rather than a stack-management UI that may log the stack's `.env` on
+deploy. When the gap-fill is done, run `docker compose stop` and rename the conf back to
+`.parked`.
 
-### Health check
+If the containers have been removed in the meantime, `docker compose up -d` recreates them
+from the same bind mounts. If the bind mounts are gone too, restore the archived dump with
+`pg_restore` into a fresh `plane-db`.
 
-```bash
-docker ps --filter name=plane --format 'table {{.Names}}\t{{.Status}}'
-curl -s http://127.0.0.1:3007/api/instances/ | python3 -m json.tool
-docker exec plane-db pg_isready -U "$POSTGRES_USER"
-```
+## What it was
 
-### Logs
+A twelve-container stack:
 
-```bash
-docker logs plane-api --tail 50
-cd ~/docker/plane && docker compose logs --tail=50
-```
+| Container | Purpose |
+|-----------|---------|
+| `plane-web`, `plane-space`, `plane-admin`, `plane-live` | Next.js frontends (main UI, public views, admin console, real-time collaboration) |
+| `plane-api` | Django REST API (gunicorn) |
+| `plane-worker`, `plane-beat` | Celery worker and beat scheduler |
+| `plane-migrator` | One-shot DB migration job |
+| `plane-db` | PostgreSQL 16 |
+| `plane-valkey` | Cache / Celery result backend |
+| `plane-rabbitmq` | Celery broker |
+| `plane-minio` | S3-compatible attachment storage |
 
----
+The web tier was proxied by SWAG at `plane.example.com` (Plane's own login, no Authentik
+forward auth); the REST API was published on a single loopback port for plane-mcp. Only the
+frontends and API sat on `forge-net`; the datastores stayed on an isolated `plane-internal`
+network.
 
 ## Related docs
 
-- [plane-mcp](../mcp-servers/plane-mcp.md) — MCP wrapper over the Plane API
-- `host-forge/plane-projects.md` — project ID / identifier reference
-- `host-forge/plane-labels.md` — label UUID reference
+- [vikunja.md](vikunja.md) — the current issue tracker
+- [plane-mcp.md](../mcp-servers/plane-mcp.md) — retired MCP wrapper over the Plane API

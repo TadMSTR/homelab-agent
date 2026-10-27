@@ -42,7 +42,7 @@ Three layers, each independently useful. You can run just the Docker services wi
 ├────────────────────────────────────────────────────────────────┤
 │  Layer 2: Docker Service Stack (60+ containers, 21 stacks)     │
 │  SWAG/Authentik · Ollama (NVIDIA GPU) · Langfuse · SigNoz      │
-│  Synapse · SearXNG · OpenSearch · Temporal · NATS              │
+│  Synapse · SearXNG · OpenSearch · Vikunja · NATS               │
 ├────────────────────────────────────────────────────────────────┤
 │  Layer 1: Host                                                 │
 │  Minisforum MS-A2 · AMD Ryzen 9 9955HX (16c/32t) · 96 GB      │
@@ -72,7 +72,7 @@ Three layers, each independently useful. You can run just the Docker services wi
 | **AI & Search** | [Ollama](docs/components/ai-search/ollama.md) (local inference), [SearXNG](docs/components/ai-search/searxng.md), [Firecrawl](docs/components/ai-search/firecrawl.md), [Reranker](docs/components/ai-search/reranker.md) | 10 |
 | **Memory** | [qmd](docs/components/memory/memory-services.md) (semantic), [OpenSearch](docs/components/memory/memory-stack.md) (full-text), [scribe](docs/components/memory/scribe.md) (digests) | 6 |
 | **Agent Infra** | [Synapse](docs/components/agent/synapse.md) (Matrix), [NATS](docs/components/agent/nats.md) (event bus), [task-queue-mcp](docs/components/agent/task-queue-mcp.md) | 13 |
-| **CI/CD** | [Woodpecker CI](docs/components/cicd/woodpecker.md), [Temporal](docs/components/cicd/temporal.md) (workflow engine) | 6 |
+| **CI/CD** | [Woodpecker CI](docs/components/cicd/woodpecker.md), [PatchMon](docs/components/cicd/patchmon.md) (patch tracking), [Renovate](docs/components/cicd/renovate.md) | 6 |
 
 Deployment order and stack dependencies are documented in [`docker/README.md`](docker/README.md).
 

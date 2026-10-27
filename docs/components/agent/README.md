@@ -11,7 +11,7 @@ The services that make the multi-agent engine work: tool scoping, inter-agent me
 | [forge-config-mcp.md](forge-config-mcp.md) | Closed op vocabulary steward uses to author config proposals | systemd, own port |
 | [agent-bus.md](agent-bus.md) | Inter-agent event log, HMAC signing, NATS federation | 8495 |
 | [task-queue-mcp.md](task-queue-mcp.md) | Task queue MCP server | 8496 |
-| [task-queue-widget.md](task-queue-widget.md) | Task queue dashboard widget (React, embedded in Matrix) | 3004 |
+| [task-queue-widget.md](task-queue-widget.md) | Task queue dashboard widget (React, embedded in Matrix), retired 2026-10-25 | — |
 | [task-dispatcher.md](task-dispatcher.md) | Task routing and headless agent session launcher | — (PM2) |
 | [pool-manager.md](pool-manager.md) | Ephemeral agent session directory pre-warming | — (PM2) |
 | [synapse.md](synapse.md) | Matrix homeserver (Synapse) | 8008 |

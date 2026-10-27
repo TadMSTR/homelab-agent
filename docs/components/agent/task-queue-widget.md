@@ -1,54 +1,31 @@
-# task-queue-widget
+# task-queue-widget (retired 2026-10-25)
 
-React + TypeScript web widget for the forge task queue dashboard. Runs as a Docker
-container serving a static nginx build, embedded in Matrix via Element widgets.
-Communicates with the matrix-task-queue-bot through Matrix room events only.
+task-queue-widget was a React + TypeScript dashboard for the forge task queue, served as a
+static nginx build and embedded in Matrix as an Element widget. It had no backend of its own:
+task actions went out as custom Matrix room events, which
+[matrix-task-queue-bot](matrix-task-queue-bot.md) handled.
 
-## Service
+## Retirement
 
-| Field | Value |
-|-------|-------|
-| Container | `task-queue-widget` |
-| Image | Built from `~/repos/personal/matrix-task-queue-widget` |
-| Stack | `~/docker/task-queue-widget/` |
-| Port | `127.0.0.1:8497 → 8080` (proxied via SWAG) |
-| Public URL | `https://widgets.helmforge.me` |
-| Auth | Authentik forward auth |
-| Network | `widget-internal`, `forge-net` |
+Retired 2026-10-25 under the `service-retirement-2026-10` build — it was unused. The
+`task-queue-widget` service and its `widget-internal` network were dropped from the
+task-queue-mcp compose stack (task-queue-mcp itself is unchanged and stayed up throughout),
+the SWAG `widgets` subdomain route was removed, and the image deleted. The source repo is
+being archived.
 
-## Configuration
+Task queue visibility now comes from the CloudCLI plugin and from matrix-task-queue-bot's
+pinned per-agent status boards and daily morning brief.
 
-The widget is a static React build served by nginx. No runtime env vars — configuration
-is baked at build time from the source repo.
+## What it was
 
-## Security
-
-- Runs as `user: 101:101` (nginx user in Alpine)
-- `cap_drop: ALL`, `security_opt: no-new-privileges:true`
-- Memory limit: 128 MB, CPU limit: 0.5 cores
-- `widget-internal` network is marked `internal: true`
-
-## Dependencies
-
-- **matrix-task-queue-bot** — handles backend logic via Matrix room events
-- **SWAG** — reverse proxy at `widgets.helmforge.me`
-- **Authentik** — forward auth
-- **Matrix / Synapse** — event transport between widget and bot
-
-## Operations
-
-```bash
-# Check container status
-docker ps -f name=task-queue-widget
-
-# View logs
-docker logs task-queue-widget --tail 50
-
-# Rebuild after source changes
-cd ~/docker/task-queue-widget && docker compose build && docker compose up -d
-```
+- **Container:** nginx serving the static build, `user: 101:101`, `cap_drop: ALL`,
+  `no-new-privileges`, 128 MB / 0.5 CPU limits
+- **Exposure:** loopback port proxied by SWAG at `widgets.example.com`, behind Authentik
+  forward auth
+- **Networks:** `widget-internal` (`internal: true`) and `forge-net`
+- **Configuration:** none at runtime — baked into the build
 
 ## Related Docs
 
-- [matrix-task-queue-bot.md](matrix-task-queue-bot.md) — backend bot service
-- [task-queue-mcp.md](task-queue-mcp.md) — task queue MCP server
+- [matrix-task-queue-bot.md](matrix-task-queue-bot.md) — Matrix client of the task queue
+- [task-queue-mcp.md](task-queue-mcp.md) — task queue MCP server and HTTP API

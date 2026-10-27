@@ -10,7 +10,7 @@ tokens rather than the one shared secret it used through v0.10.x — see
 [HTTP Control and Read API](#http-control-and-read-api) below.
 
 - **Source:** `~/repos/personal/task-queue-mcp` (TadMSTR/task-queue-mcp)
-- **Version:** v0.13.0 — deployed as a pinned, published GHCR image (not a local build) —
+- **Version:** v0.14.1 — deployed as a pinned, published GHCR image (not a local build) —
   see [Deployment](#deployment)
 - **Port:** `127.0.0.1:8485` — MCP (`/mcp`) and the HTTP control/read API (`/tasks/...`)
   share it
@@ -36,6 +36,22 @@ external access — reachable on loopback/LAN only.
 Since v0.13.0 the container runs from a published, digest-pinned GHCR image rather than a
 local build — see [Deployment](#deployment).
 
+**Lifecycle events (since v0.14.0).** Every status transition the server writes is reported
+to [agent-bus](agent-bus.md) as an event file in `<queue>/.outbox/` — `task.submitted`,
+`task.approved`, `task.started`, `task.completed`, `task.parked`, `task.unparked`, and the
+rest — written after the task write succeeds, inside the per-task lock. Agents no longer log
+task events by hand. Event metadata is a fixed set of short fields; task descriptions,
+amendment text and result output never appear in an event. An unwritable outbox is logged
+and never fails the write. v0.14.0 also added optional `build_name` and `audit_round` fields
+to `submit_task`, so a build's audit rounds can be joined without parsing prose.
+
+**Park/unpark tightened (v0.14.1).** On the agent (MCP tool) path, `unpark_task` now only
+restores the recorded `parked_from` status — an explicit different `status`, or unparking a
+task with no `parked_from`, is refused — and an agent may not park a task from `submitted`,
+`pending-approval` or `routing-failed`. This closes a path where an agent could approve its
+own task with park + unpark. The operator path (HTTP control routes) is unchanged. Park and
+unpark history notes now name the actual actor instead of always saying "operator".
+
 ## Tool Surface
 
 Ten tools, split by caller. Agents use the strict `update_task` path; operators (via the
@@ -59,7 +75,7 @@ As of v0.10.0, `requeue_dead_letter` joins the operator-only row — see
 | `set_task_status` | **operator only** | Audited status change — approve, cancel, park, or advance a missed task (`allow_override`). Refused for any agent identity as of v0.8.0 |
 | `cancel_task` | **operator only** | Graceful terminal `cancelled` state for stale tasks (record kept). Refused for any agent identity as of v0.8.0 |
 | `park_task` | the task's target agent, or operator | Pause a task without hiding it — status changes to `parked`, the YAML file never moves, stays listed, exempt from TTL |
-| `unpark_task` | the task's target agent, or operator | Return a parked task to the status recorded in `parked_from` (or an explicit target status) |
+| `unpark_task` | the task's target agent, or operator | Return a parked task to the status recorded in `parked_from`. Only the operator may name a different target status (since v0.14.1) |
 | `amend_task` | the task's source agent, or operator | Append a correction to a queued task. `payload.description` is never rewritten; amendments accumulate under `payload.amendments`, capped at 10 per task / 4096 chars each |
 | `requeue_dead_letter` | **operator only** | Return a dead-lettered task to the queue root at `submitted`, dropping `failed_reason` and resetting `retry_policy`. Since v0.10.0 — the only tool that can move a record out of a terminal status |
 
@@ -497,5 +513,5 @@ morning-brief digest. [task-dispatcher](task-dispatcher.md)'s matching
 
 - [task-dispatcher.md](task-dispatcher.md) — routes and gates tasks; owns TTL archiving
 - [matrix-task-queue-bot.md](matrix-task-queue-bot.md) — Matrix client of the control API; pinned boards + morning brief
-- [task-queue-widget.md](task-queue-widget.md) — dashboard widget client
+- [task-queue-widget.md](task-queue-widget.md) — former dashboard widget client (retired 2026-10-25)
 - [agent-bus.md](agent-bus.md) — event logging alongside task state transitions

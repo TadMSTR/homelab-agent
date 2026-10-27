@@ -17,9 +17,9 @@ homelab-agent/
 │   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (13)
 │   │   ├── memory/              # Memory architecture, scribe, retired Milvus/memsearch (10)
 │   │   ├── agent/               # scoped-mcp, Matrix, NATS, task queue, agent-bus (20)
-│   │   ├── apps/                # Nextcloud, Plane, Vikunja, tools stack (8)
-│   │   ├── mcp-servers/         # system-ops, githost, dockhand, patchmon, pm2 (12)
-│   │   ├── cicd/                # Woodpecker, Temporal, Renovate, CloudCLI (7)
+│   │   ├── apps/                # Nextcloud, Vikunja, tools stack, parked Plane (8)
+│   │   ├── mcp-servers/         # system-ops, githost, dockhand, pm2, vikunja (12)
+│   │   ├── cicd/                # Woodpecker, Renovate, PatchMon, CloudCLI (7)
 │   │   └── platform/            # Doc health, disk probes, drift detection (9)
 │   ├── operations/              # Runbooks and operational procedures
 │   └── diagrams/                # Architecture diagrams
@@ -121,7 +121,7 @@ homelab-agent/
 | Doc | Topic |
 |-----|-------|
 | `docs/components/cicd/woodpecker.md` | Woodpecker CI |
-| `docs/components/cicd/temporal.md` | Workflow engine |
+| `docs/components/cicd/temporal.md` | Workflow engine, retired 2026-10-25 |
 | `docs/components/cicd/renovate.md` | Dependency updates |
 | `docs/components/cicd/patchmon.md` | Apt patch management |
 | `docs/components/cicd/cloudcli.md` | Browser Claude Code UI |
@@ -131,7 +131,7 @@ homelab-agent/
 | Doc | Topic |
 |-----|-------|
 | `docs/components/apps/nextcloud.md` | Nextcloud file/collaboration suite |
-| `docs/components/apps/plane.md` | Plane project/issue tracking app stack |
+| `docs/components/apps/plane.md` | Plane project/issue tracking app stack, parked 2026-10-25 |
 | `docs/components/apps/proton-bridge.md` | Proton Mail IMAP/SMTP bridge |
 | `docs/components/apps/vikunja.md` | Vikunja task/project management app |
 | `docs/components/apps/stunnel.md` | TLS tunnel for Proton Bridge |
@@ -148,7 +148,7 @@ homelab-agent/
 | `docs/components/agent/scoped-mcp.md` | Per-agent MCP proxy, manifest schema, Phase 7 hardening |
 | `docs/components/agent/agent-bus.md` | Inter-agent event log, HMAC signing, NATS federation |
 | `docs/components/agent/task-queue-mcp.md` | Task queue MCP server |
-| `docs/components/agent/task-queue-widget.md` | Task queue dashboard widget (React, Matrix) |
+| `docs/components/agent/task-queue-widget.md` | Task queue dashboard widget (React, Matrix), retired 2026-10-25 |
 | `docs/components/agent/task-dispatcher.md` | Task routing and headless agent launch |
 | `docs/components/agent/pool-manager.md` | Ephemeral agent session pre-warming |
 | `docs/components/agent/matrix-dispatcher.md` | Matrix dispatch loop |
@@ -170,13 +170,13 @@ homelab-agent/
 | `docs/components/mcp-servers/system-ops.md` | File, directory, and command MCP |
 | `docs/components/mcp-servers/githost-mcp.md` | Git + GitHub/Gitea/GitLab MCP |
 | `docs/components/mcp-servers/dockhand-mcp.md` | Docker container/stack management MCP |
-| `docs/components/mcp-servers/patchmon-mcp.md` | Apt patch management MCP |
+| `docs/components/mcp-servers/patchmon-mcp.md` | Apt patch management MCP, retired 2026-10-26 |
 | `docs/components/mcp-servers/pm2-mcp.md` | PM2 process management MCP |
 | `docs/components/mcp-servers/code-server-mcp.md` | code-server management MCP |
-| `docs/components/mcp-servers/plane-mcp.md` | Plane issue tracking MCP |
+| `docs/components/mcp-servers/plane-mcp.md` | Plane issue tracking MCP, retired 2026-10-25 |
 | `docs/components/mcp-servers/vikunja-mcp.md` | Vikunja task tracking MCP |
 | `docs/components/mcp-servers/doc-cache-mcp.md` | Documentation cache MCP |
-| `docs/components/mcp-servers/datastore-mcp.md` | Multi-backend datastore query MCP |
+| `docs/components/mcp-servers/datastore-mcp.md` | Multi-backend datastore query MCP, parked 2026-10-25 |
 | `docs/components/mcp-servers/librechat-mcp.md` | LibreChat agent-management MCP |
 | `docs/components/mcp-servers/backrest-mcp.md` | Backrest backup management MCP |
 | `docs/components/nextcloud-mcp.md` | Nextcloud file/calendar/notes MCP |
@@ -276,4 +276,3 @@ Key cross-references:
 | `githost-mcp` | Gitea, GitHub | All agents |
 | `searxng-mcp` | SearXNG, Firecrawl, Reranker | All agents |
 | `dockhand-mcp` | Docker socket | sysadmin |
-| `patchmon-mcp` | apt | sysadmin |

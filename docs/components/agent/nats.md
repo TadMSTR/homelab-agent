@@ -48,7 +48,7 @@ compromised provisioner cannot read or write any subject's messages.
 | User | Role | Publish | Subscribe |
 |------|------|---------|-----------| 
 | `helm-build` | Build agent | `tasks.helm-build.>`, `events.helm-build.>` | `tasks.helm-build.>`, `_INBOX.>` |
-| `temporal-worker` | Temporal bridge | `events.temporal.>` | `_INBOX.>` |
+| `temporal-worker` | Former Temporal bridge — no client since Temporal was retired 2026-10-25 | `events.temporal.>` | `_INBOX.>` |
 | `helm-health` | Health agent | `events.platform.health`, `events.platform.alerts` | `tasks.health.>`, `_INBOX.>` |
 | `helm-security` | Security (helm era) | `events.security.>`, `alerts.security.>` | `>` |
 | `helm-update` | Update agent | `events.update.>`, `tasks.update.>` | `tasks.update.>`, `events.platform.>`, `_INBOX.>` |

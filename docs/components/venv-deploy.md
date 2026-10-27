@@ -87,9 +87,12 @@ mitigation for agent-writable code paths.
 | `memory-metadata-mcp` | `/opt/venvs/memory-metadata-mcp` | `memory-metadata-mcp` |
 | `memory-fulltext-mcp` | `/opt/venvs/memory-fulltext-mcp` | `memory-fulltext-mcp` |
 | `githost-mcp` | `/opt/venvs/githost-mcp` | `githost-mcp-{developer,sysadmin,security,writer,research,harlock}` |
-| `datastore-mcp` | `/opt/venvs/datastore-mcp` | `datastore-mcp` |
 | `nextcloud-mcp` | `/opt/venvs/nextcloud-mcp` | `nextcloud-mcp` |
 | `scoped-mcp` | `/opt/venvs/scoped-mcp` | `scoped-mcp-{developer,sysadmin,security,writer,research}` |
+
+`datastore-mcp` was registered here until it was parked on 2026-10-25; its registration is now
+a comment, and its venv and PM2 process are removed (see
+[datastore-mcp.md](mcp-servers/datastore-mcp.md)).
 
 `scoped-mcp` proxies every agent's own tool access, including the agent running this script —
 always deploy it with `--no-restart`, then restart the four non-sysadmin brokers deliberately.

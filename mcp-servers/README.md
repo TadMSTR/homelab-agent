@@ -27,7 +27,7 @@ See [`docs/components/agent/scoped-mcp.md`](../docs/components/agent/scoped-mcp.
 | memsearch-mcp | [doc](../docs/components/memory/memsearch-mcp.md) | :8493 HTTP | Hybrid memory search — **retired 2026-09-17**, see doc |
 | memory-metadata-mcp | [doc](../docs/components/memory/memory-services.md) | :8490 HTTP | Memory note metadata queries |
 | memory-fulltext-mcp | [doc](../docs/components/memory/memory-services.md) | :8491 HTTP | Full-text memory search (renamed from `memory-search-mcp` 2026-07-23) |
-| patchmon-mcp | [doc](../docs/components/mcp-servers/patchmon-mcp.md) | subprocess | Apt patch tracking |
+| patchmon-mcp | [doc](../docs/components/mcp-servers/patchmon-mcp.md) | subprocess | Apt patch tracking — **retired 2026-10-26**, see doc |
 | dockhand-mcp | [doc](../docs/components/mcp-servers/dockhand-mcp.md) | subprocess | Docker stack management |
 | signoz-mcp | [doc](../docs/components/observability/signoz-mcp.md) | :8492 HTTP | APM traces and logs (v0.3.0) |
 | githost-mcp | [doc](../docs/components/mcp-servers/githost-mcp.md) | subprocess | Git + GitHub/Gitea/GitLab ops (v0.5.0, 45 tools, HITL merge gate on GitHub/GitLab merge tools) |
@@ -39,7 +39,7 @@ See [`docs/components/agent/scoped-mcp.md`](../docs/components/agent/scoped-mcp.
 | task-queue-mcp | [doc](../docs/components/agent/task-queue-mcp.md) | :8485 HTTP | Inter-agent task queue |
 | agent-bus | [doc](../docs/components/agent/agent-bus.md) | subprocess | Event logging + NATS |
 | matrix-mcp | [doc](../docs/components/agent/matrix-mcp.md) | :8487 HTTP | Matrix messaging |
-| plane-mcp | [doc](../docs/components/mcp-servers/plane-mcp.md) | :8495 HTTP | Issue tracking |
+| plane-mcp | [doc](../docs/components/mcp-servers/plane-mcp.md) | :8495 HTTP | Issue tracking — **retired 2026-10-25**, see doc |
 | nats-mcp | [doc](../docs/components/agent/nats-mcp.md) | subprocess | NATS event queries |
 | code-server-mcp | [doc](../docs/components/mcp-servers/code-server-mcp.md) | :8498 HTTP | VS Code server integration |
 | backrest-mcp | [doc](../docs/components/mcp-servers/backrest-mcp.md) | :8626 HTTP | Backup plan status, snapshots, restore |

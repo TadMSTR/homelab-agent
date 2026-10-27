@@ -2,7 +2,7 @@
 
 Dragonfly is a Redis-compatible in-memory data store deployed across multiple forge stacks.
 Each instance serves a different purpose — agent session state, search caching, or
-application caching. Forge runs 3 Dragonfly instances alongside 4 Valkey instances.
+application caching. Forge runs 3 Dragonfly instances alongside 3 Valkey/Redis instances.
 
 ## Instances
 
@@ -21,10 +21,11 @@ All three run `docker.dragonflydb.io/dragonflydb/dragonfly:v1.37.2` (pinned) wit
 |----------|-------|---------|-----------|
 | **oqp-valkey** | agent-platform | oqp-internal, grafana-datasources | Ollama queue proxy embedding cache |
 | **patchmon-valkey** | patchmon | patchmon-internal, grafana-datasources | PatchMon cache |
-| **plane-valkey** | plane | plane-internal, grafana-datasources | Plane project management |
 | **firecrawl-redis** | crawler | internal | Firecrawl job queue |
 
-All 7 instances are visible to Grafana via the `grafana-datasources` network for monitoring.
+All 6 instances are visible to Grafana via the `grafana-datasources` network for monitoring.
+The `plane-valkey` instance was removed from monitoring when the Plane stack was parked
+(2026-10-25).
 
 ## agent-dragonfly (Primary)
 

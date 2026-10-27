@@ -23,14 +23,14 @@ docker/
 ├── ollama/               # Local LLM inference
 ├── open-webui/           # Multi-model chat UI fronting Ollama
 ├── patchmon/             # Apt package tracking and patch management
-├── plane/                # Project management
+├── plane/                # Project management — parked 2026-10-25 (stopped, restartable)
 ├── renovate/             # Dependency update scanning
 ├── reranker/             # ML reranking service
 ├── searxng/              # Private meta-search engine
 ├── signoz/               # APM and distributed tracing
 ├── swag/                 # Nginx reverse proxy, wildcard SSL
 ├── task-queue-mcp/       # Agent task queue with MCP tool surface
-├── temporal/             # Durable workflow engine
+├── temporal/             # Durable workflow engine — retired 2026-10-25 (example retained)
 ├── vault/                # HashiCorp Vault — secret management
 ├── vaultwarden/          # Self-hosted Bitwarden-compatible password manager
 └── woodpecker/           # Self-hosted CI/CD

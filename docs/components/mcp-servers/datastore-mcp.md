@@ -1,9 +1,19 @@
-# datastore-mcp
+# datastore-mcp (parked 2026-10-25)
 
 Multi-backend database MCP server. Exposes read-only query, schema-inspection, and
 diagnostic tools across 8 database backends (PostgreSQL, ClickHouse, MongoDB, OpenSearch,
 InfluxDB, Valkey/Redis, MySQL, SQLite) through a single FastMCP server, so agents can
 inspect forge's datastores without per-database clients.
+
+> **Parked, not retired.** datastore-mcp is not running on forge. On 2026-10-25, under the
+> `service-retirement-2026-10` build, its PM2 process was deleted and its venv removed, and
+> its [venv-deploy](../venv-deploy.md) registration was changed to a comment marking it
+> parked so nothing re-creates it. The repo (TadMSTR/datastore-mcp) is kept as is.
+>
+> It never had a consumer: it was never wired into any agent's scoped-mcp manifest. It is
+> kept as a candidate read-only database inspector for later. To bring it back, restore the
+> venv-deploy registration, rebuild the venv, and re-add the PM2 entry. Everything below
+> describes the server as it was configured when it last ran.
 
 ## Service
 
@@ -85,10 +95,12 @@ Forge instances are all configured `allow_write = false`.
 
 ## scoped-mcp Access
 
-Not yet registered in the agent scoped-mcp manifests. When wired, expose the read-only
-core tools to sysadmin/developer; keep any `allow_write` instances out of agent reach.
+Never registered in the agent scoped-mcp manifests. If it is un-parked and wired, expose the
+read-only core tools to sysadmin/developer; keep any `allow_write` instances out of agent reach.
 
 ## Operations
+
+Not applicable while parked — there is no PM2 process. When it ran:
 
 ```bash
 # Status

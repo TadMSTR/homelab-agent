@@ -1,121 +1,43 @@
-# Temporal
+# Temporal (retired 2026-10-25)
 
-Durable workflow execution engine for forge build pipelines. Runs as a Docker stack with PostgreSQL backend, gRPC API on localhost, and a web UI behind Authentik forward auth.
+Temporal was a durable workflow execution engine intended to drive autonomous, multi-step
+agent build pipelines. It ran as a Docker stack (server, PostgreSQL backend, web UI) with a
+PM2-managed `temporal-build-worker` that turned workflow activities into agent tasks.
 
----
+## Retirement
 
-## Architecture
+Retired 2026-10-25 under the `service-retirement-2026-10` build, part of a sweep that removed
+unused code and stacks before a code-review baseline. The reasons:
 
-| Component | Image | Purpose |
-|-----------|-------|---------|
-| `temporal` | `temporalio/server:1.30.2` | Workflow server, gRPC frontend |
-| `temporal-postgresql` | `postgres:16` | Persistence backend (2 databases: `temporal`, `temporal_visibility`) |
-| `temporal-ui` | `temporalio/ui:2.48.1` | Web dashboard |
-| `temporal-admin-tools` | `temporalio/admin-tools:1.30.2` | One-shot schema init |
-| `temporal-create-namespace` | `temporalio/admin-tools:1.30.2` | One-shot `default` namespace creation |
+- **No workflow was ever run** through it in production.
+- **It duplicated existing machinery.** The build skills and task-dispatcher's `auto` mode
+  already sequence multi-step builds.
+- **It bypassed the task queue's validation.** The worker wrote YAML task files straight into
+  the queue directory instead of going through [task-queue-mcp](../agent/task-queue-mcp.md),
+  and those files used a long-outdated schema.
 
----
+The stack was brought down, its appdata archived to the NAS (TLS private keys deleted, not
+archived), its volumes removed, and the SWAG route, Homepage tile, worker process, helper
+scripts and the worker's Vault AppRole deleted. The worker's source repo is being archived.
 
-## Endpoints
+There is no replacement workflow engine. Multi-step builds run through the build skills
+(`shared-build-review` → build → `shared-build-pre-audit` → `shared-build-finalize`) and
+[task-dispatcher](../agent/task-dispatcher.md).
 
-| Endpoint | Bind | Purpose |
-|----------|------|---------|
-| `127.0.0.1:7233` | gRPC | Temporal frontend — workers and clients connect here |
-| `temporal.helmforge.me` | HTTPS | Web UI via SWAG (Authentik forward auth) |
+## What it was
 
-The gRPC port is localhost-only. External access is through the UI only, gated by Authentik ProxyProvider.
+- **Images:** `temporalio/server`, `temporalio/ui`, `temporalio/admin-tools` (one-shot schema
+  init and namespace creation), `postgres:16` (databases `temporal` and `temporal_visibility`)
+- **Endpoints:** gRPC frontend on `127.0.0.1:7233` (localhost-only); web UI behind SWAG and
+  Authentik forward auth at `temporal.example.com`
+- **mTLS:** required on the frontend (`requireClientAuth: true`); the worker pulled its client
+  certificates from Vault via AppRole
+- **Consumers:** `temporal-build-worker` (PM2) and a task-dispatcher route for
+  `task_type: workflow`; no MCP server
+- **Hardening:** `cap_drop: ALL`, `no-new-privileges`, memory limits, a custom entrypoint that
+  substituted the PostgreSQL password into the config template at startup
 
----
+## Related Docs
 
-## Configuration
-
-### Docker stack
-
-- Stack directory: `~/docker/temporal/`
-- Appdata: `/opt/appdata/temporal/` (`postgres/` data, `tls/` certificates)
-- Network: internal `temporal-network` (bridge) + external `forge-net` (UI exposure to SWAG)
-
-### mTLS
-
-Mutual TLS is enforced on the frontend (`requireClientAuth: true`). All clients (workers, admin tools, UI) must present certificates.
-
-- TLS files mounted from `~/docker/temporal/tls/` (ca.crt, server.crt, server.key)
-- Worker fetches client certs from Vault AppRole at `secret/data/temporal/worker`
-
-### Custom entrypoint
-
-The server uses a custom entrypoint script (`scripts/temporal-entrypoint.sh`) that substitutes `__POSTGRES_PASSWORD__` and `__BROADCAST_ADDRESS__` placeholders in the config template at startup.
-
-### SWAG proxy
-
-Config: `/opt/appdata/swag/nginx/proxy-confs/temporal.subdomain.conf`
-- Routes to `temporal-ui:8080` on `forge-net`
-- CORS origin: `https://temporal.helmforge.me`
-
----
-
-## Dependencies
-
-| Depends on | Why |
-|------------|-----|
-| PostgreSQL 16 (in-stack) | Workflow persistence and visibility |
-| Vault | mTLS certificate distribution via AppRole |
-| SWAG | TLS termination and reverse proxy for UI |
-| Authentik | Forward auth on `temporal.helmforge.me` |
-
-| Depends on Temporal | Why |
-|---------------------|-----|
-| `temporal-build-worker` (PM2) | Processes build workflow task queue |
-| `task-dispatcher.py` (PM2) | Routes `task_type: workflow` tasks to Temporal |
-
----
-
-## Operations
-
-### Restart
-
-```bash
-cd ~/docker/temporal && docker compose down && docker compose up -d
-```
-
-### Health check
-
-```bash
-# PostgreSQL
-docker exec temporal-postgresql pg_isready -U temporal
-
-# Server — check via worker connectivity or UI
-curl -s https://temporal.helmforge.me  # (requires Authentik session)
-```
-
-### Logs
-
-```bash
-docker logs temporal          # server
-docker logs temporal-ui       # UI
-docker logs temporal-postgresql  # database
-```
-
-### Upgrade safety
-
-The stack includes `scripts/check-temporal-template.sh` which diffs the in-use config template against the upstream embedded template — run this before upgrading the server image.
-
----
-
-## Security
-
-- All containers run with `cap_drop: ALL` and `no-new-privileges: true`
-- Memory limits enforced (server: 1GB, PostgreSQL: 512MB)
-- mTLS required on frontend — plaintext gRPC rejected
-- PostgreSQL credentials injected at runtime via entrypoint substitution
-- gRPC bound to `127.0.0.1` only — no external network exposure
-- Audit references: `temporal-mtls-2026-06` (M-01/M-02/M-03, L-01/L-02 resolved)
-
----
-
-## scoped-mcp integration
-
-No direct MCP server for Temporal. Agents interact with Temporal indirectly:
-- **task-dispatcher** routes `task_type: workflow` tasks via `temporal-workflow-start.sh`
-- **temporal-build-worker** writes task YAMLs to `~/.claude/task-queue/` for agent pickup
-- Agents signal completion via `complete_activity.py` with mTLS credentials from Vault
+- [task-dispatcher.md](../agent/task-dispatcher.md) — current task routing and auto-launch
+- [task-queue-mcp.md](../agent/task-queue-mcp.md) — the validated task write path
