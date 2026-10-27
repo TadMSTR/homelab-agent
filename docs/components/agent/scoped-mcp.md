@@ -86,7 +86,7 @@ flowchart TD
     tools --> mcp1["searxng-mcp"]
     tools --> mcp2["githost-mcp"]
     tools --> mcp3["system-ops"]
-    tools --> mcp4["dockhand-mcp, patchmon-mcp,\nqmd, matrix, ..."]
+    tools --> mcp4["dockhand-mcp, pm2-mcp,\nqmd, matrix, ..."]
 ```
 
 ### Interactive sessions (Claude Code desktop/terminal)
@@ -141,7 +141,7 @@ which MCP modules it can access, with per-tool denylists enforcing least-privile
 
 | Agent | Modules | Denylisted Tools |
 |-------|---------|-----------------|
-| sysadmin | system-ops, githost-mcp, patchmon-mcp, dockhand-mcp, searxng-mcp, qmd, memory-metadata-mcp, task-queue-mcp, pm2-mcp, grafana-mcp, loki-mcp, signoz-mcp, claudebox-ops, matrix | `searxng-mcp: clear_cache` |
+| sysadmin | system-ops, githost-mcp, dockhand-mcp, searxng-mcp, qmd, memory-metadata-mcp, task-queue-mcp, pm2-mcp, grafana-mcp, loki-mcp, signoz-mcp, claudebox-ops, matrix | `searxng-mcp: clear_cache` |
 | research | searxng-mcp, qmd, memory-metadata-mcp, memory-fulltext-mcp, task-queue-mcp, langfuse-mcp, signoz-mcp, claudebox-ops, matrix | `searxng-mcp: clear_cache` |
 | developer | system-ops, githost-mcp, searxng-mcp, qmd, memory-metadata-mcp, task-queue-mcp, langfuse-mcp, matrix | `searxng-mcp: clear_cache` |
 | writer | system-ops, searxng-mcp, qmd, memory-metadata-mcp, memory-fulltext-mcp, task-queue-mcp, matrix | `system-ops: list_processes`, `searxng-mcp: clear_cache` |
@@ -169,7 +169,7 @@ Each agent has a global rate limit and per-tool overrides for intensive operatio
 |-------|-------------|-------------------|
 | research | 120/min | `searxng-mcp_search_and_summarize`: 10/min |
 | developer | 120/min | `system-ops_run_command`: 60/min |
-| sysadmin | 60/min | `dockhand-mcp_*`: 10/min, `patchmon-mcp_*`: 5/min, `pm2-mcp_*`: 20/min |
+| sysadmin | 60/min | `dockhand-mcp_*`: 10/min, `pm2-mcp_*`: 20/min |
 | writer | 60/min | `system-ops_run_command`: 20/min |
 | security | 60/min | `system-ops_run_command`: 30/min |
 
@@ -181,7 +181,6 @@ The sysadmin agent requires human approval before executing high-impact tools:
 - `dockhand-mcp_container_action`
 - `dockhand-mcp_stack_action`
 - `dockhand-mcp_update_container`
-- `patchmon-mcp_approve_patch_run`
 - `pm2-mcp_stop_service`
 - `pm2-mcp_restart_service`
 
@@ -336,7 +335,7 @@ manifests at `/etc/forge/manifests/`. Safe to delete once confirmed no tooling r
 ## Related Docs
 
 - [loki-mcp.md](../observability/loki-mcp.md) — read-only Loki query MCP (security + sysadmin agents)
-- [patchmon-mcp.md](../mcp-servers/patchmon-mcp.md) — apt patch management MCP
+- [patchmon-mcp.md](../mcp-servers/patchmon-mcp.md) — apt patch management MCP (retired 2026-10-26)
 - [dockhand-mcp.md](../mcp-servers/dockhand-mcp.md) — Docker management MCP
 - [langfuse-mcp.md](../observability/langfuse-mcp.md) — LLM observability MCP
 - [vault.md](../foundation/vault.md) — Vault AppRole auth and KV setup

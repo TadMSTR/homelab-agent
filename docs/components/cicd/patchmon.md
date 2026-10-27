@@ -66,8 +66,15 @@ PatchPilot was fully decommissioned as part of this build:
 - SWAG proxy conf (`patchpilot.subdomain.conf`) removed
 - Appdata archived at `/opt/appdata/patchpilot-archived/`
 
-The patchpilot MCP build plan is now obsolete — a **patchmon-mcp** wrapping
-`/api/v1` (Swagger at `/api-docs`) is the Phase 5 successor.
+The patchpilot MCP build plan was dropped in favour of **patchmon-mcp**, an MCP wrapper over
+PatchMon's `/api/v1`. That wrapper was itself retired on 2026-10-26 — see below.
+
+## Patching workflow
+
+Agents have no PatchMon API access. Since patchmon-mcp was retired (2026-10-26), fleet
+patching is done by the operator directly in the PatchMon UI. The sysadmin agent patches its
+own host with its apt-patch skill, outside PatchMon. PatchMon still tracks package state,
+pending updates and patch history for every enrolled host, including forge.
 
 ## Security
 
@@ -80,5 +87,5 @@ From audit 2026-05-25 (2 Low findings, both resolved):
 
 ## Related Docs
 
-- [patchmon-mcp.md](../mcp-servers/patchmon-mcp.md) — MCP server for PatchMon API
+- [patchmon-mcp.md](../mcp-servers/patchmon-mcp.md) — retired MCP wrapper for the PatchMon API
 - [renovate.md](renovate.md) — companion non-Docker update scanner
