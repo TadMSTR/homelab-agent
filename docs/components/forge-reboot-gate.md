@@ -36,7 +36,7 @@ Gate 1 uses `needrestart -p`. Kernel state values: 0 = current, 1 = ABI-compatib
 
 Gate 3 is fail-closed — unknown or error state (e.g. PM2 unavailable) is treated as a block, not a pass.
 
-After reboot, PM2 and Docker services are resurrected by systemd. HashiCorp Vault requires manual unseal.
+After reboot, PM2 and Docker services are resurrected by systemd. OpenBao comes up sealed and must be unsealed by hand; then restart any Vault-backed scoped-mcp brokers that PM2 parked as `errored` (see [foundation/vault.md](foundation/vault.md)).
 
 ## Operations
 

@@ -266,7 +266,7 @@ audit:
 
 ### ed25519 signed audit trail
 
-scoped-mcp signs agent-bus audit events using ed25519 keys stored in Vault. Private keys
+scoped-mcp signs agent-bus audit events using ed25519 keys stored in OpenBao (Vault-compatible API). Private keys
 are fetched at session startup via per-agent AppRoles; public keys are registered in
 `~/.claude/comms/agent-keys.json` (chmod 644). agent-bus runs in `enforce` mode — invalid
 signatures are rejected.
@@ -275,7 +275,7 @@ signatures are rejected.
 sequenceDiagram
     participant SM as scoped-mcp startup
     participant Env as agent .env file
-    participant Vault as Vault :8200
+    participant Vault as OpenBao :8210
     participant Keys as agent-keys.json
 
     SM->>Env: read VAULT_ADDR, VAULT_ROLE_ID, VAULT_SECRET_ID
@@ -288,25 +288,30 @@ sequenceDiagram
     Note over SM: All subsequent log_event() calls are signed
 ```
 
-### Vault AppRole mapping
+### AppRole mapping
 
-| Agent | AppRole | Policy | Vault path |
-|-------|---------|--------|------------|
-| sysadmin | `forge-sysadmin` | `agents-sysadmin-policy` | `secret/data/agents/sysadmin` |
-| research | `forge-research` | `agents-research-policy` | `secret/data/agents/research` |
-| developer | `forge-developer` | `agents-developer-policy` | `secret/data/agents/developer` |
-| writer | `forge-writer` | `agents-writer-policy` | `secret/data/agents/writer` |
-| security | `forge-security` | `agents-security-policy` | `secret/data/agents/security` |
+One AppRole and one policy per agent; each policy grants `read` on that agent's path only
+(no wildcard).
+
+| Agent | AppRole | Policy | KV path |
+|-------|---------|--------|---------|
+| sysadmin | `sysadmin` | `agent-sysadmin` | `secret/data/agents/sysadmin` |
+| research | `research` | `agent-research` | `secret/data/agents/research` |
+| developer | `developer` | `agent-developer` | `secret/data/agents/developer` |
+| writer | `writer` | `agent-writer` | `secret/data/agents/writer` |
+| security | `security` | `agent-security` | `secret/data/agents/security` |
 
 Credentials are in `/opt/appdata/agents/<type>/.env` (chmod 600, never committed to git).
-Vault is at `http://localhost:8200`.
+OpenBao listens on loopback only, at `http://127.0.0.1:8210`. If it is sealed when a
+broker starts, the broker exits and PM2 parks it as `errored`; restart it after unsealing
+(see [vault.md](../foundation/vault.md)).
 
 ## Agent .env Files
 
 Each agent has `/opt/appdata/agents/<type>/.env` (chmod 600):
 
 ```
-VAULT_ADDR=http://localhost:8200
+VAULT_ADDR=http://127.0.0.1:8210
 VAULT_ROLE_ID=<role-id>
 VAULT_SECRET_ID=<secret-id>
 DRAGONFLY_URL=redis://:<password>@127.0.0.1:6380   # sysadmin only
@@ -338,7 +343,7 @@ manifests at `/etc/forge/manifests/`. Safe to delete once confirmed no tooling r
 - [patchmon-mcp.md](../mcp-servers/patchmon-mcp.md) — apt patch management MCP (retired 2026-10-26)
 - [dockhand-mcp.md](../mcp-servers/dockhand-mcp.md) — Docker management MCP
 - [langfuse-mcp.md](../observability/langfuse-mcp.md) — LLM observability MCP
-- [vault.md](../foundation/vault.md) — Vault AppRole auth and KV setup
+- [vault.md](../foundation/vault.md) — OpenBao AppRole auth and KV setup
 - [agent-bus.md](agent-bus.md) — Inter-agent event log and signature verification
 - [dragonfly.md](dragonfly.md) — HITL state backend
 - [postgres.md](postgres.md) — session registry + HITL approval audit (`AGENT_REGISTRY_DSN`)

@@ -31,7 +31,7 @@ docker/
 ├── swag/                 # Nginx reverse proxy, wildcard SSL
 ├── task-queue-mcp/       # Agent task queue with MCP tool surface
 ├── temporal/             # Durable workflow engine — retired 2026-10-25 (example retained)
-├── vault/                # HashiCorp Vault — secret management
+├── openbao/              # OpenBao — secrets store (replaced vault/)
 ├── vaultwarden/          # Self-hosted Bitwarden-compatible password manager
 └── woodpecker/           # Self-hosted CI/CD
 ```
@@ -42,7 +42,7 @@ Deploy in this order to satisfy network and service dependencies:
 
 1. **swag** — creates `forge-net` network, SSL termination
 2. **authentik** — SSO must be available before services that use forward auth
-3. **vault** — secret backend; agents and services pull credentials from here
+3. **openbao** — secrets store; unsealed by hand after every start, agents and services pull credentials from here
 4. **observability** — creates `grafana-datasources` network used by other stacks
 5. **matrix** — homeserver; agent communication depends on it
 6. **agent-platform** — NATS, DragonflyDB, Ollama queue proxy

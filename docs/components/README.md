@@ -10,15 +10,15 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 
 | Doc | Service |
 |-----|---------|
-| [`forge-configs.md`](foundation/forge-configs.md) | Host configuration management (version-controlled configs + Vault secrets merge) |
+| [`forge-configs.md`](foundation/forge-configs.md) | Host configuration management (version-controlled configs + OpenBao secrets merge) |
 | [`backrest.md`](foundation/backrest.md) | Backup scheduler (restic, NFS target) |
 | [`btrbk-daily.md`](foundation/btrbk-daily.md) | Btrfs snapshot scheduler |
 | [`btrfs-scrub-monthly.md`](foundation/btrfs-scrub-monthly.md) | Btrfs filesystem maintenance |
-| [`vault-seal-watcher.md`](foundation/vault-seal-watcher.md) | Vault seal monitor (polls health endpoint, Matrix alert) |
+| [`vault-seal-watcher.md`](foundation/vault-seal-watcher.md) | Retired Vault auto-unseal watcher (replaced by an alert-only OpenBao seal watcher) |
 | [`swag.md`](foundation/swag.md) | SWAG nginx reverse proxy, wildcard SSL |
 | [`authentik.md`](foundation/authentik.md) | SSO, forward auth, OIDC provider |
 | [`vaultwarden.md`](foundation/vaultwarden.md) | Password manager (Bitwarden-compatible) |
-| [`vault.md`](foundation/vault.md) | Secret management, AppRole auth, transit engine |
+| [`vault.md`](foundation/vault.md) | OpenBao secrets store: AppRole auth, Shamir unseal, Raft snapshots |
 | [`dockhand.md`](foundation/dockhand.md) | Docker stack manager UI |
 
 ## [`observability/`](observability/) — Metrics, Logs & Traces (14)
@@ -73,7 +73,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 
 | Doc | Service |
 |-----|---------|
-| [`scoped-mcp.md`](agent/scoped-mcp.md) | Per-agent MCP proxy — manifest schema, Phase 7 hardening, Vault integration |
+| [`scoped-mcp.md`](agent/scoped-mcp.md) | Per-agent MCP proxy — manifest schema, Phase 7 hardening, OpenBao/Vault integration |
 | [`agent-bus.md`](agent/agent-bus.md) | Inter-agent event log, HMAC signing, NATS federation |
 | [`task-queue-mcp.md`](agent/task-queue-mcp.md) | Task queue MCP server |
 | [`task-queue-widget.md`](agent/task-queue-widget.md) | Task queue dashboard widget (React, embedded in Matrix), retired 2026-10-25 |

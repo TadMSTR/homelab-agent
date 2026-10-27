@@ -26,7 +26,7 @@ Wildcard cert for `*.helmforge.me` via Let's Encrypt + Cloudflare DNS-01 validat
 | `docs.subdomain.conf` | Owners manual static site | `docs.helmforge.me` |
 | `grafana.subdomain.conf` | Grafana dashboards | `grafana.helmforge.me` |
 | `hister.subdomain.conf` | Hister memory search | `hister.helmforge.me` |
-| `hvault.subdomain.conf` | HashiCorp Vault | `hvault.helmforge.me` |
+| ~~`hvault.subdomain.conf`~~ | Retired — HashiCorp Vault was replaced by OpenBao, which is loopback-only and has no proxy route | — |
 | `influxdb.subdomain.conf` | InfluxDB 3 | `influxdb.helmforge.me` |
 | `ketesa.subdomain.conf` | Synapse admin UI | `ketesa.helmforge.me` |
 | `langfuse.subdomain.conf` | Langfuse observability | `langfuse.helmforge.me` |

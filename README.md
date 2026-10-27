@@ -67,7 +67,7 @@ Three layers, each independently useful. You can run just the Docker services wi
 
 | Category | Key Services | Count |
 |----------|-------------|-------|
-| **Foundation** | [SWAG](docs/components/foundation/swag.md) (reverse proxy + SSL), [Authentik](docs/components/foundation/authentik.md) (SSO), [Vault](docs/components/foundation/vault.md) (secrets) | 5 |
+| **Foundation** | [SWAG](docs/components/foundation/swag.md) (reverse proxy + SSL), [Authentik](docs/components/foundation/authentik.md) (SSO), [OpenBao](docs/components/foundation/vault.md) (secrets) | 5 |
 | **Observability** | [Grafana](docs/components/observability/grafana-alloy.md) + Loki + Alloy, [SigNoz](docs/components/observability/signoz.md) (APM), [Langfuse](docs/components/observability/langfuse.md) (LLM traces) | 13 |
 | **AI & Search** | [Ollama](docs/components/ai-search/ollama.md) (local inference), [SearXNG](docs/components/ai-search/searxng.md), [Firecrawl](docs/components/ai-search/firecrawl.md), [Reranker](docs/components/ai-search/reranker.md) | 10 |
 | **Memory** | [qmd](docs/components/memory/memory-services.md) (semantic), [OpenSearch](docs/components/memory/memory-stack.md) (full-text), [scribe](docs/components/memory/scribe.md) (digests) | 6 |
@@ -105,7 +105,7 @@ flowchart TB
 
 **How it works:**
 
-- **[scoped-mcp](docs/components/agent/scoped-mcp.md)** reads each agent's manifest and proxies only the allowed tools. Agents never see credentials — secrets are injected from Vault at proxy level. Rate limits, argument filters, and response redaction are enforced per-agent.
+- **[scoped-mcp](docs/components/agent/scoped-mcp.md)** reads each agent's manifest and proxies only the allowed tools. Agents never see credentials — secrets are injected from OpenBao (Vault-compatible API) at proxy level. Rate limits, argument filters, and response redaction are enforced per-agent.
 
 - **[Matrix dispatch](docs/components/agent/matrix-dispatcher.md)** polls each agent's room for operator messages and routes them into the right Claude Code project. Send a message from any Matrix client; the agent picks it up and replies in-thread.
 

@@ -12,7 +12,7 @@ Maintenance and monitoring scripts for the homelab-agent platform. These run as 
 | `drift-detector-scan.sh` | Detects config drift between tracked repos and deployed state | PM2 cron, daily |
 | `git-drift-alert.sh` | Alerts via Matrix when git repos have uncommitted changes | PM2 cron |
 | `send-matrix.sh` | Send a message to a Matrix room | Utility, called by other scripts |
-| `vault-seal-watcher.sh` | Monitors HashiCorp Vault seal status, alerts on seal | PM2 always-on |
+| `vault-seal-watcher.sh` | RETIRED: old Vault auto-unseal watcher, kept for reference; replaced by an alert-only OpenBao seal watcher (see [vault.md](../docs/components/foundation/vault.md)) | — |
 
 ## Monitoring
 

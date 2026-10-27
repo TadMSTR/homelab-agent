@@ -42,7 +42,7 @@ homelab-agent/
 | `docs/components/foundation/backrest.md` | Backup solution |
 | `docs/components/foundation/btrbk-daily.md` | Btrfs snapshots |
 | `docs/components/foundation/btrfs-scrub-monthly.md` | Btrfs maintenance |
-| `docs/components/foundation/vault-seal-watcher.md` | Vault seal monitoring |
+| `docs/components/foundation/vault-seal-watcher.md` | Retired Vault auto-unseal watcher |
 | `docs/operations/appdata-layout.md` | /opt/appdata directory structure |
 
 ### Layer 2 — Docker Service Stack
@@ -54,7 +54,7 @@ homelab-agent/
 | `docs/components/foundation/swag.md` | SWAG nginx reverse proxy, SSL |
 | `docs/components/foundation/authentik.md` | SSO, forward auth, OIDC |
 | `docs/components/foundation/vaultwarden.md` | Password manager |
-| `docs/components/foundation/vault.md` | Secret management |
+| `docs/components/foundation/vault.md` | Secrets store (OpenBao) |
 
 **Observability:**
 

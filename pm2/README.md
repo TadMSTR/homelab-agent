@@ -53,12 +53,14 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `matrix-task-queue-bot` | Task queue notifications via Matrix |
 | `memory-os-sync` | Syncs OS-level metrics to memory |
 | `cloudcli` | CloudCLI web UI |
-| `vault-seal-watcher` | Monitors Vault seal status (runs every 5 min via cron) |
 
 ### Retired Processes
 
 No longer run on forge:
 
+- `vault-seal-watcher` — removed 2026-10-26 with the move to OpenBao; replaced by an
+  alert-only `openbao-seal-watcher` run from system cron, not PM2 (see
+  [foundation/vault.md](../docs/components/foundation/vault.md))
 - `plane-mcp`, `temporal-build-worker` and `datastore-mcp` — removed 2026-10-25 (Plane is
   parked, Temporal retired, datastore-mcp parked; see their component docs)
 - `patchmon-mcp` — removed 2026-10-26 (see
@@ -116,4 +118,3 @@ pm2 reload all
 - All scripts use `$HOME` for paths — adapt if your layout differs
 - Scheduled jobs use `cron_restart` with `autorestart: false` — they run on schedule and stop
 - Always-on services use `autorestart: true` — PM2 restarts them on crash
-- The `vault-seal-watcher` is technically a scheduled job (every 5 min) but is classified as infrastructure because it alerts immediately

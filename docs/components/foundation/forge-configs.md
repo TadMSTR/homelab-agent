@@ -1,6 +1,6 @@
 # forge-configs
 
-Version-controlled non-secret config files for forge Docker services, with Vault KV backing for secrets.
+Version-controlled non-secret config files for forge Docker services, with OpenBao KV backing for secrets.
 
 ---
 
@@ -50,8 +50,8 @@ Vault AppRole credentials for the deploy script are sourced from `~/.secrets/for
 
 | Env var | Purpose |
 |---------|---------|
-| `VAULT_ADDR` | Vault address (default: `http://127.0.0.1:8200`) |
-| `VAULT_ROLE_ID` | AppRole role ID for `forge-configs` policy |
+| `VAULT_ADDR` | OpenBao address, e.g. `http://127.0.0.1:8210` (required, no default) |
+| `VAULT_ROLE_ID` | Role ID of the `forge-configs-deploy` AppRole |
 | `VAULT_SECRET_ID_FILE` | Path to AppRole secret ID file |
 | `VAULT_TOKEN` | Direct token (alternative to AppRole) |
 
@@ -61,7 +61,7 @@ Vault AppRole policy scope: `secret/data/forge/docker/*` (read only).
 
 ## Dependencies
 
-- **Vault** at `http://127.0.0.1:8200` — must be unsealed for `.env` deployment; use `--skip-env` flag to deploy config files only when Vault is unavailable
+- **OpenBao** (Vault-compatible API) at `http://127.0.0.1:8210` — must be unsealed for `.env` deployment; use `--skip-env` flag to deploy config files only when Vault is unavailable
 - **git** — deploy script requires clean `main` branch before deploying
 - **agent-workspace-scan** — Phase 2f reads this repo; scanner must have `~/repos/gitea/host-forge-configs/` accessible
 
