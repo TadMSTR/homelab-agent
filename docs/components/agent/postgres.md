@@ -134,8 +134,9 @@ fail-open writer that has stopped working leaves no error behind. Check scoped-m
 
 ### Backup
 
-The data dir is under `/opt/appdata/agent-platform/`, so `docker-stack-backup.sh` archives
-it with the rest of the stack (see [appdata-layout.md](../../operations/appdata-layout.md)).
+The data dir is under the appdata root, so [docker-stack-backup](../foundation/docker-stack-backup.md)
+captures it with the rest of the stack (stopped, snapshotted, archived; see
+[appdata-layout.md](../../operations/appdata-layout.md)).
 That is a file-level copy. For a consistent snapshot, take a `pg_dump` first, or stop the
 container for the duration of the backup.
 

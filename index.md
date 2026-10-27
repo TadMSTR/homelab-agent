@@ -11,8 +11,8 @@ homelab-agent/
 ├── CHANGELOG.md                 # Build history
 ├── index.md                     # THIS FILE — navigation index
 ├── docs/
-│   ├── components/              # Per-service operational reference (110 docs)
-│   │   ├── foundation/          # Host, reverse proxy, auth, secrets, backups (10)
+│   ├── components/              # Per-service operational reference (111 docs)
+│   │   ├── foundation/          # Host, reverse proxy, auth, secrets, backups (11)
 │   │   ├── observability/       # Grafana, Loki, SigNoz, Langfuse, Healthchecks (15)
 │   │   ├── ai-search/           # Ollama, SearXNG, Firecrawl, Reranker (13)
 │   │   ├── memory/              # Memory architecture, scribe, retired Milvus/memsearch (10)
@@ -42,6 +42,7 @@ homelab-agent/
 | `docs/components/foundation/backrest.md` | Backup solution |
 | `docs/components/foundation/btrbk-daily.md` | Btrfs snapshots |
 | `docs/components/foundation/btrfs-scrub-monthly.md` | Btrfs maintenance |
+| `docs/components/foundation/docker-stack-backup.md` | Nightly compose-stack backup (tar + restic) |
 | `docs/components/foundation/vault-seal-watcher.md` | Retired Vault auto-unseal watcher |
 | `docs/operations/appdata-layout.md` | /opt/appdata directory structure |
 
@@ -273,6 +274,6 @@ Key cross-references:
 | `task-queue-mcp` | DragonflyDB | All agents (cross-agent handoffs) |
 | `task-dispatcher` | task-queue-mcp, scoped-mcp | Platform (headless launches) |
 | `system-ops` | Host OS | sysadmin, developer, writer |
-| `githost-mcp` | Gitea, GitHub | All agents |
+| `githost-mcp` | Gitea, GitHub | developer, sysadmin, security, research, writer, fleet, harlock, steward |
 | `searxng-mcp` | SearXNG, Firecrawl, Reranker | All agents |
-| `dockhand-mcp` | Docker socket | sysadmin |
+| `dockhand-mcp` | Docker socket | sysadmin, fleet (pinned read-only instance) |

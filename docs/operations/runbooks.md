@@ -12,7 +12,7 @@ Two types of runbooks exist on forge:
 ### Repository
 
 Gitea: `host-forge/runbooks`  
-Local: `/home/ted/repos/gitea/host-forge-runbooks/`  
+Local: `~/repos/gitea/host-forge-runbooks/`  
 QMD collection: `forge-runbooks` (refreshed hourly by `qmd-refresh` PM2 cron)
 
 ### Invoking a runbook
@@ -48,7 +48,7 @@ Each runbook file has YAML frontmatter (`name`, `description`, `scope`, `severit
 
 ### Adding a runbook
 
-1. Create `/home/ted/repos/gitea/host-forge-runbooks/<name>.md` following the format above
+1. Create `~/repos/gitea/host-forge-runbooks/<name>.md` following the format above
 2. Add a row to `forge-runbooks/index.md`
 3. Add a row to the skill's available runbooks table: `agent-platform-skills/runbook/SKILL.md`
 4. Commit both repos to main; QMD will index on the next hourly refresh
@@ -66,7 +66,7 @@ Common operational tasks for manual execution on forge. Each section is self-con
 ### Restart a resident agent
 Resident agents (sysadmin, research, developer, writer, security) run as Claude Code projects dispatched via Matrix. They do not run as persistent PM2 processes.
 
-To restart a stuck agent: send a new message to its Matrix room from `@ted:helmforge.me`. The dispatcher picks up the next message and starts a fresh session. No PM2 involvement.
+To restart a stuck agent: send a new message to its Matrix room from the operator account. The dispatcher picks up the next message and starts a fresh session. No PM2 involvement.
 
 ### Restart a PM2 service
 ```bash
@@ -100,15 +100,20 @@ docker compose up -d
 docker compose ps
 ```
 
-Or via dockhand-mcp (sysadmin agent):
+Or via dockhand-mcp (sysadmin agent, HITL-gated):
 ```
-dockhand-mcp: stack_action(stack_name="<stack>", action="redeploy")
+dockhand-mcp: stack_action(stack_name="<stack>", action="deploy", acknowledge_env_log=true)
 ```
+
+Dockhand prints the stack's whole `.env` to its own log on every stack action, so prefer
+`docker compose` for any stack with secrets in its `.env`. `deploy` defaults to `pull=False`
+(plain `compose up -d`); pass `pull=true` for `--pull always`. See
+[dockhand-mcp.md](../components/mcp-servers/dockhand-mcp.md#stack-actions).
 
 ### Check for available image updates
 ```bash
-# Via dockhand web UI: dockhand.helmforge.me (forward auth)
-# Or via dockhand-mcp:
+# Via dockhand web UI: dockhand.example.com (forward auth)
+# Or via dockhand-mcp (returns only rows needing attention; include_all=true for every row):
 dockhand-mcp: check_updates()
 ```
 
@@ -138,23 +143,29 @@ docker restart swag
 
 ---
 
-## Vault Operations
+## OpenBao Operations
 
-### Check Vault seal status
+OpenBao replaced HashiCorp Vault; see [foundation/vault.md](../components/foundation/vault.md).
+It never auto-unseals — the seal watcher only alerts.
+
+### Check seal status
 ```bash
-docker exec vault vault status
+docker exec openbao bao status
 ```
 
-### Unseal Vault (after restart)
-Vault auto-unseals via Vault Transit if configured. If manual:
+### Unseal (after every restart or reboot)
+Run once per share until the threshold is met (2 of 3). Paste each share at the prompt —
+never pass it as an argument, which puts it in `ps` and shell history.
 ```bash
-docker exec -it vault vault operator unseal
-# Enter unseal key(s) — requires threshold of keys
+docker exec -it openbao bao operator unseal     # share 1
+docker exec -it openbao bao operator unseal     # share 2
 ```
+Then restart any Vault-backed scoped-mcp brokers PM2 parked as `errored` while the store
+was sealed (`pm2 list | grep errored`).
 
 ### Rotate a secret
 ```bash
-docker exec -it vault vault kv put secret/<path> key=<new-value>
+docker exec -it openbao bao kv put secret/<path> key=<new-value>
 # Then restart affected services that read the secret at startup
 ```
 
@@ -186,15 +197,38 @@ qmd collection list
 ## Observability
 
 ### Check Loki logs for a service
+
+Loki runs multi-tenant (`auth_enabled: true`), so every query needs an `X-Scope-OrgID`
+header naming a tenant. Each host writes its own tenant (named after the host, e.g.
+`host-a`, `host-b`). Data written before tenancy was turned on sits in Loki's default
+`fake` tenant until it ages out of retention. Query several tenants at once by joining them
+with `|`, for example `host-a|fake`. This needs `multi_tenant_queries_enabled: true` in Loki,
+and live tail does not work with a multi-tenant header.
+
 ```bash
-# Via grafana.helmforge.me → Explore → Loki
-# LogQL examples:
-{service="<name>"} | json | level="error" | last 1h
-{container_name="<container>"} |= "ERROR" | last 30m
+# Grafana: grafana.example.com → Explore → pick the Loki datasource for the host.
+# Each datasource sets X-Scope-OrgID itself; there is one datasource per tenant set.
+
+# logcli
+logcli query --org-id='host-a' --since=1h '{service_name="<name>"} | json | level="error"'
+logcli query --org-id='host-a|fake' --since=30m '{container="<container>"} |= "ERROR"'
+
+# curl against the Loki API
+curl -sG -H 'X-Scope-OrgID: host-a' http://127.0.0.1:3100/loki/api/v1/query_range \
+  --data-urlencode 'query={service_name="<name>"} |= "ERROR"' \
+  --data-urlencode "start=$(date -d '-1 hour' +%s)000000000"
+
+# List the labels a tenant has (a quick "is this tenant receiving anything" check)
+curl -s -H 'X-Scope-OrgID: host-a' http://127.0.0.1:3100/loki/api/v1/labels
 ```
 
+A query with no `X-Scope-OrgID` header is rejected (`no org id`). A query against the wrong
+tenant returns an empty result, not an error. If a query comes back empty, check the
+tenant first. Container logs carry `container`, `stack`, `compose_service`, and `service_name`
+labels (not `container_name`); list them with the `/labels` call above.
+
 ### Check InfluxDB metrics
-Dashboard: grafana.helmforge.me (OIDC via Authentik)
+Dashboard: grafana.example.com (OIDC via Authentik)
 
 ### Check NATS JetStream health
 ```bash
@@ -227,7 +261,7 @@ bash -x ~/scripts/snapshot-bloat-probe.sh   # verbose, safe to run ad hoc
 
 ### Investigate a capacity or bloat alert
 ```bash
-cat /opt/appdata/snapshot-probe/capacity.state   # debounce state, last tier + timestamp
+cat <appdata>/snapshot-probe/capacity.state  # debounce state, last tier + timestamp
 tail -f ~/logs/snapshot-retention.log            # pruning activity
 ```
 
@@ -253,7 +287,16 @@ sudo mount -a               # re-mount from /etc/fstab
 ```
 
 ### Appdata layout
-See [appdata-layout.md](appdata-layout.md) for the full `/opt/appdata/` directory structure.
+See [appdata-layout.md](appdata-layout.md) for the full appdata directory structure.
+
+### Docker stack backups
+See [docker-stack-backup.md](../components/foundation/docker-stack-backup.md). Quick checks:
+```bash
+~/scripts/docker-stack-backup.sh --dry-run          # tonight's plan: tiers, snapshot plan per stack
+~/scripts/docker-stack-backup.sh --coverage-report  # what is and isn't covered (read-only)
+jq '{outcome, coverage: .coverage.status}' "$BACKUP_DEST/$(hostname)/status.json"
+sudo ~/scripts/docker-stack-restore.sh              # restore wizard (tar or restic source)
+```
 
 ---
 

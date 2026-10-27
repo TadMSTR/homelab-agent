@@ -5,7 +5,7 @@ Forge follows a two-directory convention for Docker stacks:
 | Path | Contains |
 |------|----------|
 | `~/docker/<stack>/` | `docker-compose.yml`, `.env`, nginx confs — version-controlled in `host-forge/stacks` |
-| `/opt/appdata/<stack>/<service>/` | Persistent data volumes — backed up by `docker-stack-backup.sh` |
+| `/opt/appdata/<stack>/<service>/` | Persistent data volumes — backed up by [docker-stack-backup](../components/foundation/docker-stack-backup.md) |
 
 Stack name is the same in both paths. Service name is the immediate subdirectory under the stack in `/opt/appdata/`.
 
@@ -37,7 +37,7 @@ User stacks follow the same convention under a `users/` prefix:
 
 ## Backup
 
-`docker-stack-backup.sh` auto-discovers stacks from `~/docker/` and archives the matching `/opt/appdata/<stack>/` directory. The `users/` subtree requires a second pass — see Phase 5 documentation for the backup script extension.
+[docker-stack-backup](../components/foundation/docker-stack-backup.md) auto-discovers stacks from `~/docker/` and archives the matching `/opt/appdata/<stack>/` directory. The `users/` subtree requires a second pass.
 
 ## Migration Note
 

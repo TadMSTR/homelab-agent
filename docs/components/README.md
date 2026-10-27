@@ -1,6 +1,6 @@
 # docs/components
 
-Per-service operational reference for the homelab-agent platform. 81 docs covering every service, MCP server, and background job running on forge, organized into 9 categories.
+Per-service operational reference for the homelab-agent platform. 111 docs covering every service, MCP server, and background job running on forge, organized into 9 categories.
 
 Each doc covers: what the service is, where it runs, configuration, dependencies, how to restart/check health/view logs, and scoped-mcp integration where applicable.
 
@@ -14,6 +14,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`backrest.md`](foundation/backrest.md) | Backup scheduler (restic, NFS target) |
 | [`btrbk-daily.md`](foundation/btrbk-daily.md) | Btrfs snapshot scheduler |
 | [`btrfs-scrub-monthly.md`](foundation/btrfs-scrub-monthly.md) | Btrfs filesystem maintenance |
+| [`docker-stack-backup.md`](foundation/docker-stack-backup.md) | Nightly compose-stack backup (tar + restic, snapshots, status metrics) |
 | [`vault-seal-watcher.md`](foundation/vault-seal-watcher.md) | Retired Vault auto-unseal watcher (replaced by an alert-only OpenBao seal watcher) |
 | [`swag.md`](foundation/swag.md) | SWAG nginx reverse proxy, wildcard SSL |
 | [`authentik.md`](foundation/authentik.md) | SSO, forward auth, OIDC provider |

@@ -15,6 +15,7 @@ Deploy these first. The rest of the stack assumes SWAG is routing traffic and Au
 | [dockhand.md](dockhand.md) | Docker stack manager UI | 7777 |
 | [forge-configs.md](forge-configs.md) | Host configuration management | — |
 | [backrest.md](backrest.md) | Backup scheduler (restic → NFS) | 9898 |
+| [docker-stack-backup.md](docker-stack-backup.md) | Nightly compose-stack backup (tar + restic, Btrfs snapshots, status/metrics) | — (cron) |
 | [btrbk-daily.md](btrbk-daily.md) | Btrfs snapshot scheduler | — (cron) |
 | [btrfs-scrub-monthly.md](btrfs-scrub-monthly.md) | Btrfs filesystem maintenance | — (cron) |
 | [vault-seal-watcher.md](vault-seal-watcher.md) | Vault seal monitor → Matrix alert | — (PM2) |
@@ -26,4 +27,4 @@ Deploy these first. The rest of the stack assumes SWAG is routing traffic and Au
 3. Vault (secrets)
 4. Vaultwarden (passwords)
 5. Dockhand (stack management)
-6. Host maintenance jobs (backrest, btrbk, vault-seal-watcher)
+6. Host maintenance jobs (backrest, docker-stack-backup, btrbk, vault-seal-watcher)

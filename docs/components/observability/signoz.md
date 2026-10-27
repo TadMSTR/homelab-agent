@@ -189,7 +189,7 @@ Post-deploy security state from audit 2026-04-15:
 | pprof endpoint reachable from forge-net (L2) | ✓ fixed — `localhost:1777` in `otel-collector-config.yaml` |
 | Config files world-readable 664 (L3) | ✓ fixed — XML: `640`, YAML: `644` (ClickHouse runs as root; collector runs UID 10001 with no forge group mapping) |
 | Retention not configured (L5) | ✓ fixed — configured via UI post-deploy |
-| Volumes not backed up (L6) | ✓ fixed — covered by `/home/ted/scripts/docker-stack-backup.sh` (2 AM daily) |
+| Volumes not backed up (L6) | ✓ fixed — covered by [docker-stack-backup](../foundation/docker-stack-backup.md) (nightly) |
 | No Authelia/SSO layer on SWAG proxy (M1) | deferred — SigNoz only supports Google Workspace SSO; not compatible with Authentik. Native admin auth remains the gate. |
 | signoz-init-clickhouse binary without checksum (M2) | ✓ fixed — binary pre-staged; existence guard added to init container |
 | signoz-zookeeper runs as root | acknowledged — Bitnami image drops privileges internally; container on `signoz-internal` only, no external exposure |
@@ -199,7 +199,7 @@ Post-deploy security state from audit 2026-04-15:
 
 ## Backup
 
-Covered by `~/scripts/docker-stack-backup.sh` on forge. Stop → `sudo tar` → restart. Backup destination: `/mnt/atlas/forge/backups/docker-backups/`. Schedule: 2 AM daily.
+Covered by [docker-stack-backup](../foundation/docker-stack-backup.md): nightly stop → Btrfs snapshot → start, then archived from the snapshot (tar, plus restic during the trial). Data stays on the daily tier.
 
 Priority order if restoring selectively:
 1. `sqlite/` — SigNoz users, alerts, dashboard config (small, critical)

@@ -199,7 +199,7 @@ Post-deploy security state from audit 2026-04-15:
 | Dragonfly password in docker inspect (L1) | ✓ fixed — moved to `DFLY_requirepass` env var |
 | Authentik SSO not wired (L4) | ✓ fixed — Authentik OIDC provider `lang-fuse` wired |
 | ClickHouse retention not configured (L5) | ✓ fixed — 90-day TTL on traces/observations/scores/event_log |
-| Volumes not backed up (L6) | ✓ fixed — covered by `/home/ted/scripts/docker-stack-backup.sh` (2 AM daily) |
+| Volumes not backed up (L6) | ✓ fixed — covered by [docker-stack-backup](../foundation/docker-stack-backup.md) (nightly) |
 | No Authelia layer on SWAG proxy (M1) | deferred — Langfuse has native Authentik SSO; no Authelia gate currently |
 | Agent keys hardcoded in write-agent-envs.sh (M4, 2026-05-16) | ✓ fixed — moved to `/opt/secrets/langfuse.env` (chmod 600); script sources at runtime |
 
@@ -207,7 +207,7 @@ SWAG proxy passes through to `langfuse-web:3000`. Authentik SSO is the auth laye
 
 ## Backup
 
-Covered by `~/scripts/docker-stack-backup.sh` on forge. Stop → `sudo tar` → restart. Backup destination: `/mnt/atlas/forge/backups/docker-backups/`. Schedule: 2 AM daily.
+Covered by [docker-stack-backup](../foundation/docker-stack-backup.md): nightly stop → Btrfs snapshot → start, then archived from the snapshot (tar, plus restic during the trial). Data stays on the daily tier.
 
 Priority order if restoring selectively:
 1. `postgres/` — project/user/eval data (critical)
