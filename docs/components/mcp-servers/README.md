@@ -9,8 +9,8 @@ Domain-specific MCP servers (observability, memory, search) live in their respec
 | Doc | Server | What It Wraps | Available To |
 |-----|--------|--------------|-------------|
 | [system-ops.md](system-ops.md) | system-ops | File, directory, and command execution | sysadmin, developer, writer |
-| [githost-mcp.md](githost-mcp.md) | githost-mcp | Git + GitHub / Gitea / GitLab (45 tools) | All 6 agents |
-| [dockhand-mcp.md](dockhand-mcp.md) | dockhand-mcp | Docker container and stack management | sysadmin |
+| [githost-mcp.md](githost-mcp.md) | githost-mcp | Git + GitHub / Gitea / GitLab (74 tools) | developer, sysadmin, security, research, writer, fleet, harlock, steward |
+| [dockhand-mcp.md](dockhand-mcp.md) | dockhand-mcp | Docker container and stack management | sysadmin, fleet (pinned read-only instance) |
 | [patchmon-mcp.md](patchmon-mcp.md) | patchmon-mcp | Apt patch management — retired 2026-10-26 | — |
 | [pm2-mcp.md](pm2-mcp.md) | pm2-mcp | PM2 process management | sysadmin |
 | [code-server-mcp.md](code-server-mcp.md) | code-server-mcp | code-server session management | developer |
