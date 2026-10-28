@@ -3,11 +3,11 @@
 SigNoz is an open-source APM and observability platform built on OpenTelemetry. On forge it collects distributed traces, metrics, and logs from homelab-agent platform services via OTLP — including telemetry forwarded from claudebox's Alloy instance.
 
 - **Version:** 0.118.0
-- **URL:** `https://signoz.helmforge.me`
+- **URL:** `https://signoz.example.com`
 - **Compose:** `~/docker/signoz/docker-compose.yml`
 - **Appdata:** `/opt/appdata/signoz/`
 - **Network:** `signoz-internal` (isolated) + `forge-net` (signoz and signoz-otel-collector only) + `grafana-datasources` (signoz-clickhouse-proxy only)
-- **SWAG proxy:** `signoz.helmforge.me` → `signoz:8080`
+- **SWAG proxy:** `signoz.example.com` → `signoz:8080`
 
 ## Network Topology
 
@@ -174,9 +174,9 @@ Retention is stored in SigNoz's own ClickHouse tables and survives container res
 ## Operator First-Login Steps
 
 On a fresh deploy:
-1. Navigate to `https://signoz.helmforge.me`
+1. Navigate to `https://signoz.example.com`
 2. Complete the setup wizard — create admin account (no self-service registration after setup)
-3. Verify: `curl -s https://signoz.helmforge.me/api/v1/version` → `{"setupCompleted":true}`
+3. Verify: `curl -s https://signoz.example.com/api/v1/version` → `{"setupCompleted":true}`
 4. Configure retention: Settings → Retention Period
 5. Note: SigNoz does not support Authentik or generic OIDC — only Google Workspace SSO is available for enterprise auth. Admin account is the primary auth mechanism on forge.
 
@@ -193,9 +193,9 @@ Post-deploy security state from audit 2026-04-15:
 | No Authelia/SSO layer on SWAG proxy (M1) | deferred — SigNoz only supports Google Workspace SSO; not compatible with Authentik. Native admin auth remains the gate. |
 | signoz-init-clickhouse binary without checksum (M2) | ✓ fixed — binary pre-staged; existence guard added to init container |
 | signoz-zookeeper runs as root | acknowledged — Bitnami image drops privileges internally; container on `signoz-internal` only, no external exposure |
-| ClickHouse empty password in users.xml | acknowledged — SigNoz upstream default; service on `signoz-internal` only, no host port |
+| ClickHouse empty password in users.xml | ✓ fixed — `default` now has a password (stored as `password_sha256_hex` in `users.xml`); the `signoz`, `signoz-otel-collector` and `signoz-migrator` services connect with it via `SIGNOZ_CLICKHOUSE_PASSWORD` from `.env`. Grafana never uses `default`: it logs in as the restricted `grafana_ro` user through signoz-clickhouse-proxy (see above). Verified 2026-10-27 |
 
-`.env` is `600 ted:ted`. OTLP ports 4317/4318 are intentionally LAN-accessible (pre-approved in build plan).
+`.env` is mode `600`, owned by the operator account. OTLP ports 4317/4318 are intentionally LAN-accessible (pre-approved in build plan).
 
 ## Backup
 
