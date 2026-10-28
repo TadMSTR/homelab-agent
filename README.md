@@ -6,13 +6,13 @@
 
 ![homelab-agent banner](docs/assets/banner.png)
 
-A platform for running a team of AI agents on a single server. Five agents — sysadmin, developer, researcher, writer, security — work semi-autonomously or fully unattended, coordinating through a task queue and communicating over Matrix. Each agent gets a scoped tool surface controlled by a manifest, persistent multi-tier memory backed by open-source infrastructure ([qmd](docs/components/memory/memory-services.md) for semantic search, [OpenSearch](docs/components/memory/memory-stack.md) for full-text), and an event ledger that tracks every cross-agent handoff.
+A platform for running a team of AI agents on a single server. Ten resident agents — five build agents (sysadmin, developer, research, writer, security) plus doc-health, memory-sync, jobsearch, fleet and steward — work semi-autonomously or fully unattended, coordinating through a task queue and communicating over Matrix. Each agent gets a scoped tool surface controlled by a manifest, persistent multi-tier memory backed by open-source infrastructure ([qmd](docs/components/memory/memory-services.md) for semantic search, [OpenSearch](docs/components/memory/memory-stack.md) for full-text), and an event ledger that tracks every cross-agent handoff.
 
 The agents build the platform. Research plans a feature, developer writes the code, writer documents it, security audits the result — then the new tool becomes available to the agents that built it. [searxng-mcp](https://github.com/TadMSTR/searxng-mcp), [scoped-mcp](https://github.com/TadMSTR/scoped-mcp), and [githost-mcp](https://github.com/TadMSTR/githost-mcp) were all built this way.
 
 This repo documents every piece of that stack and the decisions behind it. Use it as a reference to build your own.
 
-The host is **forge** — a [Minisforum MS-A2](https://www.minisforum.com/product/ms-a2/) running Debian 13 with 60+ containers and 30+ PM2 background services.
+The host is **forge** — a [Minisforum MS-A2](https://www.minisforum.com/product/ms-a2/) running Debian 13 with 90+ containers and 30+ PM2 background services.
 
 > The earlier claudebox-era build is archived at tag `archive/claudebox-v1`.
 
@@ -24,7 +24,7 @@ Three entry points depending on what you're after.
 
 **Building your own?** Read this page for the architecture, then explore [`docs/components/`](docs/components/) for per-service configuration detail. The Docker stacks in [`docker/`](docker/) have `.env.example` files ready to copy — the component docs are structured so you can feed them to an AI agent and adapt to your setup.
 
-**Operating or extending an existing setup?** Jump straight to [`docs/components/`](docs/components/) — 76 per-service docs covering config, ports, dependencies, health checks, and restart procedures.
+**Operating or extending an existing setup?** Jump straight to [`docs/components/`](docs/components/) — 111 per-service docs covering config, ports, dependencies, health checks, and restart procedures.
 
 **Wiring up agents?** Start with [AGENTS.md](AGENTS.md) for the agent roster and tool scoping model, then look at the sanitized manifests in [`manifests/`](manifests/) and Claude Code project configs in [`claude-code/`](claude-code/).
 
@@ -37,10 +37,10 @@ Three layers, each independently useful. You can run just the Docker services wi
 ```
 ┌────────────────────────────────────────────────────────────────┐
 │  Layer 3: Multi-Agent Claude Code Engine                       │
-│  5 resident agents · scoped-mcp · Matrix dispatch             │
+│  10 resident agents · scoped-mcp · Matrix dispatch            │
 │  agent-bus · memory pipeline                                   │
 ├────────────────────────────────────────────────────────────────┤
-│  Layer 2: Docker Service Stack (60+ containers, 21 stacks)     │
+│  Layer 2: Docker Service Stack (90+ containers, 30+ stacks)    │
 │  SWAG/Authentik · Ollama (NVIDIA GPU) · Langfuse · SigNoz      │
 │  Synapse · SearXNG · OpenSearch · Vikunja · NATS               │
 ├────────────────────────────────────────────────────────────────┤
@@ -63,22 +63,23 @@ Three layers, each independently useful. You can run just the Docker services wi
 
 ### Layer 2 — Docker Services
 
-60+ containers across 22 compose stacks. Full per-service documentation is in [`docs/components/`](docs/components/README.md).
+Roughly 95 running containers across 31 compose stacks (counted 2026-10-27; both numbers drift as stacks are added and retired). Full per-service documentation is in [`docs/components/`](docs/components/README.md).
 
 | Category | Key Services | Count |
 |----------|-------------|-------|
-| **Foundation** | [SWAG](docs/components/foundation/swag.md) (reverse proxy + SSL), [Authentik](docs/components/foundation/authentik.md) (SSO), [OpenBao](docs/components/foundation/vault.md) (secrets) | 5 |
-| **Observability** | [Grafana](docs/components/observability/grafana-alloy.md) + Loki + Alloy, [SigNoz](docs/components/observability/signoz.md) (APM), [Langfuse](docs/components/observability/langfuse.md) (LLM traces) | 13 |
-| **AI & Search** | [Ollama](docs/components/ai-search/ollama.md) (local inference), [SearXNG](docs/components/ai-search/searxng.md), [Firecrawl](docs/components/ai-search/firecrawl.md), [Reranker](docs/components/ai-search/reranker.md) | 10 |
-| **Memory** | [qmd](docs/components/memory/memory-services.md) (semantic), [OpenSearch](docs/components/memory/memory-stack.md) (full-text), [scribe](docs/components/memory/scribe.md) (digests) | 6 |
-| **Agent Infra** | [Synapse](docs/components/agent/synapse.md) (Matrix), [NATS](docs/components/agent/nats.md) (event bus), [task-queue-mcp](docs/components/agent/task-queue-mcp.md) | 13 |
-| **CI/CD** | [Woodpecker CI](docs/components/cicd/woodpecker.md), [PatchMon](docs/components/cicd/patchmon.md) (patch tracking), [Renovate](docs/components/cicd/renovate.md) | 6 |
+| **Foundation** | [SWAG](docs/components/foundation/swag.md) (reverse proxy + SSL), [Authentik](docs/components/foundation/authentik.md) (SSO), [OpenBao](docs/components/foundation/vault.md) (secrets) | 7 |
+| **Observability** | [Grafana](docs/components/observability/grafana-alloy.md) + Loki + Alloy, [SigNoz](docs/components/observability/signoz.md) (APM), [Langfuse](docs/components/observability/langfuse.md) (LLM traces) | 23 |
+| **AI & Search** | [Ollama](docs/components/ai-search/ollama.md) (local inference), [SearXNG](docs/components/ai-search/searxng.md), [Firecrawl](docs/components/ai-search/firecrawl.md), [Reranker](docs/components/ai-search/reranker.md) | 19 |
+| **Memory** | [qmd](docs/components/memory/memory-services.md) (semantic), [OpenSearch](docs/components/memory/memory-stack.md) (full-text), [scribe](docs/components/memory/scribe.md) (digests) | 1 (qmd and scribe run under PM2) |
+| **Agent Infra** | [Synapse](docs/components/agent/synapse.md) (Matrix), [NATS](docs/components/agent/nats.md) (event bus), [task-queue-mcp](docs/components/agent/task-queue-mcp.md) | 9 |
+| **CI/CD** | [Woodpecker CI](docs/components/cicd/woodpecker.md), [PatchMon](docs/components/cicd/patchmon.md) (patch tracking), [Renovate](docs/components/cicd/renovate.md) | 8 |
+| **Apps** | [Nextcloud](docs/components/apps/nextcloud.md), [LibreChat](docs/components/apps/librechat.md), [Vikunja](docs/components/apps/vikunja.md) (tickets), [Homepage](docs/components/apps/homepage.md), [browser tools](docs/components/apps/tools-stack.md) | 28 |
 
 Deployment order and stack dependencies are documented in [`docker/README.md`](docker/README.md).
 
 ### Layer 3 — Multi-Agent Engine
 
-This is the part that ties everything together. Five resident agents run as scoped Claude Code projects, each with a dedicated Matrix room and a manifest-controlled tool surface.
+This is the part that ties everything together. Ten resident agents run as scoped Claude Code projects, each with a manifest-controlled tool surface and (for most) a dedicated Matrix room. The diagram shows the five build agents; [AGENTS.md](AGENTS.md) is the full roster and the source of truth for the count.
 
 ```mermaid
 flowchart TB
@@ -120,7 +121,7 @@ flowchart TB
 ## What's In This Repo
 
 ```
-docs/components/   — Per-service operational reference (76 docs)
+docs/components/   — Per-service operational reference (111 docs)
 docs/operations/   — Operational runbooks
 CHANGELOG.md       — Build history summary
 docker/            — Docker Compose stacks with .env.example templates
@@ -134,7 +135,7 @@ pm2/               — PM2 ecosystem config and process documentation
 
 To replicate this stack:
 
-- A machine with 32 GB+ RAM (96 GB recommended if running 5 agents with local LLMs)
+- A machine with 32 GB+ RAM (96 GB recommended if running several concurrent agents with local LLMs)
 - An NVIDIA GPU for local Ollama inference, or a remote Ollama API endpoint
 - Debian/Ubuntu with Docker CE + Compose
 - A domain name — SWAG uses DNS-01 validation via Cloudflare (no port forwarding required)
