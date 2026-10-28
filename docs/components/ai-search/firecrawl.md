@@ -3,8 +3,9 @@
 > **Superseded as of 2026-09-05.** The stack described in this document (`firecrawl-simple`,
 > image `trieve/firecrawl`) is **no longer the active Firecrawl** in the request path. All
 > documented consumers have been cut over to a newer, upstream-based Firecrawl deployment.
-> The legacy stack described below is **still running** on forge (not yet decommissioned)
-> but is being phased out and should not be assumed to be receiving live traffic. Treat the
+> The legacy stack described below is not yet decommissioned: its containers still exist in
+> the `crawler` stack (alongside Crawl4AI), but were found stopped on 2026-10-27 and receive no
+> live traffic. Treat the
 > content below as historical/reference material for the legacy stack, not as current
 > architecture. See [firecrawl-v2.md](firecrawl-v2.md) for the current deployment.
 
@@ -65,5 +66,6 @@ No API key header required (auth disabled). Response is markdown-formatted page 
 
 - [phase-5-user-stack-infra.md](../../phases/phase-5-user-stack-infra.md) — build narrative, web search pipeline overview
 - [crawl4ai.md](crawl4ai.md) — companion browser-rendering service
-- [searxng-mcp.md](searxng-mcp.md#adblock-proxy-container) — `crawler-adblock-proxy-1` fronts
-  Firecrawl/Crawl4AI fetch tiers but runs in its own `~/docker/crawler/` stack, not this one
+- [searxng-mcp.md](searxng-mcp.md#configuration) — the `adblock-proxy` container that filters
+  searxng-mcp's fetches. It is defined in the `searxng` stack (moved there 2026-08-23 with its
+  only consumer) and lives on the isolated `fetch-net` network, not in the `crawler` stack
