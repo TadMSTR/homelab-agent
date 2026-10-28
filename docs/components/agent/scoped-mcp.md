@@ -115,12 +115,12 @@ agent has `~/.claude/projects/<agent>/.mcp.json` using the `run-scoped-mcp.sh` w
 {
   "mcpServers": {
     "scoped-mcp": {
-      "command": "/home/ted/scripts/run-scoped-mcp.sh",
+      "command": "~/scripts/run-scoped-mcp.sh",
       "args": [],
       "env": {
         "AGENT_ID": "<agent>-01",
         "AGENT_TYPE": "<agent>",
-        "MATRIX_HOMESERVER": "https://matrix.helmforge.me",
+        "MATRIX_HOMESERVER": "https://matrix.example.com",
         "MATRIX_ACCESS_TOKEN": "<token>",
         "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4318",
         "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
@@ -173,16 +173,31 @@ Each agent has a global rate limit and per-tool overrides for intensive operatio
 | writer | 60/min | `system-ops_run_command`: 20/min |
 | security | 60/min | `system-ops_run_command`: 30/min |
 
-## HITL Gates (sysadmin only)
+## HITL Gates (sysadmin, developer, fleet)
 
-The sysadmin agent requires human approval before executing high-impact tools:
+Three manifests run `hitl.mode: enforce` and list tools in `hitl.approval_required`; a call to
+any of them waits for a signed human approval before it executes. The other agents (research,
+writer, security, doc-health, memory-sync, jobsearch, steward) have no `hitl` block: their
+manifests simply do not grant high-impact tools. Gated tools as of 2026-10-27, read from the
+live manifests:
 
-**Gated tools:**
-- `dockhand-mcp_container_action`
-- `dockhand-mcp_stack_action`
-- `dockhand-mcp_update_container`
-- `pm2-mcp_stop_service`
-- `pm2-mcp_restart_service`
+| Tool group | sysadmin | developer | fleet |
+|---|---|---|---|
+| `dockhand-mcp_container_action`, `dockhand-mcp_stack_action`, `dockhand-mcp_update_container` | yes | — | — |
+| `pm2-mcp_stop_service`, `pm2-mcp_restart_service` | yes | — | — |
+| `githost-mcp_gitea_pr_merge`, `githost-mcp_github_pr_merge`, `githost-mcp_gitlab_mr_merge` | yes | yes | — |
+| `githost-mcp_woodpecker_pipeline_cancel` | yes | yes | — |
+| `githost-mcp_git_branch_delete_remote`, `githost-mcp_git_push_force_with_lease` | yes | yes | — |
+| `githost-mcp_release` | yes | yes | — |
+| `githost-mcp_github_repo_create`, `githost-mcp_gitea_repo_create` | yes | yes | — |
+| `librechat-mcp_delete_agent`, `librechat-mcp_set_role_permissions`, `librechat-mcp_revert_agent` | yes | — | — |
+| `vikunja-mcp_project_user_update`, `vikunja-mcp_project_user_remove`, `vikunja-mcp_team_delete`, `vikunja-mcp_team_member_remove`, `vikunja-mcp_team_member_toggle_admin` | yes | — | — |
+| `system-ops-<host>_run_command`, `system-ops-<host>_write_file`, `system-ops-<host>_edit_file` (per remote host) | — | — | yes |
+
+The list drifts as tools are added. The manifest's `approval_required` list is the source of
+truth; re-read it rather than trusting this table. sysadmin and developer post the approval
+notice to their own Matrix room (`notify.type: matrix`); fleet logs it instead
+(`notify.type: log`).
 
 **Approval timeout:** 300 seconds
 
