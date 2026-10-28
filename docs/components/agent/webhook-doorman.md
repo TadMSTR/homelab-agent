@@ -5,18 +5,23 @@ receivers — `vikunja-webhook-listener`, `qmd-webhook`, and `plane-webhook-list
 ingress that verifies, deduplicates, and fans out webhook deliveries to chat/notification sinks.
 Public repo: [TadMSTR/webhook-doorman](https://github.com/TadMSTR/webhook-doorman).
 
-- **Image:** `ghcr.io/tadmstr/webhook-doorman:0.5.0` (multi-arch amd64 + arm64) — verified
-  deployed via `docker inspect` (container `Created` timestamp postdates the v0.5.0 release)
+- **Image:** `ghcr.io/tadmstr/webhook-doorman:0.7.0`, pinned by digest (multi-arch amd64 +
+  arm64). The reference deployment runs 0.7.0 at time of writing, verified from the running
+  container: its image ref, its `org.opencontainers.image.version` label (`0.7.0`) and
+  `revision` label (the v0.7.0 merge commit), and `/health` reporting `"version": "0.7.0"`
 - **Compose:** `~/docker/webhook-doorman/docker-compose.yml` (own stack)
 - **Config:** `/opt/appdata/webhook-doorman/config.yml` (0644, non-secret)
-- **Secrets:** `/opt/appdata/webhook-doorman/.env` (0600 ted:ted, read by the daemon as root via
-  `env_file`)
+- **Secrets:** `~/docker/webhook-doorman/.env` (0600, gitignored, read by the daemon as root via
+  `env_file: .env`). It moved there from the appdata directory with the 0.7.0 upgrade, to
+  follow the one-`.env`-per-stack convention, so a stack backup picks it up with the compose
+  file
 - **Data:** `/opt/appdata/webhook-doorman/data` (0755, owned 10001:10001 — SQLite in WAL mode)
 
 ## Port / Endpoint
 
 `127.0.0.1:8507` → container `8080`. The loopback publish is for host-side smoke tests and admin
-only — public traffic arrives via `vikunja-hooks.helmforge.me` through SWAG, which reaches the
+only — proxied traffic arrives via a dedicated webhook subdomain (e.g. `hooks.example.com`)
+through SWAG, which reaches the
 container by name over `forge-net`.
 
 The port is 8507, not 8503: research verified 8503 free during preflight, but `doc-cache-mcp`
@@ -44,7 +49,7 @@ covers the reindex; see vikunja#445 if the sub-hour latency win is ever worth re
 |------|------|-------------|
 | `vikunja-chat` | Matrix | `MATRIX_ROOM_VIKUNJA`, template `{{ summary }}` |
 | `alerts` | Matrix | `MATRIX_ROOM_ALERTS`, template includes `{{ firing_count }} of {{ alert_count }} firing` |
-| `push` | ntfy | `https://ntfy.glitch42.com`, topic `NTFY_TOPIC` |
+| `push` | ntfy | self-hosted ntfy (e.g. `https://ntfy.example.com`), topic `NTFY_TOPIC` |
 
 Discord, Slack, and Apprise sinks also ship in the image (added in `webhook-doorman-sinks-2026-08`)
 but are not configured on forge — no sink instance uses them in `config.yml` above.
@@ -115,13 +120,83 @@ identically on 0.5.0: no new config keys, no new endpoints, no schema migration.
   coverage added, and the test coverage floor raised (with the measured figure recorded above
   the constant, so it can't drift silently again).
 
+## Per-sink filters and review hardening (v0.7.0)
+
+Every existing config loads unchanged, with two exceptions that are now startup errors: a
+source listing the same sink twice, and a source `path` containing `{` or `}`.
+
+### Per-sink filters
+
+A source's `sinks:` entry may be a bare name (as before) or `{name, filter}`. The route filter
+has the same `event_types` / `require` / `deny` gates as a source filter and runs **after** it:
+
+- The **source** filter decides whether an event is admitted and stored.
+- A **route** filter decides only whether *that* sink gets a delivery. `max_field_bytes` stays
+  source-only, because every sink shares the one stored event.
+- Values compare as text, so an integer payload value `3` matches `"3"` (Vikunja's priority is
+  the integer at `data.task.priority`).
+- An event every route refuses is stored as `filtered` with reason `sink`, answered `200`, and
+  the response names the refusing sinks. Nothing is dropped silently.
+- Each refusal logs `delivery_filtered` and increments
+  `webhook_doorman_deliveries_filtered_total{source,sink,reason}`, after the dedup check so a
+  producer retry isn't counted twice.
+- Replay and release re-apply the routes to the stored payload.
+
+The motivating case is one Vikunja webhook feeding a chat room tasks created and completed,
+and a phone only new high/urgent tasks — previously that took a second webhook with its own
+secret. The worked config is
+[`examples/vikunja-chat-and-push.yml`](https://github.com/TadMSTR/webhook-doorman/blob/main/examples/vikunja-chat-and-push.yml)
+in the repo; the reference is `docs/configuration.md`, "Per-sink filters". The reference
+deployment's config does not use route filters yet.
+
+### Image and CI gates
+
+- **No pip in the image**, in the venv or the base image, asserted by `verify-image.sh` (which
+  `ci.yml` and `publish.yml` both run) with a `python3` control so an empty listing can't pass.
+- **Trivy gate**: HIGH/CRITICAL with a fix, no ignore file, over a `docker save` tarball, with
+  package-count floors so a scan that recognised nothing fails. Shown red on the 0.6.0 image
+  before being trusted green: most of 0.6.0's fixable findings were pip's vendored packages,
+  which an audit of the installed tree can't see (vikunja#1033).
+- **gitleaks gate** on PRs, pushes and a weekly full-history scan, with a pinned version and a
+  prover that plants secrets in throwaway copies and requires each to be caught by the rule
+  meant to catch it. Allowlisting is by value, not path. The pinned build flagged synthetic
+  test fixtures a distro build had not, which is the reason to pin it.
+- **Mutation gate** (mutmut) on `verification.py`, `secrets.py` and `filtering.py`, with
+  per-module mutant floors and survivor ceilings; every remaining survivor was read and is
+  equivalent. A test-suite guard also fails any test that touches the network.
+
+### Behaviour changes
+
+- **Replay refuses** events the detector dropped or quarantined, and events a filter refused
+  (`not_replayable`). Quarantined events leave through `/admin/release` only.
+- **Release is atomic**: two concurrent releases of one event queue one set of deliveries.
+- **An interrupted dispatch resumes on redelivery.** If a failure lands between storing an
+  event and queueing its deliveries, the producer's retry resumes it rather than being
+  answered as a duplicate. Only events that were meant to reach sinks are resumed, to the
+  sinks recorded at ingest.
+- **Engine errors reach the DLQ.** A store write that fails around an attempt is logged,
+  counted (`delivery_attempts_total{outcome="error"}`) and counts as an attempt, so a
+  repeating failure dead-letters at `max_attempts` instead of looping.
+- Every credential comparison (webhook verification, admin token, `/metrics` token) goes
+  through one constant-time comparison over bytes; a non-ASCII credential is an ordinary 401.
+- On an agent-readable sink, `summary` and `payload` are always fenced. The detector's
+  `fence_forgery` rule version is now `2`, so stored verdicts say which rule set scored them.
+- Matrix messages carry an empty `m.mentions` (event text can't ping a room), and Matrix
+  transaction ids include a per-database id.
+- **No `/docs`, `/redoc` or `/openapi.json`** — they listed every ingest path, unauthenticated.
+
+**Upgrade warning:** 0.7.0 migrates the database to **schema v3** on first start (one column
+and one small table, in a transaction; the startup log shows `store_ready` with
+`migrated_from=2`). 0.6.0 refuses a newer schema, so snapshot the data directory before
+upgrading if you want a way back.
+
 ## Configuration
 
 `config.yml` sections: `server` (max body size, `allow_unverified`), `storage` (SQLite path,
 retention: 30d events / 90d DLQ), `delivery` (5 attempts, exponential backoff 2s→300s, 10s
 timeout), `admin` (`ADMIN_TOKEN` gate), `sources`, `sinks`.
 
-Secrets live in `/opt/appdata/webhook-doorman/.env`: `GITHUB_WEBHOOK_SECRET`,
+Secrets live in the stack's `.env`: `GITHUB_WEBHOOK_SECRET`,
 `VIKUNJA_WEBHOOK_SECRET`, `GRAFANA_WEBHOOK_TOKEN`, `MATRIX_TOKEN`, `NTFY_TOPIC`, `ADMIN_TOKEN`.
 
 `dedup.id_header` must never point at a credential-bearing header — pointing it at one would get
@@ -133,7 +208,9 @@ dropping all but the first delivery. This is now a startup error, not just a con
 - `GET /health` — `200` unless the router genuinely cannot serve (zero enabled sources, or an
   unreachable store); a source disabled for a missing secret still reports `200` with the reason
   named. **`503` is a real, docker-healthcheck-visible outcome**, not a constant `"ok"`.
-- `GET /admin/dlq` — dead-letter queue, gated by `ADMIN_TOKEN`.
+- `GET /admin/dlq` — dead-letter queue, gated by `ADMIN_TOKEN`. The token is the control for
+  every `/admin/` route; the loopback publish and proxy block are defence in depth.
+- No OpenAPI surface: `/docs`, `/redoc` and `/openapi.json` are disabled (v0.7.0).
 - `GET /metrics` — Prometheus exposition format, hand-written (no runtime `prometheus_client`
   dependency). Delivery/rejection counters and a delivery latency histogram. Unauthenticated by
   default (scrape convention) — a `metrics.token_env` shorter than expected leaves it open rather
@@ -200,14 +277,22 @@ with no separate phase doc:
    hash-pinned lockfile audited from the published artefact; publish path verifies the image
    before push; CI asserts the accept/reject signing contract instead of only liveness. No
    behavioral change to the running service.
+7. v0.5.1 and v0.6.0 — a dependency release, then the Python 3.14 image plus a fix that stops
+   FastAPI 0.142's native OpenTelemetry from attaching a second span exporter on its own.
+8. `webhook-doorman-review-2026-10` — v0.7.0. Per-sink filters, a full review at the current
+   bar (three passes: security, correctness, test quality), a pip-free Trivy-gated image, a
+   full-history gitleaks gate and a mutation gate. Three security audit rounds: round 2 caught
+   a regression the round-1 fix had introduced (a fence-tag regex that backtracked
+   quadratically), which is why re-checks are a required round and not a formality.
 
 Forge went straight from `0.1.0` to `0.3.0` in one rollout once all three follow-on plans closed,
-rather than deploying each intermediate version; v0.4.0 and v0.5.0 each deployed separately. Full
-phase docs
+rather than deploying each intermediate version; v0.4.0, v0.5.0, v0.6.0 and v0.7.0 each deployed
+separately. Full phase docs
 (host-forge-knowledge-base, private): `phases/forge-webhook-router-2026-08.md`,
 `phases/webhook-doorman-correctness-2026-08.md`, `phases/webhook-doorman-sinks-2026-08.md`,
 `phases/webhook-doorman-observability-2026-08.md`,
-`phases/webhook-doorman-agent-content-safety-2026-08.md`.
+`phases/webhook-doorman-agent-content-safety-2026-08.md`,
+`phases/webhook-doorman-review-2026-10.md`.
 
 ## Related Docs
 
