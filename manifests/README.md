@@ -110,7 +110,7 @@ workspace_access:
 
 These examples have had the following replaced:
 - `192.168.1.x` → `<server-ip>`
-- Matrix room IDs (`!<hash>:helmforge.me`) → `<room-id>`
+- Matrix room IDs (`!<hash>:example.com`) → `<room-id>`
 - All credential values remain as `${ENV_VAR}` references (no real values were present)
 
 Replace `<room-id>` with your actual Matrix room IDs and `<server-ip>` with your server's LAN IP before deploying.

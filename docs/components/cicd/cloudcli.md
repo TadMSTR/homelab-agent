@@ -5,7 +5,7 @@ running Claude Code sessions, exploring files, managing git repos, and accessing
 terminal — without needing an SSH connection to the forge host.
 
 - **PM2 name:** `cloudcli` (id 16)
-- **URL:** `cloudcli.helmforge.me`
+- **URL:** `cloudcli.example.com`
 - **Port:** `3001` (SWAG-proxied)
 
 ## How It Runs
@@ -29,13 +29,13 @@ package on forge.
 
 ## SWAG Routing
 
-`cloudcli.subdomain.conf` proxies `cloudcli.helmforge.me` to `localhost:3001`. CloudCLI
+`cloudcli.subdomain.conf` proxies `cloudcli.example.com` to `localhost:3001`. CloudCLI
 uses WebSockets for terminal and session streaming — the proxy conf enables WebSocket
 upgrade headers.
 
 ## Access
 
-CloudCLI is proxied through SWAG and accessible at `cloudcli.helmforge.me`. Access
+CloudCLI is proxied through SWAG and accessible at `cloudcli.example.com`. Access
 control is at the SWAG level.
 
 ## Related Docs

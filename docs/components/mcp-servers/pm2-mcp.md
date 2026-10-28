@@ -14,7 +14,7 @@ scraping.
   restart time against `server.py`'s mtime before assuming any 0.4.0 behaviour is live.
   (0.3.2 was tagged 2026-09-09 and is deployed; 0.3.0 was the long-stale prior tag.)
 - **Package:** `pm2-mcp` (TadMSTR/pm2-mcp)
-- **Repo:** `/home/ted/repos/personal/pm2-mcp/`
+- **Repo:** `~/repos/personal/pm2-mcp/`
 - **Transport:** streamable-http — `127.0.0.1:8486`
 - **Runtime:** Python 3.11+
 

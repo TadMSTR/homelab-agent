@@ -1,7 +1,7 @@
 # matrix-mcp
 
 matrix-mcp gives forge's operator agents Matrix messaging capability via the
-`helmforge.me` homeserver.
+`example.com` homeserver.
 
 - **Source:** `~/repos/personal/matrix-mcp/`
 - **PM2 name:** `matrix-mcp-forge` (ID 2)

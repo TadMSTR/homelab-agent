@@ -7,7 +7,7 @@ subscribers). It is a separate concern from the `librechat-mcp` sidecar, which g
 forge agents programmatic CRUD access to LibreChat's *own* agent definitions — this doc
 covers the app stack itself.
 
-- **URL:** `https://librechat.helmforge.me`
+- **URL:** `https://librechat.example.com`
 - **Stack:** `~/docker/librechat/`
 - **Appdata:** `/opt/appdata/librechat/`
 - **Version:** `v0.8.8-rc2` (bumped from `v0.8.5` 2026-09-05). This is a **release candidate**,
@@ -28,7 +28,7 @@ itself is reachable externally, via SWAG.
 
 ## Port / Endpoint
 
-- Public: `librechat.helmforge.me` (SWAG-proxied, Authentik forward auth)
+- Public: `librechat.example.com` (SWAG-proxied, Authentik forward auth)
 - Internal: `librechat:3080` — the address `librechat-mcp` and other in-network sidecars
   use to reach the app directly
 

@@ -2,7 +2,7 @@
 
 A stack of eight stateless, browser-based web utilities on forge — PDF editing, diagramming, developer tooling, and image editing/conversion. Every service is a static single-page app served by nginx (or an equivalent static server); none has a database, a volume, or any write path. They exist purely as convenient LAN-accessible tools.
 
-Because the apps store nothing and are only used from the local network, access is gated by a SWAG IP allow-list (`<lan-subnet>/24`) rather than Authentik — no login screen. SWAG still terminates TLS with the wildcard `*.helmforge.me` cert, so each tool gets a clean HTTPS subdomain.
+Because the apps store nothing and are only used from the local network, access is gated by a SWAG IP allow-list (`<lan-subnet>/24`) rather than Authentik — no login screen. SWAG still terminates TLS with the wildcard `*.example.com` cert, so each tool gets a clean HTTPS subdomain.
 
 ---
 
@@ -10,14 +10,14 @@ Because the apps store nothing and are only used from the local network, access 
 
 | Tool | URL | Container | Internal port | Purpose |
 |------|-----|-----------|---------------|---------|
-| BentoPDF | `pdf.helmforge.me` | `bentopdf` | 8080 | Client-side PDF editing / merge / split |
-| draw.io | `draw.helmforge.me` | `drawio` | 8080 | Diagramming (drawio/diagrams.net) |
-| Excalidraw | `excalidraw.helmforge.me` | `excalidraw` | 80 | Hand-drawn-style whiteboard / diagrams |
-| IT-Tools | `it-tools.helmforge.me` | `it-tools` | 80 | Developer utility collection (encoders, converters, generators) |
-| Omni-Tools | `omni.helmforge.me` | `omni-tools` | 80 | General-purpose utility collection |
-| CyberChef | `cyberchef.helmforge.me` | `cyberchef` | 8080 | GCHQ "cyber Swiss-army knife" — encode/decode/analyse |
-| miniPaint | `paint.helmforge.me` | `minipaint` | 80 | In-browser raster image editor |
-| VERT | `convert.helmforge.me` | `vert` | 80 | File format conversion |
+| BentoPDF | `pdf.example.com` | `bentopdf` | 8080 | Client-side PDF editing / merge / split |
+| draw.io | `draw.example.com` | `drawio` | 8080 | Diagramming (drawio/diagrams.net) |
+| Excalidraw | `excalidraw.example.com` | `excalidraw` | 80 | Hand-drawn-style whiteboard / diagrams |
+| IT-Tools | `it-tools.example.com` | `it-tools` | 80 | Developer utility collection (encoders, converters, generators) |
+| Omni-Tools | `omni.example.com` | `omni-tools` | 80 | General-purpose utility collection |
+| CyberChef | `cyberchef.example.com` | `cyberchef` | 8080 | GCHQ "cyber Swiss-army knife" — encode/decode/analyse |
+| miniPaint | `paint.example.com` | `minipaint` | 80 | In-browser raster image editor |
+| VERT | `convert.example.com` | `vert` | 80 | File format conversion |
 
 All eight are proxied by SWAG and reachable only from the LAN. drawio also exposes 8443 (HTTPS) internally; the stack proxies the plain-HTTP port 8080. BentoPDF and CyberChef run as the nginx-unprivileged user (`101:101`) on port 8080; the rest use standard nginx on port 80.
 
@@ -70,7 +70,7 @@ allow <lan-subnet>/24;
 deny all;
 ```
 
-No `authentik-server.conf` / `authentik-location.conf` includes. SWAG sees direct client IPs (no Cloudflare / `real_ip`), so the allow-list is what actually keeps these off the public internet even though `*.helmforge.me` resolves publicly and SWAG listens on `0.0.0.0:443`. To grant access from the storage/management subnet, add `allow <storage-subnet>/24;`.
+No `authentik-server.conf` / `authentik-location.conf` includes. SWAG sees direct client IPs (no Cloudflare / `real_ip`), so the allow-list is what actually keeps these off the public internet even though `*.example.com` resolves publicly and SWAG listens on `0.0.0.0:443`. To grant access from the storage/management subnet, add `allow <storage-subnet>/24;`.
 
 ---
 

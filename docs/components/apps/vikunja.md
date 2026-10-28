@@ -30,7 +30,7 @@ attachments, `db/` for the database volume).
 
 | URL / bind | Purpose | Auth |
 |------------|---------|------|
-| `https://vikunja.helmforge.me` | Web UI + REST API (`/api/v1`) | Local login or OIDC (Authentik) |
+| `https://vikunja.example.com` | Web UI + REST API (`/api/v1`) | Local login or OIDC (Authentik) |
 | `127.0.0.1:8501` | [vikunja-mcp](../mcp-servers/vikunja-mcp.md) — MCP tool surface for agents | Per-agent bearer token (passthrough) |
 
 Vikunja does **not** sit behind Authentik forward auth — it has its own local login and an
@@ -50,7 +50,7 @@ Key `~/docker/vikunja/docker-compose.yml` settings (env vars in `~/docker/vikunj
   SSRF guard (blocks RFC1918 targets by default in v2.2+) so webhook delivery can reach the
   internal `vikunja-webhook-listener`. Safe here because webhook registration is restricted
   to trusted accounts only (Ted + agents), not open to untrusted users.
-- `extra_hosts` pins `auth.helmforge.me` and `vikunja-hooks.helmforge.me` to SWAG's
+- `extra_hosts` pins `auth.example.com` and `vikunja-hooks.example.com` to SWAG's
   `forge-net` IP (`172.20.1.29`) — forge's hairpin-NAT limitation means the container can't
   reach those public hostnames via the LAN gateway otherwise.
 
@@ -84,7 +84,7 @@ config, and content-safety layer; summary relevant to Vikunja:
 | GitHub → Vikunja | `/webhook/github` | HMAC-SHA256 (`X-Hub-Signature-256`) | `vikunja-chat` (Matrix) |
 | Vikunja → Matrix/ntfy | `/webhook/vikunja` | HMAC-SHA256 (`X-Vikunja-Signature`) | `vikunja-chat` (Matrix), `push` (ntfy) |
 
-Served behind SWAG at `vikunja-hooks.helmforge.me`, container port `127.0.0.1:8507` →
+Served behind SWAG at `vikunja-hooks.example.com`, container port `127.0.0.1:8507` →
 container `8080` (not 8502, the old listener's port). There is no `task.done` event — task
 completion is inferred from `task.updated` with `done: true`.
 

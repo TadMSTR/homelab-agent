@@ -3,11 +3,11 @@
 Woodpecker is a lightweight CI/CD engine integrated with the forge Gitea instance. It runs pipelines defined in `.woodpecker.yml` files in Gitea repositories, triggered by webhooks on push, PR, and tag events.
 
 - **Version:** 3.15.0
-- **URL:** `https://ci.helmforge.me`
+- **URL:** `https://ci.example.com`
 - **Compose:** `~/docker/woodpecker/docker-compose.yml`
 - **Appdata:** `/opt/appdata/woodpecker/`
 - **Network:** `woodpecker-net` (internal) + `forge-net` (server only)
-- **SWAG proxy:** `ci.helmforge.me` → `woodpecker-server:8000`
+- **SWAG proxy:** `ci.example.com` → `woodpecker-server:8000`
 
 ## Stack
 

@@ -1,7 +1,7 @@
 # SWAG
 
 SWAG (Secure Web Application Gateway) is forge's reverse proxy and SSL termination layer.
-It handles all inbound HTTPS traffic to `helmforge.me` subdomains, issues and renews
+It handles all inbound HTTPS traffic to `example.com` subdomains, issues and renews
 wildcard certificates via Cloudflare DNS validation, and routes requests to backend
 services on the `forge-net` Docker network.
 
@@ -12,7 +12,7 @@ services on the `forge-net` Docker network.
 
 ## SSL
 
-Wildcard cert for `*.helmforge.me` via Let's Encrypt + Cloudflare DNS-01 validation.
+Wildcard cert for `*.example.com` via Let's Encrypt + Cloudflare DNS-01 validation.
 `STAGING=false` — production certs. Renewal is automatic. Certs at
 `/opt/appdata/swag/etc/letsencrypt/`.
 
@@ -20,23 +20,23 @@ Wildcard cert for `*.helmforge.me` via Let's Encrypt + Cloudflare DNS-01 validat
 
 | Conf | Service | Subdomain |
 |------|---------|-----------|
-| `authentik.subdomain.conf` | Authentik SSO | `auth.helmforge.me` |
-| `cloudcli.subdomain.conf` | CloudCLI web UI | `cloudcli.helmforge.me` |
-| `dockhand.subdomain.conf` | Dockhand stack manager | `dockhand.helmforge.me` |
-| `docs.subdomain.conf` | Owners manual static site | `docs.helmforge.me` |
-| `grafana.subdomain.conf` | Grafana dashboards | `grafana.helmforge.me` |
-| `hister.subdomain.conf` | Hister memory search | `hister.helmforge.me` |
+| `authentik.subdomain.conf` | Authentik SSO | `auth.example.com` |
+| `cloudcli.subdomain.conf` | CloudCLI web UI | `cloudcli.example.com` |
+| `dockhand.subdomain.conf` | Dockhand stack manager | `dockhand.example.com` |
+| `docs.subdomain.conf` | Owners manual static site | `docs.example.com` |
+| `grafana.subdomain.conf` | Grafana dashboards | `grafana.example.com` |
+| `hister.subdomain.conf` | Hister memory search | `hister.example.com` |
 | ~~`hvault.subdomain.conf`~~ | Retired — HashiCorp Vault was replaced by OpenBao, which is loopback-only and has no proxy route | — |
-| `influxdb.subdomain.conf` | InfluxDB 3 | `influxdb.helmforge.me` |
-| `ketesa.subdomain.conf` | Synapse admin UI | `ketesa.helmforge.me` |
-| `langfuse.subdomain.conf` | Langfuse observability | `langfuse.helmforge.me` |
-| `matrix.subdomain.conf` | Synapse Matrix API | `matrix.helmforge.me` |
-| `ollama.subdomain.conf` | Ollama LLM API | `ollama.helmforge.me` |
-| `open-webui.subdomain.conf` | Open WebUI | `ai.helmforge.me` |
-| `patchmon.subdomain.conf` | Patchmon patch manager | `patchmon.helmforge.me` |
-| `searxng.subdomain.conf` | SearXNG search | `search.helmforge.me` |
-| `signoz.subdomain.conf` | SigNoz APM | `signoz.helmforge.me` |
-| `vaultwarden.subdomain.conf` | Vaultwarden passwords | `vault.helmforge.me` |
+| `influxdb.subdomain.conf` | InfluxDB 3 | `influxdb.example.com` |
+| `ketesa.subdomain.conf` | Synapse admin UI | `ketesa.example.com` |
+| `langfuse.subdomain.conf` | Langfuse observability | `langfuse.example.com` |
+| `matrix.subdomain.conf` | Synapse Matrix API | `matrix.example.com` |
+| `ollama.subdomain.conf` | Ollama LLM API | `ollama.example.com` |
+| `open-webui.subdomain.conf` | Open WebUI | `ai.example.com` |
+| `patchmon.subdomain.conf` | Patchmon patch manager | `patchmon.example.com` |
+| `searxng.subdomain.conf` | SearXNG search | `search.example.com` |
+| `signoz.subdomain.conf` | SigNoz APM | `signoz.example.com` |
+| `vaultwarden.subdomain.conf` | Vaultwarden passwords | `vault.example.com` |
 
 ## Per-Service Auth Model
 
@@ -61,7 +61,7 @@ A service conf using forward auth:
 ```nginx
 server {
     listen 443 ssl;
-    server_name searxng.helmforge.me;
+    server_name searxng.example.com;
 
     include /config/nginx/ssl.conf;
     include /config/nginx/authentik-server.conf;
@@ -77,20 +77,20 @@ server {
 ## OIDC Services (No Forward Auth in Proxy Conf)
 
 Grafana uses OIDC directly. The proxy conf is a plain pass-through — Authentik handles
-the OIDC callback at `grafana.helmforge.me/login/generic_oauth`. SWAG just proxies.
+the OIDC callback at `grafana.example.com/login/generic_oauth`. SWAG just proxies.
 
 ## Domain-Level Cookie Scope
 
 The Authentik forward auth proxy provider is configured with a domain-level cookie
-(`helmforge.me` as the cookie domain, not per-subdomain). A single Authentik login
+(`example.com` as the cookie domain, not per-subdomain). A single Authentik login
 covers all forward-auth-protected subdomains. Requires:
-1. The Authentik proxy provider's "cookie domain" set to `helmforge.me`
+1. The Authentik proxy provider's "cookie domain" set to `example.com`
 2. All SWAG proxy confs using the same `authentik-server.conf` / `authentik-location.conf` includes
 
 ## Static Content
 
 The Owner's Manual static site (`~/repos/personal/helm-owners-manual/site/`) is mounted read-only at
-`/config/www/owners-manual` and served at `docs.helmforge.me`.
+`/config/www/owners-manual` and served at `docs.example.com`.
 
 ## Network Placement
 

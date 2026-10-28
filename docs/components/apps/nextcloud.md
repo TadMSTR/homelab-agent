@@ -24,9 +24,9 @@ No Authentik forward auth — it breaks WebDAV clients and mobile sync apps. Eac
 
 | URL | Purpose | Auth |
 |-----|---------|------|
-| `https://nextcloud.helmforge.me` | Main web UI and WebDAV | Nextcloud login |
-| `https://collabora.helmforge.me` | Collabora CODE document editor | Token-gated by Nextcloud |
-| `https://whiteboard.helmforge.me` | Nextcloud Whiteboard | JWT-gated by Nextcloud |
+| `https://nextcloud.example.com` | Main web UI and WebDAV | Nextcloud login |
+| `https://collabora.example.com` | Collabora CODE document editor | Token-gated by Nextcloud |
+| `https://whiteboard.example.com` | Nextcloud Whiteboard | JWT-gated by Nextcloud |
 
 All three are proxied by SWAG. Collabora admin console paths (`/browser/dist/admin`, `/cool/adminws`) are blocked at the proxy (403).
 
@@ -96,15 +96,15 @@ The `nextcloud-notify-push` mod is loaded at startup. It provides the high-perfo
 
 ### Extra hosts
 
-The `nextcloud` and `nextcloud-whiteboard` containers have static host entries for `nextcloud.helmforge.me`, `collabora.helmforge.me`, and `whiteboard.helmforge.me` pointing to SWAG's forge-net IP (`172.20.1.29`). This ensures internal callbacks go through SWAG (required for SSL termination mode).
+The `nextcloud` and `nextcloud-whiteboard` containers have static host entries for `nextcloud.example.com`, `collabora.example.com`, and `whiteboard.example.com` pointing to SWAG's forge-net IP (`172.20.1.29`). This ensures internal callbacks go through SWAG (required for SSL termination mode).
 
 ---
 
 ## Agent workspace
 
-`/home/ted/.claude/comms/artifacts` is mounted read-write into the `nextcloud` container at `/agent-workspace`. This allows agents to share files with Nextcloud without network transfers.
+`~/.claude/comms/artifacts` is mounted read-write into the `nextcloud` container at `/agent-workspace`. This allows agents to share files with Nextcloud without network transfers.
 
-`/home/ted/repos` and `/home/ted/Documents` are also mounted read-only at `/ted-personal/repos` and `/ted-personal/Documents`.
+`~/repos` and `~/Documents` are also mounted read-only at `/ted-personal/repos` and `/ted-personal/Documents`.
 
 ---
 
@@ -133,7 +133,7 @@ cd ~/docker/nextcloud && docker compose down && docker compose up -d
 
 ```bash
 # Main app (self-reports running state)
-curl -sk https://nextcloud.helmforge.me/status.php | python3 -m json.tool
+curl -sk https://nextcloud.example.com/status.php | python3 -m json.tool
 
 # Database
 docker exec nextcloud-db pg_isready -U nextcloud

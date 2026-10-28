@@ -6,7 +6,7 @@ reports exist, logging warnings when they are missing.
 
 - **PM2 ID:** 22
 - **Schedule:** Every 15 minutes (`*/15 * * * *`)
-- **Script:** `/home/ted/scripts/drift-detector-scan.sh`
+- **Script:** `~/scripts/drift-detector-scan.sh`
 - **Mode:** cron-restart, fork
 
 ## How It Works

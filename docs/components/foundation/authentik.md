@@ -3,10 +3,10 @@
 Authentik is forge's identity provider and SSO gateway. It handles SSO for all web
 services via both domain-level forward auth (a single login gate covering all protected
 subdomains) and per-service OIDC for apps that support it natively. All admin-facing
-UIs on `helmforge.me` route through Authentik before reaching their backend.
+UIs on `example.com` route through Authentik before reaching their backend.
 
 - **Image:** `ghcr.io/goauthentik/server:2026.8.4`
-- **URL:** `auth.helmforge.me`
+- **URL:** `auth.example.com`
 - **Appdata:** `/opt/appdata/authentik/`
 
 ## Version and Upgrades
@@ -26,8 +26,8 @@ a secret, so it's set inline in the compose file rather than in `.env`.
 ## What Authentik Provides
 
 **Domain-level forward auth** — A single Authentik session covers all services that use
-the forward auth proxy provider. Log in once at `auth.helmforge.me`, and the session
-cookie is valid for every service under `*.helmforge.me`. Services without their own
+the forward auth proxy provider. Log in once at `auth.example.com`, and the session
+cookie is valid for every service under `*.example.com`. Services without their own
 auth can rely entirely on this gate.
 
 **Per-service OIDC** — Apps with native SSO support use OAuth2/OIDC directly. Authentik
@@ -87,7 +87,7 @@ auth challenges to the Authentik server using LSIO-provided `authentik-server.co
 
 ### Forward Auth (Domain-Level)
 
-Configured as a Proxy Provider with domain-level cookie scope (`helmforge.me` cookie
+Configured as a Proxy Provider with domain-level cookie scope (`example.com` cookie
 domain). One provider covers all subdomains. Services opt in by including the Authentik
 middleware in their SWAG proxy conf — no per-service Authentik configuration needed.
 
@@ -119,7 +119,7 @@ auth redirects. The SWAG proxy conf passes traffic through without auth middlewa
 
 ## Adding a New Protected Service
 
-1. Create an Application in the Authentik admin UI (`auth.helmforge.me/if/admin/`)
+1. Create an Application in the Authentik admin UI (`auth.example.com/if/admin/`)
 2. Create a Proxy Provider (for forward auth) or OAuth2 Provider (for OIDC)
 3. Add the Authentik middleware to the service's SWAG proxy conf
 

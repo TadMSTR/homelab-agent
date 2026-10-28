@@ -1,12 +1,12 @@
 # docs/components
 
-Per-service operational reference for the homelab-agent platform. 111 docs covering every service, MCP server, and background job running on forge, organized into 9 categories.
+Per-service operational reference for the homelab-agent platform. 111 docs covering every service, MCP server, and background job running on forge, organized into 9 categories plus 6 uncategorised top-level docs.
 
 Each doc covers: what the service is, where it runs, configuration, dependencies, how to restart/check health/view logs, and scoped-mcp integration where applicable.
 
 ---
 
-## [`foundation/`](foundation/) — Host, Networking & Auth (10)
+## [`foundation/`](foundation/) — Host, Networking & Auth (11)
 
 | Doc | Service |
 |-----|---------|
@@ -22,7 +22,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`vault.md`](foundation/vault.md) | OpenBao secrets store: AppRole auth, Shamir unseal, Raft snapshots |
 | [`dockhand.md`](foundation/dockhand.md) | Docker stack manager UI |
 
-## [`observability/`](observability/) — Metrics, Logs & Traces (14)
+## [`observability/`](observability/) — Metrics, Logs & Traces (15)
 
 | Doc | Service |
 |-----|---------|
@@ -40,8 +40,9 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`langfuse-mcp.md`](observability/langfuse-mcp.md) | Langfuse query MCP server |
 | [`loki-mcp.md`](observability/loki-mcp.md) | Loki log query MCP server |
 | [`nvidia-exporter.md`](observability/nvidia-exporter.md) | GPU metrics exporter |
+| [`healthchecks.md`](observability/healthchecks.md) | Cron-liveness monitor (crontab jobs ping it; Prometheus scrapes check state) |
 
-## [`ai-search/`](ai-search/) — AI Inference & Search (10)
+## [`ai-search/`](ai-search/) — AI Inference & Search (13)
 
 | Doc | Service |
 |-----|---------|
@@ -50,13 +51,16 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`open-webui.md`](ai-search/open-webui.md) | Multi-model chat UI |
 | [`searxng.md`](ai-search/searxng.md) | Private meta-search engine |
 | [`searxng-mcp.md`](ai-search/searxng-mcp.md) | Web search + fetch cascade MCP server |
-| [`firecrawl.md`](ai-search/firecrawl.md) | JS-rendered web extraction |
+| [`firecrawl.md`](ai-search/firecrawl.md) | JS-rendered web extraction, legacy `firecrawl-simple` stack (superseded) |
+| [`firecrawl-v2.md`](ai-search/firecrawl-v2.md) | Upstream Firecrawl, the current extraction backend (replaces the legacy stack above) |
+| [`byparr.md`](ai-search/byparr.md) | Challenge-solving headless browser, searxng-mcp's solver tier |
 | [`crawl4ai.md`](ai-search/crawl4ai.md) | Web crawling |
 | [`reranker.md`](ai-search/reranker.md) | ML result reranking |
 | [`hister.md`](ai-search/hister.md) | Browser history semantic search |
 | [`kiwix.md`](ai-search/kiwix.md) | Offline Wikipedia / Stack Overflow / Arch Wiki |
+| [`llm-providers.md`](ai-search/llm-providers.md) | Which LLM each memory/search consumer calls, and why |
 
-## [`memory/`](memory/) — Memory & Knowledge Graph (9)
+## [`memory/`](memory/) — Memory & Knowledge Graph (10)
 
 | Doc | Service |
 |-----|---------|
@@ -68,9 +72,10 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`memsearch-mcp.md`](memory/memsearch-mcp.md) | memsearch MCP server, retired 2026-09-17 |
 | [`memsearch-summarize.md`](memory/memsearch-summarize.md) | Session transcript summarizer, retired 2026-09-17 (replaced by scribe) |
 | [`memory-expire.md`](memory/memory-expire.md) | Expired note eviction cron |
+| [`memory-compact-qc.md`](memory/memory-compact-qc.md) | QC grader for memsearch `compact`, retired with memsearch (replaced by scribe's `qc-report`) |
 | [`graphiti.md`](memory/graphiti.md) | Temporal knowledge graph (Neo4j backend), retired 2026-08-05 |
 
-## [`agent/`](agent/) — Agent Infrastructure (15)
+## [`agent/`](agent/) — Agent Infrastructure (20)
 
 | Doc | Service |
 |-----|---------|
@@ -89,19 +94,28 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`nats-mcp.md`](agent/nats-mcp.md) | NATS publish/subscribe MCP server |
 | [`dragonfly.md`](agent/dragonfly.md) | Agent state backend (Redis-compatible) |
 | [`postgres.md`](agent/postgres.md) | Agent session registry + HITL approval audit (PostgreSQL) |
+| [`steward.md`](agent/steward.md) | Config-proposer agent for the root-owned manifest and workspace-policy surface (proposes, never applies) |
+| [`forge-config-mcp.md`](agent/forge-config-mcp.md) | Closed op vocabulary steward authors config proposals through |
+| [`webhook-doorman.md`](agent/webhook-doorman.md) | Fail-closed inbound webhook router (verify, dedupe, fan out to sinks) |
+| [`matrix-hitl-bot.md`](agent/matrix-hitl-bot.md) | Matrix front end for HITL approvals, decommissioned 2026-09-27 |
+| [`harlock.md`](agent/harlock.md) | Resident personal-assistant Matrix agent, decommissioned 2026-08-08 |
 
-## [`mcp-servers/`](mcp-servers/) — Infrastructure MCP Servers (8)
+## [`mcp-servers/`](mcp-servers/) — Infrastructure MCP Servers (12)
 
 | Doc | Service |
 |-----|---------|
 | [`system-ops.md`](mcp-servers/system-ops.md) | File, directory, and command execution MCP |
-| [`githost-mcp.md`](mcp-servers/githost-mcp.md) | Git + GitHub / Gitea / GitLab MCP (32 tools) |
+| [`githost-mcp.md`](mcp-servers/githost-mcp.md) | Git + GitHub / Gitea / GitLab MCP (74 tools) |
 | [`dockhand-mcp.md`](mcp-servers/dockhand-mcp.md) | Docker container and stack management MCP |
 | [`patchmon-mcp.md`](mcp-servers/patchmon-mcp.md) | Apt patch management MCP, retired 2026-10-26 |
 | [`pm2-mcp.md`](mcp-servers/pm2-mcp.md) | PM2 process management MCP |
 | [`code-server-mcp.md`](mcp-servers/code-server-mcp.md) | code-server management MCP |
 | [`plane-mcp.md`](mcp-servers/plane-mcp.md) | Plane issue tracking MCP, retired 2026-10-25 |
 | [`backrest-mcp.md`](mcp-servers/backrest-mcp.md) | Backup plan status, snapshots, restore MCP (Backrest) |
+| [`vikunja-mcp.md`](mcp-servers/vikunja-mcp.md) | Vikunja task/project tracker MCP |
+| [`librechat-mcp.md`](mcp-servers/librechat-mcp.md) | LibreChat agent management MCP (22 tools) |
+| [`doc-cache-mcp.md`](mcp-servers/doc-cache-mcp.md) | Allowlisted list/add/sync MCP for the shared documentation cache |
+| [`datastore-mcp.md`](mcp-servers/datastore-mcp.md) | Read-only multi-database query MCP, parked 2026-10-25 |
 
 ## [`cicd/`](cicd/) — CI/CD & Dev Tools (7)
 
@@ -115,7 +129,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`cloudcli.md`](cicd/cloudcli.md) | Browser Claude Code UI |
 | [`owners-manual.md`](cicd/owners-manual.md) | Auto-generated platform reference (MkDocs site) |
 
-## [`platform/`](platform/) — Monitoring & Doc Health (7)
+## [`platform/`](platform/) — Monitoring & Doc Health (9)
 
 | Doc | Service |
 |-----|---------|
@@ -126,8 +140,10 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`drift-detector-scan.md`](platform/drift-detector-scan.md) | Configuration drift detection |
 | [`build-unblock-scan.md`](platform/build-unblock-scan.md) | Stalled build detection |
 | [`git-drift-alert.md`](platform/git-drift-alert.md) | Uncommitted git change alerting |
+| [`git-remote-cred-check.md`](platform/git-remote-cred-check.md) | Plaintext credentials in git remote URLs, alerting |
+| [`writer-doc-queue.md`](platform/writer-doc-queue.md) | Daily headless writer session that works approved doc tasks |
 
-## [`apps/`](apps/) — Productivity & Self-Hosted Services (5)
+## [`apps/`](apps/) — Productivity & Self-Hosted Services (8)
 
 | Doc | Service |
 |-----|---------|
@@ -136,3 +152,19 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`proton-bridge.md`](apps/proton-bridge.md) | Proton Mail SMTP relay (native) |
 | [`stunnel.md`](apps/stunnel.md) | TLS wrapper for Proton Mail Bridge |
 | [`tools-stack.md`](apps/tools-stack.md) | 8 stateless browser utilities (PDF, diagrams, dev tools, image edit) |
+| [`vikunja.md`](apps/vikunja.md) | Self-hosted task and project tracker (the platform's ticket system) |
+| [`homepage.md`](apps/homepage.md) | Service dashboard behind a locked-down Docker socket proxy |
+| [`plane.md`](apps/plane.md) | Previous issue tracker, parked 2026-10-25 (stack stopped, kept intact) |
+
+## Top level — Uncategorised (6)
+
+These sit directly in `docs/components/` rather than in a category directory.
+
+| Doc | Service |
+|-----|---------|
+| [`venv-deploy.md`](venv-deploy.md) | Repeatable deploy step installing Python services into per-service venvs |
+| [`dep-update-check.md`](dep-update-check.md) | Weekly check for host-global dependency updates (npm, pip venvs, Claude Code CLI, Node.js) |
+| [`forge-reboot-gate.md`](forge-reboot-gate.md) | Gated daily reboot window for pending kernel updates |
+| [`plugin-drift-sentinel.md`](plugin-drift-sentinel.md) | Drift detector for forked Claude Code plugin marketplaces (alerts, never repairs) |
+| [`jobsearch-mcp.md`](jobsearch-mcp.md) | Job-search assistant MCP server |
+| [`nextcloud-mcp.md`](nextcloud-mcp.md) | Nextcloud admin, provisioning and WebDAV MCP |

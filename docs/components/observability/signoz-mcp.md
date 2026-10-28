@@ -5,8 +5,8 @@ sysadmin agent structured access to forge observability data — services, trace
 metrics, and alert rules — without exposing SigNoz write endpoints.
 
 - **Package:** `signoz-mcp` v0.3.0 (TadMSTR/signoz-mcp)
-- **Repo:** `/home/ted/repos/personal/signoz-mcp/`
-- **Venv:** `/home/ted/repos/personal/signoz-mcp/.venv/`
+- **Repo:** `~/repos/personal/signoz-mcp/`
+- **Venv:** `~/repos/personal/signoz-mcp/.venv/`
 - **Transport:** streamable-http — `127.0.0.1:8492` (PM2, `ecosystem.config.js`)
 - **SigNoz URL:** `http://localhost:8080` (SigNoz stack on forge-net)
 - **Auth:** `SIGNOZ_API_KEY` — injected from `~/.secrets/forge.env` (key: `SIGNOZ_KEY`)
@@ -15,7 +15,7 @@ metrics, and alert rules — without exposing SigNoz write endpoints.
 ## Installation
 
 ```bash
-cd /home/ted/repos/personal
+cd ~/repos/personal
 git clone https://github.com/TadMSTR/signoz-mcp.git
 cd signoz-mcp
 python3 -m venv .venv
@@ -37,7 +37,7 @@ env: {
 }
 ```
 
-`SIGNOZ_API_KEY` is sourced from `~/.secrets/forge.env` (key: `SIGNOZ_KEY`) before `pm2 start`. The Python launch script `/home/ted/scripts/run-signoz-mcp.sh` is retained as a fallback — it handles `forge.env` special characters that bash `source` misinterprets.
+`SIGNOZ_API_KEY` is sourced from `~/.secrets/forge.env` (key: `SIGNOZ_KEY`) before `pm2 start`. The Python launch script `~/scripts/run-signoz-mcp.sh` is retained as a fallback — it handles `forge.env` special characters that bash `source` misinterprets.
 
 ## Tools (9, all read-only)
 

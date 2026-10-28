@@ -7,7 +7,7 @@ config to a restic repository on atlas NFS.
 - **Binary:** `/usr/local/bin/backrest`
 - **Service:** `/etc/systemd/system/backrest.service` (User=ted, `after=mnt-atlas-forge.mount`)
 - **Config:** `~/.config/backrest/config.json`
-- **Web UI:** `https://backrest.helmforge.me` (Authentik forward auth)
+- **Web UI:** `https://backrest.example.com` (Authentik forward auth)
 - **Port:** `9898` (`0.0.0.0`, UFW-restricted to <lan-subnet> + forge Docker networks)
 - **Restic repo:** `atlas-forge` → `/mnt/atlas/forge/backups/restic` (NFS mount)
 
@@ -59,9 +59,9 @@ journalctl -u backrest -f
 backrest backup --plan forge-agent
 ```
 
-Alerts go to `#alerts:helmforge.me` on any `CONDITION_ANY_ERROR` via the hook command:
+Alerts go to `#alerts:example.com` on any `CONDITION_ANY_ERROR` via the hook command:
 ```
-/home/ted/scripts/backrest-notify.sh '{{.Plan.Id}}' '{{.Error}}'
+~/scripts/backrest-notify.sh '{{.Plan.Id}}' '{{.Error}}'
 ```
 
 ## Security Notes
@@ -69,7 +69,7 @@ Alerts go to `#alerts:helmforge.me` on any `CONDITION_ANY_ERROR` via the hook co
 - Binds `0.0.0.0:9898` — required for SWAG Docker→host routing (SWAG connects via `172.20.1.1`).
   UFW restricts inbound 9898 to <lan-subnet> and the Docker bridge networks.
   (Audit: 2026-06-03/backrest-forge-deploy-2026-06, accepted)
-- Authentik forward auth on `backrest.helmforge.me` — all web UI access gated.
+- Authentik forward auth on `backrest.example.com` — all web UI access gated.
 - Config file at `~/.config/backrest/config.json` contains the restic repo password
   (encrypted at rest via restic's own encryption, stored in bcrypt form for UI auth).
 - Runs as `ted` (UID 1000) — same user as the backed-up paths.

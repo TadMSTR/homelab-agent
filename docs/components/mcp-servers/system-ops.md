@@ -5,7 +5,7 @@ command execution, file system read/write access, and process inspection on the 
 host. It gives agents direct local system access, scoped per agent via manifests.
 
 - **Package:** `homelab-ops-mcp` (TadMSTR/homelab-ops-mcp)
-- **Repo:** `/home/ted/repos/personal/homelab-ops-mcp/`
+- **Repo:** `~/repos/personal/homelab-ops-mcp/`
 - **Transport:** streamable-http — `127.0.0.1:8282`
 - **Runtime:** Python 3.10+
 
@@ -28,7 +28,7 @@ host. It gives agents direct local system access, scoped per agent via manifests
 | `--port` | No | `8282` | Listen port (CLI arg) |
 
 No external env vars required. Host, port, and working directory are configurable via
-CLI arguments. Default working directory is `/home/ted`.
+CLI arguments. Default working directory is the operator's home directory (`~`).
 
 ## Dependencies
 
@@ -42,7 +42,7 @@ PM2 process named `system-ops`, configured via `ecosystem.config.js` in the repo
 args: ["server.py", "--host", "127.0.0.1", "--port", "8282"]
 ```
 
-Logs to `/home/ted/logs/system-ops.log`.
+Logs to `~/logs/system-ops.log`.
 
 ## scoped-mcp Wiring
 

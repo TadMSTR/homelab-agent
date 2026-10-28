@@ -5,7 +5,7 @@ search backends without storing queries or tracking users. Forge agents and Open
 use it as the web search backend.
 
 - **Image:** `searxng/searxng:latest`
-- **URL:** `search.helmforge.me`
+- **URL:** `search.example.com`
 - **Port:** `127.0.0.1:8081` → container `8080`
 - **Networks:** `forge-net` + `searxng-internal`
 

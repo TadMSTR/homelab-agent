@@ -8,8 +8,8 @@ PatchPilot on forge.
 - **Compose:** `~/docker/patchmon/docker-compose.yml`
 - **Appdata:** `/opt/appdata/patchmon/`
 - **Network:** `forge-net` (SWAG access)
-- **URL:** `https://patchmon.helmforge.me`
-- **API docs:** `https://patchmon.helmforge.me/api-docs` (Swagger/OpenAPI)
+- **URL:** `https://patchmon.example.com`
+- **API docs:** `https://patchmon.example.com/api-docs` (Swagger/OpenAPI)
 
 ## Stack Containers
 
@@ -36,13 +36,13 @@ This means:
 
 ## Hairpin DNS
 
-PatchMon-server must resolve `auth.helmforge.me` to complete OIDC flows. Since both
+PatchMon-server must resolve `auth.example.com` to complete OIDC flows. Since both
 `patchmon-server` and the Authentik container are behind SWAG on the same forge host,
 a hairpin DNS workaround is required:
 
 ```yaml
 extra_hosts:
-  - "auth.helmforge.me:172.20.1.20"
+  - "auth.example.com:172.20.1.20"
 ```
 
 `172.20.1.20` is SWAG's IP on `forge-net`. Without this, OIDC token exchange fails because
@@ -53,7 +53,7 @@ the container cannot resolve the external FQDN back to the local SWAG instance.
 Forge is enrolled as a managed host via the PatchMon outbound agent. The agent connects
 **outbound only** via WebSocket — no inbound port is opened:
 
-- **Connection:** `wss://patchmon.helmforge.me/api/v1/agents/ws`
+- **Connection:** `wss://patchmon.example.com/api/v1/agents/ws`
 - **Registered:** 1943 packages, 8 repos on first check-in (2026-05-25)
 - No persistent daemon required — agent runs as a system service that maintains the
   WebSocket connection

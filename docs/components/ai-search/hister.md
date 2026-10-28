@@ -2,11 +2,11 @@
 
 Hister is a browser-based semantic and keyword search UI over forge's knowledge corpus.
 It indexes mounted document collections and provides a search interface at
-`hister.helmforge.me`. When no results are found in indexed content, it redirects to
+`hister.example.com`. When no results are found in indexed content, it redirects to
 SearXNG for a web search fallback.
 
 - **Image:** `ghcr.io/asciimoo/hister` (SHA-pinned)
-- **URL:** `https://hister.helmforge.me`
+- **URL:** `https://hister.example.com`
 - **Port:** `4433` (internal, SWAG-proxied)
 - **Appdata:** `/opt/appdata/hister/`
 
@@ -24,7 +24,7 @@ infrastructure. Memory shared notes give Hister visibility into working memory d
 ## Search Fallback
 
 `HISTER__APP__REDIRECT_ON_NO_RESULTS=true` — if a query matches nothing in the indexed
-collections, the browser is redirected to `search.helmforge.me/search?q={query}` (SearXNG).
+collections, the browser is redirected to `search.example.com/search?q={query}` (SearXNG).
 This makes Hister a unified entry point: local KB first, web search as a fallback.
 
 ## Hardening
@@ -46,7 +46,7 @@ directories to index, display names) are set there.
 ## Standalone Hister vs. `searxng-hister`
 
 This doc covers the standalone Hister instance above — a general-purpose search UI over
-forge's knowledge corpus, deployed as its own service at `hister.helmforge.me`.
+forge's knowledge corpus, deployed as its own service at `hister.example.com`.
 
 A second, separate Hister container, `searxng-hister`, runs embedded inside the
 [SearXNG](searxng.md) stack (`~/docker/searxng/`) rather than as its own top-level

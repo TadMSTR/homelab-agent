@@ -26,7 +26,7 @@ PRs and the cache directory.
 module.exports = {
   platform: 'gitea',
   endpoint: 'https://gitea.tadmstr.me',
-  gitAuthor: 'Renovate Bot <renovate-bot@helmforge.me>',
+  gitAuthor: 'Renovate Bot <renovate-bot@example.com>',
   autodiscover: true,
   autodiscoverTopics: ['renovate'],   // only repos tagged 'renovate'
   onboarding: true,

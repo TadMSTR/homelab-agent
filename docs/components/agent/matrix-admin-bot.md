@@ -1,7 +1,7 @@
 # matrix-admin-bot (forge)
 
 The forge instance of matrix-admin-bot provisions and manages Matrix accounts for forge's
-5 operator agents on the `helmforge.me` homeserver. It is a separate PM2 process
+5 operator agents on the `example.com` homeserver. It is a separate PM2 process
 from the claudebox instance — different homeserver, different bot account, different config.
 
 See homelab-agent matrix-admin-bot doc
@@ -15,7 +15,7 @@ for the claudebox instance and full command reference. This doc covers the forge
 ## How It Runs
 
 ```
-python bot.py --config /home/ted/.secrets/matrix-admin-bot.yml
+python bot.py --config ~/.secrets/matrix-admin-bot.yml
 ```
 
 Launched via the matrix-admin-bot virtualenv at
@@ -25,22 +25,22 @@ Launched via the matrix-admin-bot virtualenv at
 ## Configuration
 
 Config at `~/.secrets/matrix-admin-bot.yml` (chmod 600). The bot runs as
-`@matrix-admin-bot:helmforge.me` with `@ted:helmforge.me` as the sole
+`@matrix-admin-bot:example.com` with `@ted:example.com` as the sole
 `allowed_sender`.
 
 5 agent entries configured:
-- `sysadmin` — `@agent.sysadmin:helmforge.me`
-- `research` — `@agent.research:helmforge.me`
-- `dev` — `@agent.dev:helmforge.me`
-- `security` — `@agent.security:helmforge.me`
-- `writer` — `@agent.writer:helmforge.me`
+- `sysadmin` — `@agent.sysadmin:example.com`
+- `research` — `@agent.research:example.com`
+- `dev` — `@agent.dev:example.com`
+- `security` — `@agent.security:example.com`
+- `writer` — `@agent.writer:example.com`
 
 `secrets_dir` points to the forge secrets directory where `!rotate-token` writes new
 token files. The `metrics_port` is set to 0 (disabled) on forge.
 
 ## Credential Note
 
-At build time, the forge admin bot uses `@ted:helmforge.me`'s personal tokens
+At build time, the forge admin bot uses `@ted:example.com`'s personal tokens
 (`access_token` for the bot's Matrix client + `admin_api_token` for Synapse admin calls).
 These tokens will expire or become invalid if Ted's personal credentials change on the
 forge homeserver. If the bot stops working after a password change, re-provision the bot

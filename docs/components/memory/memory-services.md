@@ -57,7 +57,7 @@ Provides `list_notes`, `get_note_metadata`, and `count_by` tools for structured 
 by category, tier, tag, or date — without reading note bodies.
 
 ```bash
-/home/ted/repos/personal/memory-metadata-mcp/server.py
+~/repos/personal/memory-metadata-mcp/server.py
 ```
 
 - **Endpoint:** `http://127.0.0.1:8490`
@@ -75,7 +75,7 @@ Scope: personal-agent use only (not in the global scoped-mcp manifest).
 > name changed.
 
 ```bash
-/home/ted/repos/personal/memory-fulltext-mcp/server.py
+~/repos/personal/memory-fulltext-mcp/server.py
 ```
 
 - **Endpoint:** `http://127.0.0.1:8491`

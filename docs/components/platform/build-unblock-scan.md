@@ -6,7 +6,7 @@ progress without manual dependency checking.
 
 - **PM2 ID:** 23
 - **Schedule:** Every 30 minutes (`*/30 * * * *`)
-- **Script:** `/home/ted/scripts/build-unblock-scan.sh`
+- **Script:** `~/scripts/build-unblock-scan.sh`
 - **Mode:** cron-restart, fork
 
 ## How It Works

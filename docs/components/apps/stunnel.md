@@ -25,12 +25,12 @@ The frontend (client-facing) side uses implicit TLS. stunnel handles the STARTTL
 accept   = 0.0.0.0:1587
 connect  = 127.0.0.1:1025
 protocol = smtp
-cert     = /opt/appdata/swag/etc/letsencrypt/live/helmforge.me/fullchain.pem
-key      = /opt/appdata/swag/etc/letsencrypt/live/helmforge.me/privkey.pem
+cert     = /opt/appdata/swag/etc/letsencrypt/live/example.com/fullchain.pem
+key      = /opt/appdata/swag/etc/letsencrypt/live/example.com/privkey.pem
 sslVersionMin = TLSv1.2
 ```
 
-The cert is the SWAG-managed wildcard Let's Encrypt cert for `*.helmforge.me` (ECDSA chain via YE1/Root YE/ISRG Root X2).
+The cert is the SWAG-managed wildcard Let's Encrypt cert for `*.example.com` (ECDSA chain via YE1/Root YE/ISRG Root X2).
 
 ---
 
@@ -63,7 +63,7 @@ stunnel auto-reloads when the SWAG cert renews. Two systemd units handle this:
 **`/etc/systemd/system/stunnel-cert-reload.path`** — watches the cert file:
 ```ini
 [Path]
-PathChanged=/opt/appdata/swag/etc/letsencrypt/live/helmforge.me/fullchain.pem
+PathChanged=/opt/appdata/swag/etc/letsencrypt/live/example.com/fullchain.pem
 ```
 
 **`/etc/systemd/system/stunnel-cert-reload.service`** — reloads stunnel4 on path change:
@@ -81,7 +81,7 @@ No manual cert rotation needed. SWAG renews the cert; the path unit triggers stu
 | Depends on | Why |
 |------------|-----|
 | Proton Mail Bridge | Backend SMTP relay on 127.0.0.1:1025 |
-| SWAG LE cert | `/opt/appdata/swag/etc/letsencrypt/live/helmforge.me/` — cert and key |
+| SWAG LE cert | `/opt/appdata/swag/etc/letsencrypt/live/example.com/` — cert and key |
 | UFW | Port 1587 firewall rules for LAN and Docker FORWARD chain |
 
 ---
@@ -103,7 +103,7 @@ sudo systemctl reload stunnel4
 ### Verify TLS
 
 ```bash
-openssl s_client -connect forge.helmforge.me:1587 -quiet
+openssl s_client -connect forge.example.com:1587 -quiet
 # Should show ISRG Root X2 / Let's Encrypt chain
 ```
 

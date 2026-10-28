@@ -4,7 +4,7 @@ Vaultwarden is a self-hosted Bitwarden-compatible password manager running on fo
 It provides secure credential storage accessible from any Bitwarden client.
 
 - **Image:** `vaultwarden/server:latest`
-- **URL:** `vault.helmforge.me`
+- **URL:** `vault.example.com`
 - **Appdata:** `/opt/appdata/vaultwarden/`
 - **Network:** `forge-net`
 
@@ -18,7 +18,7 @@ It provides secure credential storage accessible from any Bitwarden client.
 | `LOG_LEVEL` | `warn` |
 
 New accounts require an admin invitation. The admin panel is available at
-`vault.helmforge.me/admin` and is protected by a bcrypt-hashed admin token.
+`vault.example.com/admin` and is protected by a bcrypt-hashed admin token.
 
 ## Data
 
@@ -28,9 +28,9 @@ This directory is included in the forge backup schedule.
 ## Client Access
 
 Use any Bitwarden-compatible client (browser extension, desktop app, mobile app) and
-point it at `https://vault.helmforge.me` as the server URL.
+point it at `https://vault.example.com` as the server URL.
 
 ## Related Docs
 
-- [swag.md](swag.md) — HTTPS termination via `vault.helmforge.me`
+- [swag.md](swag.md) — HTTPS termination via `vault.example.com`
 - [vault.md](vault.md) — HashiCorp Vault (separate — secret management, not password manager)

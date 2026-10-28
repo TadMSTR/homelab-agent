@@ -82,10 +82,10 @@ and the pipeline continues (drift is surfaced, not fatal to the rest of the run)
 
 ```bash
 # Manual run
-/home/ted/scripts/plugin-drift-sentinel.py
+~/scripts/plugin-drift-sentinel.py
 
 # Report only, skip the Matrix alert
-/home/ted/scripts/plugin-drift-sentinel.py --no-alert
+~/scripts/plugin-drift-sentinel.py --no-alert
 ```
 
 Exit codes: `0` all assertions passed, `1` drift detected (alert sent), `2`

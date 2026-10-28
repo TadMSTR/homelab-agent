@@ -7,7 +7,7 @@ The Owner's Manual is a living reference document for the homelab-agent platform
 | Component | Detail |
 |-----------|--------|
 | Git repo | `~/repos/personal/helm-owners-manual/` |
-| Static site | `docs.helmforge.me` |
+| Static site | `docs.example.com` |
 | Generator | mkdocs (Material theme, installed via pipx) |
 | Reverse proxy | SWAG `docs.subdomain.conf` |
 | Auth | Authentik forward auth (domain-level) |

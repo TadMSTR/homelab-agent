@@ -22,7 +22,7 @@ health checks, deep-link URL generation, extension listing, and extension instal
 | FASTMCP_PORT | 8498 |
 | FASTMCP_HOST | 127.0.0.1 |
 | CODESERVER_URL | http://127.0.0.1:8443 |
-| CODESERVER_PUBLIC_URL | https://code.helmforge.me |
+| CODESERVER_PUBLIC_URL | https://code.example.com |
 | CODESERVER_CONTAINER | code-server |
 | CODESERVER_BIN | /app/code-server/bin/code-server |
 
@@ -31,7 +31,7 @@ health checks, deep-link URL generation, extension listing, and extension instal
 | Tool | Description |
 |------|-------------|
 | health_check | Check code-server container health |
-| open_folder_url | Generate deep-link URL for a repo path (allowlist: /home/ted/repos, /home/ted/docker) |
+| open_folder_url | Generate deep-link URL for a repo path (allowlist: ~/repos, ~/docker) |
 | list_extensions | List installed VS Code extensions |
 | install_extension | Install extension by marketplace ID (regex-validated) |
 

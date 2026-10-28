@@ -6,10 +6,10 @@ management, and WebDAV file operations. It gives forge agents structured access 
 Nextcloud instance without requiring shell access.
 
 - **Package:** `nextcloud-mcp` v0.1.0 (TadMSTR/nextcloud-mcp)
-- **Repo:** `/home/ted/repos/personal/nextcloud-mcp/`
+- **Repo:** `~/repos/personal/nextcloud-mcp/`
 - **Venv:** `/opt/venvs/nextcloud-mcp/`
 - **Transport:** streamable-http — `127.0.0.1:8500` (PM2, `ecosystem.config.js`)
-- **Nextcloud URL:** `https://nextcloud.helmforge.me`
+- **Nextcloud URL:** `https://nextcloud.example.com`
 - **Env file:** `/opt/appdata/nextcloud-mcp/env` (0600, admin credentials)
 - **Manifest:** `~/.claude/manifests/nextcloud-mcp.yaml`
 - **Log:** stdout via PM2 (JSON structlog)
@@ -28,7 +28,7 @@ Env file at `/opt/appdata/nextcloud-mcp/env` (chmod 600):
 
 | Variable | Required | Default | Notes |
 |----------|----------|---------|-------|
-| `NEXTCLOUD_URL` | Yes | — | `https://nextcloud.helmforge.me` on forge |
+| `NEXTCLOUD_URL` | Yes | — | `https://nextcloud.example.com` on forge |
 | `NEXTCLOUD_CONTAINER` | No | `nextcloud` | Docker container name for occ exec |
 | `NEXTCLOUD_ADMIN_USER` | No | `admin` | Admin username for OCS/share tools |
 | `NEXTCLOUD_ADMIN_PASSWORD` | Yes* | — | Admin app password (*or use Vault) |
@@ -59,7 +59,7 @@ Share tools use admin credentials (cross-user share management requires admin au
 |------------|-------|
 | Docker socket | `occ` tools run via `docker exec nextcloud occ ...` |
 | Nextcloud container | Must be named `nextcloud` (or override `NEXTCLOUD_CONTAINER`) |
-| Nextcloud HTTP | OCS and WebDAV tools call `https://nextcloud.helmforge.me` directly |
+| Nextcloud HTTP | OCS and WebDAV tools call `https://nextcloud.example.com` directly |
 | Vault (optional) | Admin credentials can be fetched from `secret/data/nextcloud/admin` |
 
 `occ` commands are executed with `--no-ansi`. `--value` arguments are redacted in logs.

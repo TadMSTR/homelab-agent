@@ -77,7 +77,7 @@ history scrub on matrix-dispatcher).
 ## 2026-05-24 — forge-update-management-phase1
 
 Deployed forge's update management stack: Dockhand compose volume mount for stack
-visibility, PatchPilot (apt package tracking, HTTPS UI at patchpilot.helmforge.me, agent
+visibility, PatchPilot (apt package tracking, HTTPS UI at patchpilot.example.com, agent
 on port 8050 LAN-only), Renovate (non-Docker dependency scanner, hourly PM2 cron,
 autodiscovering host-forge/stacks via Gitea). Gitea infrastructure: renovate-bot user + PAT,
 host-forge/stacks topic tag, host-forge/component-registry repo with component YAML stubs.

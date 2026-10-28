@@ -62,7 +62,7 @@ surprises people, worth knowing before assuming a 503 means the process is down.
 | Service URLs (`SEARXNG_URL`, `FIRECRAWL_URL`, `RERANKER_URL`, `CRAWL4AI_URL`, `OLLAMA_URL`, `KIWIX_URL`, `ADBLOCK_PROXY_URL`, `NATS_URL`) | See `docker-compose.yml` — several of these are easy to get wrong across the container/host boundary, see below |
 | `NATS_USER` / `NATS_SUBJECT_PREFIX` | `searxng-mcp` / `events.searxng` |
 
-Secrets: `/home/ted/.secrets/searxng-mcp.env`, chmod 600. Deliberately **not** `forge.env` — that
+Secrets: `~/.secrets/searxng-mcp.env`, chmod 600. Deliberately **not** `forge.env` — that
 would inject `ANTHROPIC_API_KEY` and `GITEA_TOKEN` into a container with no use for them.
 
 **Three dependency-URL traps**, worth knowing before debugging a "why can't it reach X":
@@ -163,7 +163,7 @@ curl -s -H "Authorization: Bearer $SEARXNG_MCP_TOKEN" http://127.0.0.1:8504/mcp
 
 `pm2 start searxng-mcp` **no longer works on its own** — the PM2 entry was deleted, not just
 stopped. Recreate it from `~/.claude/comms/artifacts/searxng-mcp-phase3/pm2-searxng-mcp.json`
-(`bash /home/ted/scripts/run-searxng-mcp-http.sh`, fork mode, cwd `/home/ted`), then
+(`bash ~/scripts/run-searxng-mcp-http.sh`, fork mode, cwd the operator's home directory), then
 `docker compose -f ~/docker/searxng/docker-compose.yml down`. The manifests' bearer header is
 harmless against the PM2 instance — it has no auth check to reject it with.
 

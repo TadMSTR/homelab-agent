@@ -1,7 +1,7 @@
 # Synapse (forge)
 
 Synapse is the Matrix homeserver for the homelab-agent platform, running on forge and serving
-`helmforge.me`. It provides the Matrix communications backbone for forge's operator
+`example.com`. It provides the Matrix communications backbone for forge's operator
 agents — the same role that claudebox's Synapse plays for claudebox agents, but scoped to
 the forge environment.
 
@@ -36,7 +36,7 @@ Three proxy confs serve the homeserver:
 | `default.conf` | (static) | `.well-known/matrix/client` and `.well-known/matrix/server` for domain delegation |
 
 **Well-known delegation** in `default.conf` serves the Matrix discovery endpoints so that
-clients can locate `matrix.helmforge.me` when connecting as `helmforge.me`. This
+clients can locate `matrix.example.com` when connecting as `example.com`. This
 is required when the server name differs from the actual hostname.
 
 Synapse's client API port (`8008`) is published only to `127.0.0.1` — not reachable from
@@ -47,7 +47,7 @@ the LAN directly. All access flows through SWAG.
 Config at `/opt/appdata/matrix/synapse/homeserver.yaml` (chmod 600 — embedded secrets).
 
 Key settings:
-- `server_name: helmforge.me` — the Matrix domain, not the actual hostname
+- `server_name: example.com` — the Matrix domain, not the actual hostname
 - `federation_enabled: false` — isolated homeserver, no federation with external servers
 - `enable_registration: false` — new accounts require a registration token via Ketesa
 - Database: PostgreSQL with `LC_COLLATE=C` and `LC_CTYPE=C` (required by Synapse)
@@ -57,7 +57,7 @@ Secrets in `homeserver.yaml` (`database.args.password`, `registration_shared_sec
 
 ## Ketesa Admin UI
 
-Ketesa is a web-based Synapse admin UI accessible at `ketesa.helmforge.me`, gated
+Ketesa is a web-based Synapse admin UI accessible at `ketesa.example.com`, gated
 by Authentik forward auth. It requires manual registration of an Authentik application and
 provider before first use.
 
@@ -69,9 +69,9 @@ Ketesa is the primary interface for:
 ## Accounts and Rooms
 
 Agent bot accounts on the forge homeserver:
-- `@forge-sysadmin:helmforge.me` — matrix-dispatcher bot (reads rooms, routes to agents)
-- `@matrix-admin-bot:helmforge.me` — admin bot (account provisioning)
-- Agent MXIDs follow the pattern `@agent.<type>:helmforge.me`
+- `@forge-sysadmin:example.com` — matrix-dispatcher bot (reads rooms, routes to agents)
+- `@matrix-admin-bot:example.com` — admin bot (account provisioning)
+- Agent MXIDs follow the pattern `@agent.<type>:example.com`
 
 8 rooms created at build time: sysadmin, research, developer, writer, security,
 announcements, monitoring, alerts.

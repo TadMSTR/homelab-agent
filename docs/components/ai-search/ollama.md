@@ -61,7 +61,7 @@ Rate limit on `/api`: `10r/s burst=30` (zone defined in `site-confs/rate-limit-z
 
 ```bash
 # Generate (via SWAG proxy)
-curl https://ollama.helmforge.me/api/generate \
+curl https://ollama.example.com/api/generate \
   -d '{"model":"qwen3:4b","prompt":"hello","stream":false}'
 
 # From forge host directly (no auth needed)

@@ -69,7 +69,7 @@ UIDs and do not need access to this directory directly.
 ## Security
 
 - Not on `forge-net` (removed L1 finding, commit `345b68f`)
-- Token stored in `/home/ted/.secrets/forge.env` (chmod 600)
+- Token stored in `~/.secrets/forge.env` (chmod 600)
 - No host port published — only reachable from `forge-monitoring` containers
 
 ## Related Docs

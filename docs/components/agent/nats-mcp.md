@@ -7,7 +7,7 @@ publishes — there is no code path from a tool call to the NATS client port (42
 
 - **Package:** `nats-mcp` v0.3.0 (TadMSTR/nats-mcp) — first tagged release was v0.2.0; 0.1.0
   and 0.1.1 in the CHANGELOG describe work that was never cut as a release
-- **Repo:** `/home/ted/repos/personal/nats-mcp/`
+- **Repo:** `~/repos/personal/nats-mcp/`
 - **Deployment:** Docker container `nats-mcp`, image `ghcr.io/tadmstr/nats-mcp:v0.3.0`, in the
   `nats` Docker stack (`~/docker/nats/docker-compose.yml`) — **live and healthy**, verified via
   `docker ps` (container start time postdates the v0.3.0 tag commit)

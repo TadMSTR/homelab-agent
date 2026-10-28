@@ -5,7 +5,7 @@ single landing page of service cards (status pings, container stats) for forge's
 Paired with a locked-down Docker socket proxy sidecar so the dashboard never touches
 `docker.sock` directly.
 
-- **URL:** `home.helmforge.me`
+- **URL:** `home.example.com`
 - **Stack directory:** `~/docker/homepage/`
 - **Appdata:** `/opt/appdata/homepage/config`
 
@@ -28,7 +28,7 @@ Paired with a locked-down Docker socket proxy sidecar so the dashboard never tou
 
 Key `~/docker/homepage/docker-compose.yml` settings:
 
-- `homepage`: `PUID=1000`, `PGID=1000`, `TZ=America/New_York`, `HOMEPAGE_ALLOWED_HOSTS=home.helmforge.me`
+- `homepage`: `PUID=1000`, `PGID=1000`, `TZ=America/New_York`, `HOMEPAGE_ALLOWED_HOSTS=home.example.com`
 - `homepage-socketproxy`: tecnativa ACL env vars gate what the proxy exposes. Only
   `CONTAINERS=1` and `PING=1` are enabled; everything else (`POST`, `EXEC`, `BUILD`,
   `IMAGES`, `VOLUMES`, `NETWORKS`, `SECRETS`, `SYSTEM`, etc.) is `0`.

@@ -11,7 +11,7 @@ code editor for repos and Docker configs without needing SSH or a local IDE.
 | Image | `lscr.io/linuxserver/code-server` (pinned digest) |
 | Stack | `~/docker/code-server/` |
 | Port | `127.0.0.1:8443` (proxied via SWAG) |
-| Public URL | `https://code.helmforge.me` |
+| Public URL | `https://code.example.com` |
 | Auth | Authentik forward auth |
 | Appdata | `/opt/appdata/code-server` |
 | Network | `forge-net` |
@@ -22,13 +22,13 @@ code editor for repos and Docker configs without needing SSH or a local IDE.
 |---------|-------|
 | PUID / PGID | 1000 / 1000 |
 | TZ | America/New_York |
-| PROXY_DOMAIN | code.helmforge.me |
+| PROXY_DOMAIN | code.example.com |
 | DEFAULT_WORKSPACE | /repos |
 | PASSWORD / SUDO_PASSWORD | empty (auth handled by Authentik) |
 
 Volumes:
 - `/opt/appdata/code-server:/config` — settings, extensions, user data
-- `/home/ted/repos:/repos` (rw) — all repo directories accessible in the editor
+- `~/repos:/repos` (rw) — all repo directories accessible in the editor
 
 ## Security
 

@@ -3,11 +3,11 @@
 Langfuse is an open-source LLM engineering platform — traces, evaluations, prompt management, and metrics for AI applications. On forge it serves as the primary observability layer for homelab-agent pipelines, capturing LLM spans, token usage, and evaluation results from any service that instruments with an OpenTelemetry-compatible SDK.
 
 - **Version:** 3.167.4
-- **URL:** `https://langfuse.helmforge.me`
+- **URL:** `https://langfuse.example.com`
 - **Compose:** `~/docker/langfuse/docker-compose.yml`
 - **Appdata:** `/opt/appdata/langfuse/`
 - **Network:** `langfuse-internal` (isolated) + `forge-net` (langfuse-web only)
-- **SWAG proxy:** `langfuse.helmforge.me` → `langfuse-web:3000`
+- **SWAG proxy:** `langfuse.example.com` → `langfuse-web:3000`
 
 ## Network Topology
 
@@ -73,7 +73,7 @@ Langfuse is wired to Authentik via OIDC. Key env vars in `langfuse-web`:
 ```yaml
 AUTH_CUSTOM_CLIENT_ID: ${AUTHENTIK_LANGFUSE_CLIENT_ID}
 AUTH_CUSTOM_CLIENT_SECRET: ${AUTHENTIK_LANGFUSE_CLIENT_SECRET}
-AUTH_CUSTOM_ISSUER: https://auth.helmforge.me/application/o/lang-fuse   # no trailing slash
+AUTH_CUSTOM_ISSUER: https://auth.example.com/application/o/lang-fuse   # no trailing slash
 AUTH_CUSTOM_NAME: Authentik
 AUTH_CUSTOM_SCOPE: "openid email profile"
 AUTH_CUSTOM_ALLOW_ACCOUNT_LINKING: "true"   # Langfuse-specific var
@@ -82,7 +82,7 @@ HOSTNAME: "0.0.0.0"                          # required for SWAG → langfuse-we
 
 ```yaml
 extra_hosts:
-  - "auth.helmforge.me:172.20.1.5"   # server-side OIDC discovery routes through SWAG
+  - "auth.example.com:172.20.1.5"   # server-side OIDC discovery routes through SWAG
 ```
 
 **Gotchas that bit deployment:**
@@ -141,7 +141,7 @@ Password is set via `DFLY_requirepass` environment variable, not `--requirepass`
 ## Operator First-Login Steps
 
 On a fresh deploy:
-1. Navigate to `https://langfuse.helmforge.me`
+1. Navigate to `https://langfuse.example.com`
 2. Click "Sign up" — create the admin account (email + password, before wiring Authentik)
 3. Create organization (named `Helm` on forge — legacy, functional)
 4. Create default project (named `helm-default` on forge — legacy, functional)
@@ -180,7 +180,7 @@ Agent API keys are stored in `/opt/secrets/langfuse.env` (chmod 600, owned by te
 ```bash
 LANGFUSE_PUBLIC_KEY=pk-lf-<value>
 LANGFUSE_SECRET_KEY=sk-lf-<value>
-LANGFUSE_HOST=https://langfuse.helmforge.me
+LANGFUSE_HOST=https://langfuse.example.com
 ```
 
 Per-agent `.env` files at `/opt/agents/<agent>/.env` are written by `~/scripts/write-agent-envs.sh`, which sources `/opt/secrets/langfuse.env` at runtime — the script itself contains no plaintext keys. Each agent reads its own `.env` at startup to pick up the three Langfuse vars.

@@ -3,11 +3,11 @@
 Open WebUI is the chat frontend for the forge platform. Users interact with gateway agents through Open WebUI; the UI sends requests to the Phase 6 gateway's `/v1` (OpenAI-compatible) endpoint, which routes to the appropriate per-user Claude runner.
 
 - **Version:** `ghcr.io/open-webui/open-webui:main`
-- **URL:** `https://open-webui.helmforge.me`
+- **URL:** `https://open-webui.example.com`
 - **Compose:** `~/docker/open-webui/docker-compose.yml`
 - **Appdata:** `/opt/appdata/open-webui/`
 - **Network:** `forge-net`
-- **SWAG proxy:** `open-webui.helmforge.me` → `open-webui:8080`
+- **SWAG proxy:** `open-webui.example.com` → `open-webui:8080`
 
 ## Configuration
 
@@ -26,14 +26,14 @@ Key environment variables (set via `env_file: .env` in compose):
 
 Authentik OIDC wiring (Step 2c) was deferred from Phase 5 — it requires UI interaction in Authentik to create the OIDC provider. When ready:
 
-1. In Authentik at `auth.helmforge.me`: create an OAuth2/OIDC provider for Open WebUI
+1. In Authentik at `auth.example.com`: create an OAuth2/OIDC provider for Open WebUI
 2. Note the client ID and secret
 3. In `~/docker/open-webui/.env`, add:
    ```
    OAUTH_CLIENT_ID=<id>
    OAUTH_CLIENT_SECRET=<secret>
    OAUTH_PROVIDER_NAME=Authentik
-   OPENID_PROVIDER_URL=https://auth.helmforge.me/application/o/<slug>/.well-known/openid-configuration
+   OPENID_PROVIDER_URL=https://auth.example.com/application/o/<slug>/.well-known/openid-configuration
    ```
 4. Uncomment the `OAUTH_*` env vars block in `docker-compose.yml`
 5. `docker compose up -d --force-recreate open-webui`

@@ -22,7 +22,7 @@ app / container
 | Endpoint | Protocol | Purpose |
 |----------|----------|---------|
 | `127.0.0.1:1025` | SMTP + STARTTLS (self-signed cert) | Bridge's local SMTP listener |
-| `forge.helmforge.me:1587` | SMTP over SSL/TLS (LE cert via stunnel) | What apps connect to |
+| `forge.example.com:1587` | SMTP over SSL/TLS (LE cert via stunnel) | What apps connect to |
 
 Apps should connect to port **1587** via stunnel, not 1025 directly. Bridge's self-signed cert is rejected by most apps.
 
@@ -32,7 +32,7 @@ Apps should connect to port **1587** via stunnel, not 1025 directly. Bridge's se
 
 | Setting | Value |
 |---------|-------|
-| Host | `forge.helmforge.me` |
+| Host | `forge.example.com` |
 | Port | `1587` |
 | Encryption | SSL/TLS (implicit — **not** STARTTLS) |
 | Username | Proton Mail address |
@@ -53,7 +53,7 @@ Bridge auto-starts via Cinnamon Startup Applications:
 To start manually:
 
 ```bash
-/home/ted/.local/share/protonmail/bridge-v3/updates/3.25.0/proton-bridge --no-window
+~/.local/share/protonmail/bridge-v3/updates/3.25.0/proton-bridge --no-window
 ```
 
 ---
@@ -73,7 +73,7 @@ The logged-in account and Bridge password are stored in the system keyring. Re-l
 
 | Service | Config location |
 |---------|----------------|
-| Dockhand | Settings UI → Notifications → SMTP (forge.helmforge.me:1587) |
+| Dockhand | Settings UI → Notifications → SMTP (forge.example.com:1587) |
 | Authentik | `~/docker/authentik/.env` — `AUTHENTIK_EMAIL__*` vars on server and worker |
 | Nextcloud | Nextcloud admin → Email server settings |
 
@@ -90,7 +90,7 @@ pgrep -a proton-bridge
 ### Verify SMTP relay
 
 ```bash
-openssl s_client -connect forge.helmforge.me:1587 -quiet
+openssl s_client -connect forge.example.com:1587 -quiet
 ```
 
 ### Restart Bridge

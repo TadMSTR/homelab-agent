@@ -10,7 +10,7 @@ web UI or its bcrypt-hashed admin credentials.
 - **PM2 process:** `backrest-mcp`
 - **Endpoint:** `http://127.0.0.1:8626` — bearer-authed, loopback-only
 - **Transport:** streamable-http
-- **Wraps:** [backrest](../foundation/backrest.md) (`https://backrest.helmforge.me`,
+- **Wraps:** [backrest](../foundation/backrest.md) (`https://backrest.example.com`,
   native systemd service, REST API on `:9898`)
 - **Agents:** sysadmin
 
