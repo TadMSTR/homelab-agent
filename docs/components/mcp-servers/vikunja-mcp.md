@@ -14,7 +14,7 @@ attachments, teams, and webhooks. It targets Vikunja's `/api/v2`, so it requires
   (vikunja#468/#498, both still open), not the live service — verified live 2026-09-28
   (`docker ps` shows the container `Up`/`healthy`; PM2 shows `stopped`). See
   [vikunja.md](../apps/vikunja.md) for the full stack.
-- **Vikunja URL:** `https://vikunja.helmforge.me`
+- **Vikunja URL:** `https://vikunja.example.com`
 - **Auth:** stateless bearer-token passthrough (see below) — no credentials stored here
 - **GitHub:** `TadMSTR/vikunja-mcp`
 
@@ -83,7 +83,7 @@ An extension-hook system (`hooks.py`) wraps every tool call with a pre/post hand
 
 ## Dependencies
 
-- Vikunja app at `https://vikunja.helmforge.me` ([vikunja.md](../apps/vikunja.md)) — same
+- Vikunja app at `https://vikunja.example.com` ([vikunja.md](../apps/vikunja.md)) — same
   compose stack, `vikunja-db` as the shared datastore
 - Vault (`secret/data/vikunja/agent-<role>`) for per-agent tokens
 
