@@ -6,7 +6,7 @@
 
 ![homelab-agent banner](docs/assets/banner.png)
 
-A platform for running a team of AI agents on a single server. Ten resident agents — five build agents (sysadmin, developer, research, writer, security) plus doc-health, memory-sync, jobsearch, fleet and steward — work semi-autonomously or fully unattended, coordinating through a task queue and communicating over Matrix. Each agent gets a scoped tool surface controlled by a manifest, persistent multi-tier memory backed by open-source infrastructure ([qmd](docs/components/memory/memory-services.md) for semantic search, [OpenSearch](docs/components/memory/memory-stack.md) for full-text), and an event ledger that tracks every cross-agent handoff.
+A platform for running a team of AI agents on a single server. Nine resident agents — five build agents (sysadmin, developer, research, writer, security) plus doc-health, memory-sync, jobsearch and fleet — work semi-autonomously or fully unattended, coordinating through a task queue and communicating over Matrix. Each agent gets a scoped tool surface controlled by a manifest, persistent multi-tier memory backed by open-source infrastructure ([qmd](docs/components/memory/memory-services.md) for semantic search, [OpenSearch](docs/components/memory/memory-stack.md) for full-text), and an event ledger that tracks every cross-agent handoff.
 
 The agents build the platform. Research plans a feature, developer writes the code, writer documents it, security audits the result — then the new tool becomes available to the agents that built it. [searxng-mcp](https://github.com/TadMSTR/searxng-mcp), [scoped-mcp](https://github.com/TadMSTR/scoped-mcp), and [githost-mcp](https://github.com/TadMSTR/githost-mcp) were all built this way.
 
@@ -37,7 +37,7 @@ Three layers, each independently useful. You can run just the Docker services wi
 ```
 ┌────────────────────────────────────────────────────────────────┐
 │  Layer 3: Multi-Agent Claude Code Engine                       │
-│  10 resident agents · scoped-mcp · Matrix dispatch            │
+│  9 resident agents · scoped-mcp · Matrix dispatch             │
 │  agent-bus · memory pipeline                                   │
 ├────────────────────────────────────────────────────────────────┤
 │  Layer 2: Docker Service Stack (90+ containers, 30+ stacks)    │
@@ -79,7 +79,7 @@ Deployment order and stack dependencies are documented in [`docker/README.md`](d
 
 ### Layer 3 — Multi-Agent Engine
 
-This is the part that ties everything together. Ten resident agents run as scoped Claude Code projects, each with a manifest-controlled tool surface and (for most) a dedicated Matrix room. The diagram shows the five build agents; [AGENTS.md](AGENTS.md) is the full roster and the source of truth for the count.
+This is the part that ties everything together. Nine resident agents run as scoped Claude Code projects, each with a manifest-controlled tool surface and (for most) a dedicated Matrix room. The diagram shows the five build agents; [AGENTS.md](AGENTS.md) is the full roster and the source of truth for the count.
 
 ```mermaid
 flowchart TB

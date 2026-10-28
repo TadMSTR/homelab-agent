@@ -1,6 +1,6 @@
 # AGENTS.md — homelab-agent
 
-Public reference repository documenting the homelab-agent platform — a multi-agent AI homelab built on Claude Code running on forge. Covers the full three-layer architecture: dedicated host, self-hosted Docker service stack, and a ten-agent Claude Code engine with scoped tool surfaces, persistent memory, and Matrix-based dispatch.
+Public reference repository documenting the homelab-agent platform — a multi-agent AI homelab built on Claude Code running on forge. Covers the full three-layer architecture: dedicated host, self-hosted Docker service stack, and a nine-agent Claude Code engine with scoped tool surfaces, persistent memory, and Matrix-based dispatch.
 
 ## Purpose
 
@@ -12,9 +12,8 @@ This repo has two audiences: humans learning to build a similar platform, and AI
 ## Resident Agents
 
 Nine agents run as scoped Claude Code projects on forge, each behind its own
-`scoped-mcp-*` PM2 process. A tenth, `steward`, runs separately under systemd rather
-than PM2 (its tool broker needs to read a mode-400 `.env` and write a root-owned
-proposal store, neither of which a PM2 process owned by the regular user can do) — see
+`scoped-mcp-*` PM2 process. A former tenth agent, `steward`, ran separately under systemd
+and was retired in September 2026; its row is kept below for history — see
 [`docs/components/agent/steward.md`](docs/components/agent/steward.md).
 
 | Agent | Role | Matrix Room | Key Tools |
@@ -28,7 +27,7 @@ proposal store, neither of which a PM2 process owned by the regular user can do)
 | `jobsearch` | Personal job-search tooling — find/rank/assess/track openings. Not a build agent; no task-queue work, no commits | its own room | system-ops |
 | `memory-sync` | Memory lifecycle — promote session notes to working tier, distill to permanent records, expire stale entries | its own room | system-ops, matrix-mcp |
 | `fleet` | Operations on homelab hosts other than forge (argus first, then atlas and unraid) — compose stacks, DNS (Technitium), monitoring (Gatus), host health. Reaches hosts only through approval-gated `system-ops-<host>` modules; repo write limited to `host-<name>/stacks` on Gitea | `#agents:` (no dedicated room) | system-ops-\<host\>, dockhand-mcp, githost-mcp, task-queue-mcp, vikunja-mcp |
-| `steward` | Sole proposer of changes to forge's root-owned config surface (`/etc/forge/manifests/*.yml`, `workspace-policy.yml`) — proposes only, never applies | its own room | githost-mcp-steward, forge-config-mcp |
+| `steward` (retired 2026-09) | Formerly the sole proposer of changes to forge's root-owned config surface (`/etc/forge/manifests/*.yml`, `workspace-policy.yml`) — proposes only, never applies | its own room | githost-mcp-steward, forge-config-mcp |
 
 ## scoped-mcp Architecture
 
