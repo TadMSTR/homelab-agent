@@ -167,4 +167,4 @@ These sit directly in `docs/components/` rather than in a category directory.
 | [`forge-reboot-gate.md`](forge-reboot-gate.md) | Gated daily reboot window for pending kernel updates |
 | [`plugin-drift-sentinel.md`](plugin-drift-sentinel.md) | Drift detector for forked Claude Code plugin marketplaces (alerts, never repairs) |
 | [`jobsearch-mcp.md`](jobsearch-mcp.md) | Job-search assistant MCP server |
-| [`nextcloud-mcp.md`](nextcloud-mcp.md) | Nextcloud admin, provisioning and WebDAV MCP |
+| [`nextcloud-mcp.md`](nextcloud-mcp.md) | Nextcloud admin, provisioning and WebDAV MCP, retired 2026-10-28 |

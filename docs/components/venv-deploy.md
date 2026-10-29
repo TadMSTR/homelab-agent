@@ -87,12 +87,13 @@ mitigation for agent-writable code paths.
 | `memory-metadata-mcp` | `/opt/venvs/memory-metadata-mcp` | `memory-metadata-mcp` |
 | `memory-fulltext-mcp` | `/opt/venvs/memory-fulltext-mcp` | `memory-fulltext-mcp` |
 | `githost-mcp` | `/opt/venvs/githost-mcp` | `githost-mcp-{developer,sysadmin,security,writer,research,harlock}` |
-| `nextcloud-mcp` | `/opt/venvs/nextcloud-mcp` | `nextcloud-mcp` |
 | `scoped-mcp` | `/opt/venvs/scoped-mcp` | `scoped-mcp-{developer,sysadmin,security,writer,research}` |
 
 `datastore-mcp` was registered here until it was parked on 2026-10-25; its registration is now
 a comment, and its venv and PM2 process are removed (see
-[datastore-mcp.md](mcp-servers/datastore-mcp.md)).
+[datastore-mcp.md](mcp-servers/datastore-mcp.md)). `nextcloud-mcp` was registered here until it
+was retired on 2026-10-28; its registration, venv and PM2 process are removed (see
+[nextcloud-mcp.md](nextcloud-mcp.md)).
 
 `scoped-mcp` proxies every agent's own tool access, including the agent running this script —
 always deploy it with `--no-restart`, then restart the four non-sysadmin brokers deliberately.
@@ -128,7 +129,7 @@ Deploy the highest semver tag on the remote:
 Deploy a specific tag and preview only:
 
 ```bash
-~/scripts/venv-deploy.sh --service nextcloud-mcp --ref v0.2.0 --dry-run
+~/scripts/venv-deploy.sh --service memory-metadata-mcp --ref v0.2.0 --dry-run
 ```
 
 List registered services:

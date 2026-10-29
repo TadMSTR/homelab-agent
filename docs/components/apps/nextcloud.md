@@ -10,13 +10,18 @@ No Authentik forward auth — it breaks WebDAV clients and mobile sync apps. Eac
 
 | Container | Image | Purpose |
 |-----------|-------|---------|
-| `nextcloud` | `lscr.io/linuxserver/nextcloud:latest` | Main app (nginx + php-fpm + notify_push via docker-mod) |
-| `nextcloud-db` | `postgres:16-alpine` | Primary database |
+| `nextcloud` | `lscr.io/linuxserver/nextcloud:35.0.2-ls460` | Main app, Nextcloud 35 (nginx + php-fpm + notify_push via docker-mod) |
+| `nextcloud-db` | `postgres:16.15-alpine` | Primary database |
 | `nextcloud-valkey` | `valkey/valkey:8` | Session cache / file locking |
 | `nextcloud-opensearch` | `opensearchproject/opensearch:2` | Full-text file search |
-| `nextcloud-clamav` | `clamav/clamav:latest` | Antivirus scanning |
-| `nextcloud-collabora` | `collabora/code:latest` | Nextcloud Office (LibreOffice Online) |
-| `nextcloud-whiteboard` | `ghcr.io/nextcloud/whiteboard:latest` | Real-time collaborative whiteboard |
+| `nextcloud-clamav` | `clamav/clamav:1.5.4` | Antivirus scanning |
+| `nextcloud-collabora` | `collabora/code:26.04.3.2.1` | Nextcloud Office (LibreOffice Online) |
+| `nextcloud-whiteboard` | `ghcr.io/nextcloud/whiteboard:v2.1.2` | Real-time collaborative whiteboard (backend paired with whiteboard app 2.1.x) |
+
+Images are pinned to version tags. Valkey and OpenSearch still follow a major tag. Nextcloud
+can't skip a major release, so upgrade one major at a time, and reach the latest point release
+of the current major first. Since LinuxServer moved its main tag line to 35, the 34.x builds
+ship only on its `previous-` tag line.
 
 ---
 
@@ -26,9 +31,16 @@ No Authentik forward auth — it breaks WebDAV clients and mobile sync apps. Eac
 |-----|---------|------|
 | `https://nextcloud.example.com` | Main web UI and WebDAV | Nextcloud login |
 | `https://collabora.example.com` | Collabora CODE document editor | Token-gated by Nextcloud |
-| `https://whiteboard.example.com` | Nextcloud Whiteboard | JWT-gated by Nextcloud |
+| `https://whiteboard.example.com` | Nextcloud Whiteboard | Websocket JWT-gated by Nextcloud; `/status` is public |
 
 All three are proxied by SWAG. Collabora admin console paths (`/browser/dist/admin`, `/cool/adminws`) are blocked at the proxy (403).
+
+**Whiteboard server-side recording is disabled on purpose.** The v2 backend's recorder runs a
+headless Chromium without a sandbox, and anyone holding a write JWT can start it, including
+anyone with an edit-enabled public share link. The compose disables it by pointing
+`CHROME_EXECUTABLE_PATH` at a path that doesn't exist. That one value is the whole control, and
+it fails open if someone empties it or upstream renames the variable. So after every whiteboard
+deploy or image bump, check that the recorder reports itself unavailable.
 
 ### Internal ports
 
@@ -46,10 +58,16 @@ OpenSearch (9200), ClamAV (clamd socket), and Valkey are on `nextcloud-internal`
 
 | Network | Purpose |
 |---------|---------|
-| `nextcloud-internal` | Isolated stack mesh — db, valkey, opensearch, clamav, collabora, whiteboard |
-| `forge-net` | SWAG access for nextcloud main container, collabora, whiteboard |
+| `nextcloud-internal` | Isolated stack mesh — nextcloud, db, valkey, opensearch, clamav, collabora |
+| `forge-net` | SWAG access for the nextcloud main container, collabora and whiteboard |
 
-The main `nextcloud` container joins both networks. The database, cache, search, and antivirus containers are `nextcloud-internal` only.
+The main `nextcloud` container and collabora join both networks. The database, cache, search
+and antivirus containers are on `nextcloud-internal` only.
+
+The whiteboard is on `forge-net` **only**. It reaches Nextcloud through SWAG at its public URL
+(`NEXTCLOUD_URL`), and SWAG reaches it on `forge-net`. It used to be on `nextcloud-internal`
+too, which put an internet-reachable service next to the unauthenticated OpenSearch, clamd,
+Valkey and PostgreSQL.
 
 ---
 
@@ -76,7 +94,7 @@ Secrets are in `~/docker/nextcloud/.env`. Key variables:
 | `NC_COLLABORA_ADMIN_PASSWORD` | Collabora admin console password |
 | `NC_WHITEBOARD_JWT_SECRET` | Whiteboard JWT signing key |
 
-Post-provisioning: `NC_ADMIN_PASSWORD` and install-time secrets are removed from the env file. App passwords for agents are in Vault at `secret/data/nextcloud/agents/<agent>`.
+Post-provisioning: `NC_ADMIN_PASSWORD` and install-time secrets are removed from the env file. No agent or service holds a Nextcloud app password.
 
 ### LSIO docker-mod
 
@@ -94,17 +112,36 @@ The `nextcloud-notify-push` mod is loaded at startup. It provides the high-perfo
 | `nextcloud-valkey` | 512 MB | 0.5 cores |
 | `nextcloud-whiteboard` | 512 MB | 0.5 cores |
 
-### Extra hosts
-
-The `nextcloud` and `nextcloud-whiteboard` containers have static host entries for `nextcloud.example.com`, `collabora.example.com`, and `whiteboard.example.com` pointing to SWAG's forge-net IP (`172.20.1.29`). This ensures internal callbacks go through SWAG (required for SSL termination mode).
-
 ---
 
 ## Agent workspace
 
-`~/.claude/comms/artifacts` is mounted read-write into the `nextcloud` container at `/agent-workspace`. This allows agents to share files with Nextcloud without network transfers.
+The agents' shared artifacts directory on the host is bind-mounted **read-only** (`:ro`) into
+the `nextcloud` container at `/agent-workspace`. It appears as the "Agent Workspace" External Storage mount, applied to the
+operator and to an `agents` group that holds one Nextcloud account per agent. Agents write
+artifacts on the host, and people read them in Nextcloud through web links. The `:ro` bind is
+the write control. Agents read that tree as instructions, so code execution in this
+internet-facing container must not be able to change it. Nextcloud's own `readonly` mount option
+is only a permissions mask. `files:scan` writes only to the database, so indexing still works.
 
-`~/repos` and `~/Documents` are also mounted read-only at `/ted-personal/repos` and `/ted-personal/Documents`.
+The operator's `~/Documents` is mounted read-write as a second External Storage mount, for the
+operator only. It holds ordinary user files.
+
+**There is no repos mount.** An earlier `~/repos` mount was removed. It exposed scripts that cron
+runs, and live credentials in checked-out repos, to a web app. Browse repos in a code forge (Gitea
+or GitHub) instead of mounting them into Nextcloud.
+
+### Agent access
+
+Agents have **no Nextcloud API access**: no MCP server, no app passwords, no WebDAV. They keep
+their Nextcloud accounts only so that the Agent Workspace mount, which is applied to their group,
+works for the web links they send. A dedicated Nextcloud MCP server
+(nextcloud-mcp) was retired; see [nextcloud-mcp.md](../nextcloud-mcp.md).
+
+The sysadmin agent operates the stack through an allowlisted `occ` wrapper script, with a skill
+and a runbook. Read commands run directly. Write commands need the operator's approval of the
+exact command line. User management, `config:*:set`, `app:install`, encryption, and enabling or
+disabling security apps are refused, and stay with the operator.
 
 ---
 
@@ -117,7 +154,15 @@ Several hardening trade-offs were accepted during the 2026-06-20 audit:
 - **Valkey cap_drop** (F-06): Same pattern as PostgreSQL. `no-new-privileges` applied.
 - **ClamAV cap_drop** (F-06): clamd/freshclam init requires root; `no-new-privileges` only.
 - **Collabora cap_drop / no-new-privileges** (F-06): Collabora CODE's `coolforkit` uses chroot/setuid sandbox; needs `SYS_CHROOT`, `SETUID`, `SETGID`, `FOWNER`. Default Docker cap set required.
-- **OpenSearch security plugin disabled** (F-09): No auth/TLS on OpenSearch. Accepted because it is on `nextcloud-internal` only — no host port, no forge-net access. Single-tenant forge; cert overhead exceeds risk.
+- **OpenSearch security plugin disabled** (F-09): No auth/TLS on OpenSearch. Accepted because it is on `nextcloud-internal` only — no host port, no forge-net access. Single-tenant forge; cert overhead exceeds risk. This is also why the whiteboard is not on `nextcloud-internal` any more.
+
+Lessons from the 2026-10 stack review:
+
+- **Keep the whiteboard recorder disabled**, and check it after every bump (see Endpoints).
+- **Don't mount source repos into a web app.** Browse them in a code forge.
+- **Review every bind mount of a web-facing container**, for executables that something else
+  runs and for secrets it could read, not only the mount a finding names. Each fix in that
+  review uncovered the next exposure on a neighbouring mount.
 
 ---
 
@@ -155,9 +200,9 @@ cd ~/docker/nextcloud && docker compose logs --tail=50
 ### OCC admin CLI
 
 ```bash
-docker exec -u abc nextcloud php /config/www/nextcloud/occ <command>
+docker exec -u abc nextcloud php /app/www/public/occ --no-ansi <command>
 # Example: check status
-docker exec -u abc nextcloud php /config/www/nextcloud/occ status
+docker exec -u abc nextcloud php /app/www/public/occ --no-ansi status
 ```
 
 ### ClamAV signature update

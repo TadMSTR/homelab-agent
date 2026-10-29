@@ -180,7 +180,7 @@ homelab-agent/
 | `docs/components/mcp-servers/datastore-mcp.md` | Multi-backend datastore query MCP, parked 2026-10-25 |
 | `docs/components/mcp-servers/librechat-mcp.md` | LibreChat agent-management MCP |
 | `docs/components/mcp-servers/backrest-mcp.md` | Backrest backup management MCP |
-| `docs/components/nextcloud-mcp.md` | Nextcloud file/calendar/notes MCP |
+| `docs/components/nextcloud-mcp.md` | Nextcloud admin, provisioning and WebDAV MCP, retired 2026-10-28 |
 | `docs/components/jobsearch-mcp.md` | Job search tracking MCP |
 
 **MCP servers — observability:**

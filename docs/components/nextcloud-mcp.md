@@ -1,114 +1,73 @@
-# nextcloud-mcp
+# nextcloud-mcp (retired 2026-10-28)
 
-nextcloud-mcp is a FastMCP server that exposes Nextcloud operations as MCP tools — `occ`
-admin commands executed via `docker exec`, OCS Provisioning API calls for user/group
-management, and WebDAV file operations. It gives forge agents structured access to the
-Nextcloud instance without requiring shell access.
+nextcloud-mcp was a FastMCP server that exposed Nextcloud operations as MCP tools: `occ` admin
+commands run through `docker exec`, OCS Provisioning API calls for user and group management,
+and WebDAV file and share operations. It ran as a PM2 process on a loopback streamable-http port
+and was proxied to five agents through scoped-mcp.
 
-- **Package:** `nextcloud-mcp` v0.1.0 (TadMSTR/nextcloud-mcp)
-- **Repo:** `~/repos/personal/nextcloud-mcp/`
-- **Venv:** `/opt/venvs/nextcloud-mcp/`
-- **Transport:** streamable-http — `127.0.0.1:8500` (PM2, `ecosystem.config.js`)
-- **Nextcloud URL:** `https://nextcloud.example.com`
-- **Env file:** `/opt/appdata/nextcloud-mcp/env` (0600, admin credentials)
-- **Manifest:** `~/.claude/manifests/nextcloud-mcp.yaml`
-- **Log:** stdout via PM2 (JSON structlog)
+## Retirement
 
-## Port / endpoint
+Retired 2026-10-28. The [Nextcloud](apps/nextcloud.md) instance itself is unaffected and stays
+deployed.
 
-| Binding | Purpose |
-|---------|---------|
-| `127.0.0.1:8500` | FastMCP streamable-http — all MCP tool calls |
+**Why:**
 
-Port 8500 is localhost-only; scoped-mcp proxies agent connections.
+- **No recorded use.** No agent had made an `occ` or WebDAV call for weeks before the retirement.
+- **The admin tools were broken.** The OCS and share tools fetched their admin credential from a
+  secrets-store address that had moved, so they failed in production, and nobody noticed.
+- **The `occ` tools needed no credential.** They ran `docker exec` into the Nextcloud container
+  as a docker-group user. So revoking app passwords and losing the secrets store did not disarm
+  them: they could still toggle security apps, change config, or mint a new app password for
+  any user. The server was stopped before the manifests changed, because only stopping it
+  closed that window.
+- **The HTTP endpoint had no authentication.** It relied on a loopback-only bind, and that
+  stopped being a sufficient boundary once the host began running processes under several
+  isolated agent UIDs.
 
-## Configuration
+Earlier review findings pointed the same way. The admin password went on the `docker exec`
+argv, where any local user can read it from `/proc/<pid>/cmdline`. `occ` error text echoed
+arguments, secrets included.
 
-Env file at `/opt/appdata/nextcloud-mcp/env` (chmod 600):
+**What was removed:**
 
-| Variable | Required | Default | Notes |
-|----------|----------|---------|-------|
-| `NEXTCLOUD_URL` | Yes | — | `https://nextcloud.example.com` on forge |
-| `NEXTCLOUD_CONTAINER` | No | `nextcloud` | Docker container name for occ exec |
-| `NEXTCLOUD_ADMIN_USER` | No | `admin` | Admin username for OCS/share tools |
-| `NEXTCLOUD_ADMIN_PASSWORD` | Yes* | — | Admin app password (*or use Vault) |
-| `NEXTCLOUD_VAULT_ADDR` | No | — | Vault address for credential brokering |
-| `NEXTCLOUD_VAULT_TOKEN` | No | — | Vault token (required with VAULT_ADDR) |
-| `NEXTCLOUD_VAULT_ADMIN_PATH` | No | `secret/data/nextcloud/admin` | Vault KV v2 path |
-| `FASTMCP_TRANSPORT` | Yes | `stdio` | Set to `streamable-http` |
-| `FASTMCP_PORT` | Yes | `8000` | Set to `8500` |
-| `FASTMCP_HOST` | No | `127.0.0.1` | Bind host |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | No | — | SigNoz gRPC at `http://localhost:4317` |
-| `LOG_LEVEL` | No | `INFO` | Log verbosity |
+- the scoped-mcp module, from all five agent manifests, along with the grant file;
+- the PM2 app, its venv, its appdata, its logs and its secrets-store entries;
+- every Nextcloud app password the server or the agents had used.
 
-## Tool groups
+One of those app passwords turned out to be on the operator's own admin account, not on a
+dedicated service account. An app password bypasses two-factor authentication. **If you deploy
+an MCP server like this, give it a dedicated account, and list the app passwords on every
+account when you retire it.**
 
-| Group | Scope | Count | Description |
-|-------|-------|-------|-------------|
-| `occ-admin` | sysadmin | 17 | Version, maintenance, apps, config, files, DB, FTS, security |
-| `ocs-provisioning` | sysadmin | 6 | User/group management, app password generation |
-| `files` | per-agent | 8 | WebDAV list/get/put/move/delete, share create/list/delete |
+The agents' Nextcloud accounts and their group were kept. The Agent Workspace External Storage
+mount is applied to that group, so agents still share artifacts through web links. They no
+longer have any Nextcloud API access.
 
-`occ-admin` and `ocs-provisioning` tools authenticate as admin and are sysadmin-only.
-`files` tools accept per-call `username`/`password` for agent-specific file access.
-Share tools use admin credentials (cross-user share management requires admin auth).
+**What replaced it:** the sysadmin agent runs the stack through an allowlisted `occ` wrapper
+script, with a skill and a runbook. Writes need the operator's approval of the exact command
+line. See [apps/nextcloud.md](apps/nextcloud.md#agent-access).
 
-## Dependencies
+The public repo, TadMSTR/nextcloud-mcp, is being archived.
 
-| Dependency | Notes |
-|------------|-------|
-| Docker socket | `occ` tools run via `docker exec nextcloud occ ...` |
-| Nextcloud container | Must be named `nextcloud` (or override `NEXTCLOUD_CONTAINER`) |
-| Nextcloud HTTP | OCS and WebDAV tools call `https://nextcloud.example.com` directly |
-| Vault (optional) | Admin credentials can be fetched from `secret/data/nextcloud/admin` |
+## What it was
 
-`occ` commands are executed with `--no-ansi`. `--value` arguments are redacted in logs.
+- **Repo:** TadMSTR/nextcloud-mcp (public), v0.1.0
+- **Transport:** streamable-http on a loopback port, managed by PM2
+- **Tool groups:**
 
-## Operations
+  | Group | Tools | Description |
+  |-------|-------|-------------|
+  | `occ-admin` | 17 | version, maintenance, apps, config, files, DB, full-text search, security, via `docker exec … occ` |
+  | `ocs-provisioning` | 6 | users and groups, app password generation |
+  | `files` | 8 | WebDAV list/get/put/move/delete, share create/list/delete |
 
-**Health check:**
-```bash
-curl -s http://127.0.0.1:8500/health
-```
+- **Grants:** the sysadmin agent had all tools. Other agents had subsets of the `files` group,
+  and the security agent had a few read-only `occ` tools. There was no authentication layer in
+  the server: access control was entirely scoped-mcp grants.
+- **Credentials:** an admin app password fetched from a secrets store, plus per-agent app
+  passwords in env files.
 
-**Restart:**
-```bash
-pm2 restart nextcloud-mcp
-pm2 logs nextcloud-mcp --lines 50
-```
+## Related Docs
 
-**Reload env file changes:**
-```bash
-pm2 stop nextcloud-mcp
-export $(grep -v '^#' /opt/appdata/nextcloud-mcp/env | xargs)
-pm2 start nextcloud-mcp
-```
-
-**Check process status:**
-```bash
-pm2 show nextcloud-mcp
-```
-
-## scoped-mcp integration
-
-Manifest: `~/.claude/manifests/nextcloud-mcp.yaml`
-
-| Agent | Access |
-|-------|--------|
-| sysadmin | All 31 tools (`tools: "*"`) |
-| developer | `files` group (8 tools) |
-| research | `dav_list`, `dav_get`, `share_list` |
-| writer | `dav_list`, `dav_get`, `dav_put`, `share_create`, `share_list` |
-| security | `dav_list`, `occ_status`, `security_check`, `log_tail` |
-
-No internal authentication layer — access control is enforced entirely by scoped-mcp grants.
-
-## Security notes
-
-- Admin credentials are not logged; `--value` args in occ commands are redacted as `[REDACTED]`
-- WebDAV path validation rejects `..` traversal sequences (both raw and percent-encoded)
-- `username`, `group_id`, and `share_id` are validated against allowlist regexes before use
-- `app_password_create` generates the password via `secrets.token_urlsafe` and injects it
-  via `docker exec -e OC_PASS` — never logged by this server
-- Vault KV v2 path format: path must include `/data/` (e.g. `secret/data/nextcloud/admin`)
-- Security audit: `nextcloud-mcp-2026-06` (2026-06-21, 5 findings resolved: F-01 through F-05)
+- [apps/nextcloud.md](apps/nextcloud.md): the Nextcloud stack (still deployed), agent workspace
+  and agent access
