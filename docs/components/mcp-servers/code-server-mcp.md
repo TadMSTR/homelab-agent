@@ -1,66 +1,41 @@
-# code-server-mcp
+# code-server-mcp (retired 2026-10-28)
 
-FastMCP server wrapping the code-server Docker container. Provides MCP tools for
-health checks, deep-link URL generation, extension listing, and extension installation.
+code-server-mcp was a FastMCP server that wrapped the [code-server](../cicd/code-server.md)
+Docker container. It gave agents tools to health-check the container, generate deep-link URLs
+for a repo folder, list installed VS Code extensions and install new ones.
 
-## Service
+## Retirement
 
-| Field | Value |
-|-------|-------|
-| PM2 name | `code-server-mcp` |
-| Type | always-on |
-| Interpreter | `~/repos/personal/code-server-mcp/venv/bin/python3` |
-| Module | `code_server_mcp.server` |
-| Port | `127.0.0.1:8498` (streamable-http) |
-| Repo | `~/repos/personal/code-server-mcp/` (GitHub: TadMSTR/code-server-mcp) |
+Retired 2026-10-28. It had no real purpose: two tool calls over its whole deployed life, both
+from the research agent, and the sysadmin agent never called it. Its deep-link tool only built
+a URL pattern the operator can type directly.
 
-## Configuration
+Retiring it also removed a risky path. `list_extensions` and `install_extension` ran
+`docker exec` into the code-server container, and `install_extension` had no human-in-the-loop
+gate for the sysadmin agent. The research agent had it on a denylist.
 
-| Env Var | Value |
-|---------|-------|
-| FASTMCP_TRANSPORT | streamable-http |
-| FASTMCP_PORT | 8498 |
-| FASTMCP_HOST | 127.0.0.1 |
-| CODESERVER_URL | http://127.0.0.1:8443 |
-| CODESERVER_PUBLIC_URL | https://code.example.com |
-| CODESERVER_CONTAINER | code-server |
-| CODESERVER_BIN | /app/code-server/bin/code-server |
+The scoped-mcp module was removed from the research and sysadmin manifests, both brokers were
+restarted before the upstream was stopped, and the PM2 app (`pm2 delete` + `pm2 save`), its
+venv and its logs were deleted. It held no credentials, so nothing needed revoking. The public
+repo, TadMSTR/code-server-mcp, is being archived.
 
-## Tools
+The code-server container itself is unaffected and stays deployed. See
+[code-server.md](../cicd/code-server.md).
 
-| Tool | Description |
-|------|-------------|
-| health_check | Check code-server container health |
-| open_folder_url | Generate deep-link URL for a repo path (allowlist: ~/repos, ~/docker) |
-| list_extensions | List installed VS Code extensions |
-| install_extension | Install extension by marketplace ID (regex-validated) |
+## What it was
 
-## Dependencies
+- **Repo:** TadMSTR/code-server-mcp (public)
+- **Transport:** streamable-http on a loopback port, managed by PM2, proxied to agents through
+  scoped-mcp
+- **Config:** the code-server internal and public URLs, the container name and the
+  `code-server` binary path inside the container. No secrets
+- **Tools:** `health_check`, `open_folder_url` (allowlisted to the repos and docker
+  directories), `list_extensions`, `install_extension` (marketplace ID, regex-validated)
 
-- **code-server** Docker container (port 8443)
-- **scoped-mcp** — all agents access via scoped-mcp manifests
-
-## scoped-mcp Access
-
-| Agent | Access |
-|-------|--------|
-| sysadmin | full access (all 4 tools) |
-| developer | full access |
-| research | install_extension denied |
-
-## Operations
-
-```bash
-# Check status
-pm2 show code-server-mcp
-
-# View logs
-pm2 logs code-server-mcp --lines 30
-
-# Restart
-pm2 restart code-server-mcp
-```
+**If you run it from the archived repo:** `install_extension` runs `docker exec` into the
+container with no approval step. Put it behind a HITL gate or a `tool_denylist` in every
+manifest that proxies the server.
 
 ## Related Docs
 
-- [code-server.md](../cicd/code-server.md) — Docker container it wraps
+- [code-server.md](../cicd/code-server.md): the code-server container (still deployed)

@@ -61,10 +61,10 @@ cd ~/docker/code-server && docker compose up -d
 
 ## scoped-mcp Integration
 
-code-server-mcp (port 8498) wraps this container, providing MCP tools for
-health checks, deep-link URL generation, and extension management. See
+None. Agents have no MCP access to this container. code-server-mcp, which wrapped it with
+health-check, deep-link and extension tools, was retired 2026-10-28; see
 [code-server-mcp.md](../mcp-servers/code-server-mcp.md).
 
 ## Related Docs
 
-- [code-server-mcp.md](../mcp-servers/code-server-mcp.md) — MCP wrapper service
+- [code-server-mcp.md](../mcp-servers/code-server-mcp.md) — retired MCP wrapper service

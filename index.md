@@ -173,7 +173,7 @@ homelab-agent/
 | `docs/components/mcp-servers/dockhand-mcp.md` | Docker container/stack management MCP |
 | `docs/components/mcp-servers/patchmon-mcp.md` | Apt patch management MCP, retired 2026-10-26 |
 | `docs/components/mcp-servers/pm2-mcp.md` | PM2 process management MCP |
-| `docs/components/mcp-servers/code-server-mcp.md` | code-server management MCP |
+| `docs/components/mcp-servers/code-server-mcp.md` | code-server management MCP, retired 2026-10-28 |
 | `docs/components/mcp-servers/plane-mcp.md` | Plane issue tracking MCP, retired 2026-10-25 |
 | `docs/components/mcp-servers/vikunja-mcp.md` | Vikunja task tracking MCP |
 | `docs/components/mcp-servers/doc-cache-mcp.md` | Documentation cache MCP |

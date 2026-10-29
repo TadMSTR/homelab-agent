@@ -13,7 +13,7 @@ Domain-specific MCP servers (observability, memory, search) live in their respec
 | [dockhand-mcp.md](dockhand-mcp.md) | dockhand-mcp | Docker container and stack management | sysadmin, fleet (pinned read-only instance) |
 | [patchmon-mcp.md](patchmon-mcp.md) | patchmon-mcp | Apt patch management — retired 2026-10-26 | — |
 | [pm2-mcp.md](pm2-mcp.md) | pm2-mcp | PM2 process management | sysadmin |
-| [code-server-mcp.md](code-server-mcp.md) | code-server-mcp | code-server session management | developer |
+| [code-server-mcp.md](code-server-mcp.md) | code-server-mcp | code-server session management — retired 2026-10-28 | — |
 | [plane-mcp.md](plane-mcp.md) | plane-mcp | Plane issue tracking — retired 2026-10-25 | — |
 | [backrest-mcp.md](backrest-mcp.md) | backrest-mcp | Backup plan status, snapshots, restore (Backrest) | sysadmin |
 | [datastore-mcp.md](datastore-mcp.md) | datastore-mcp | Read-only queries across 8 database backends — parked 2026-10-25 (not running) | — |

@@ -41,7 +41,6 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `pm2-mcp` | 8486 | PM2 process management tool surface |
 | `signoz-mcp` | 8492 | SigNoz APM queries (v0.3.0) |
 | `matrix-mcp` | 8487 | Matrix messaging tool surface |
-| `code-server-mcp` | 8498 | VS Code server integration |
 | `backrest-mcp` | 8626 | Backup plan status, snapshots, restore (Backrest) |
 
 ### Always-On Infrastructure
@@ -65,6 +64,8 @@ No longer run on forge:
   parked, Temporal retired, datastore-mcp parked; see their component docs)
 - `patchmon-mcp` — removed 2026-10-26 (see
   [patchmon-mcp.md](../docs/components/mcp-servers/patchmon-mcp.md))
+- `code-server-mcp` — removed 2026-10-28; the code-server container stays (see
+  [code-server-mcp.md](../docs/components/mcp-servers/code-server-mcp.md))
 
 ### Scheduled Jobs
 

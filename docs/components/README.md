@@ -109,7 +109,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`dockhand-mcp.md`](mcp-servers/dockhand-mcp.md) | Docker container and stack management MCP |
 | [`patchmon-mcp.md`](mcp-servers/patchmon-mcp.md) | Apt patch management MCP, retired 2026-10-26 |
 | [`pm2-mcp.md`](mcp-servers/pm2-mcp.md) | PM2 process management MCP |
-| [`code-server-mcp.md`](mcp-servers/code-server-mcp.md) | code-server management MCP |
+| [`code-server-mcp.md`](mcp-servers/code-server-mcp.md) | code-server management MCP, retired 2026-10-28 |
 | [`plane-mcp.md`](mcp-servers/plane-mcp.md) | Plane issue tracking MCP, retired 2026-10-25 |
 | [`backrest-mcp.md`](mcp-servers/backrest-mcp.md) | Backup plan status, snapshots, restore MCP (Backrest) |
 | [`vikunja-mcp.md`](mcp-servers/vikunja-mcp.md) | Vikunja task/project tracker MCP |
