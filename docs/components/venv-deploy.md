@@ -73,7 +73,8 @@ and normalizes the package name per PEP 503; the old glob is kept only to clean 
 
 ## Not a security control
 
-`/opt/venvs` is `ted`-owned and `ted`-writable. Any agent holding `system-ops` shell access can
+`/opt/venvs` is `ted`-owned and `ted`-writable (`scoped-mcp`'s venv inside it is the one
+root-owned exception). Any agent holding `system-ops` shell access can
 modify a non-editable venv's installed package exactly as easily as an editable source tree —
 this script does not close that path and was never intended to. What it buys is auditability
 and accident-resistance: a deployed artifact that can state its own version and provenance,
@@ -82,12 +83,29 @@ mitigation for agent-writable code paths.
 
 ## Registered services
 
-| Service | Venv | PM2 process(es) |
-|---------|------|------------------|
-| `memory-metadata-mcp` | `/opt/venvs/memory-metadata-mcp` | `memory-metadata-mcp` |
-| `memory-fulltext-mcp` | `/opt/venvs/memory-fulltext-mcp` | `memory-fulltext-mcp` |
-| `githost-mcp` | `/opt/venvs/githost-mcp` | `githost-mcp-{developer,sysadmin,security,writer,research,harlock}` |
-| `scoped-mcp` | `/opt/venvs/scoped-mcp` | `scoped-mcp-{developer,sysadmin,security,writer,research}` |
+| Service | Venv | PM2 process(es) | Extras |
+|---------|------|------------------|--------|
+| `memory-metadata-mcp` | `/opt/venvs/memory-metadata-mcp` | `memory-metadata-mcp` | — |
+| `memory-fulltext-mcp` | `/opt/venvs/memory-fulltext-mcp` | `memory-fulltext-mcp` (stopped and removed from PM2; the row and venv remain until it is retired) | — |
+| `githost-mcp` | `/opt/venvs/githost-mcp` | `githost-mcp-{developer,sysadmin,security,writer,research,fleet}` | — |
+| `forge-config-mcp` | `/opt/venvs/forge-config-mcp` | none (systemd) | — |
+| `task-dispatcher` | `/opt/venvs/task-dispatcher` | none (cron) | — |
+| `scribe` | `/opt/venvs/scribe` | none (cron) | `telemetry` |
+| `scoped-mcp` | `/opt/venvs/scoped-mcp` | `scoped-mcp-<agent>`, nine brokers | — |
+| `loki-mcp` | `/opt/venvs/loki-mcp` | none (stdio child of the scoped-mcp brokers) | — |
+
+`--list` prints the live table; check it rather than this one before a deploy.
+
+**An empty PM2 field means "deploy with `--no-restart`."** `forge-config-mcp` is supervised
+by systemd (restart it with `systemctl`). `task-dispatcher` and `scribe` are batch CLIs that
+cron runs, so the next tick picks up the new venv. `loki-mcp` is a stdio child of the
+scoped-mcp brokers that declare it, so only a broker restart replaces the running copy.
+
+**Extras** are an optional last field of a registration, comma-separated, without brackets
+(`telemetry`, not `[telemetry]`). The script installs them with the dependencies, then
+verifies that every dependency of each extra is actually installed. *Why:* scribe emits OTel
+spans only when its `telemetry` extra is installed and an OTLP endpoint is set. Dropping the
+extra doesn't fail a deploy; it produces a clean, successful, silent one.
 
 `datastore-mcp` was registered here until it was parked on 2026-10-25; its registration is now
 a comment, and its venv and PM2 process are removed (see
@@ -95,22 +113,48 @@ a comment, and its venv and PM2 process are removed (see
 was retired on 2026-10-28; its registration, venv and PM2 process are removed (see
 [nextcloud-mcp.md](nextcloud-mcp.md)).
 
-`scoped-mcp` proxies every agent's own tool access, including the agent running this script —
-always deploy it with `--no-restart`, then restart the four non-sysadmin brokers deliberately.
-`scoped-mcp-sysadmin` is restarted by the operator, never by the sysadmin agent itself: a
-failed self-restart would remove the very channel needed to diagnose and roll back.
+**This script no longer deploys `scoped-mcp`.** Its venv is now `root:root`, so an agent
+can't write it. Each release ships with a reviewed root deploy script that the operator runs
+with `sudo`, which installs the release and restarts all nine brokers, the sysadmin broker
+last. The row stays so the table is truthful about what backs the venv, and so the broker
+list has something to be checked against (`pm2 jlist` versus the row's PM2 field). Every
+agent's tool access, including the agent running a deploy, goes through these brokers, which
+is why `scoped-mcp-sysadmin` is restarted by the operator, never by the sysadmin agent itself:
+a failed self-restart would remove the very channel needed to diagnose and roll back.
 
 **`memsearch-mcp` is retired** (2026-09-17, see [memsearch-mcp.md](memory/memsearch-mcp.md)) —
 removed from the registered-services table above; there is no `memsearch-mcp` PM2 process for
-this script to deploy or check anymore. `/opt/venvs/memsearch` is still present on disk (a
-residual, not cleaned up) and also still hosts the `memsearch` Claude Code plugin package,
-which was **deliberately editable** (it carried un-versioned forge-local patches a reinstall
-would revert) — that plugin is itself uninstalled now (see
-[forks.md](../operations/forks.md#memsearch--retired-2026-09-17-fork-no-longer-actively-synced)),
-so don't treat anything under this venv as live.
+this script to deploy or check anymore. `/opt/venvs/memsearch`, which also hosted the
+**deliberately editable** `memsearch` Claude Code plugin package (it carried un-versioned
+forge-local patches a reinstall would revert), has since been removed; the plugin was
+uninstalled first (see
+[forks.md](../operations/forks.md#memsearch--retired-2026-09-17-fork-no-longer-actively-synced)).
 
-Dependency-only venvs with no self-package (`agent-bus`, `doc-sync`, `graphiti-ingest`,
-`langfuse-hook`) are out of scope — there is no install mode to standardize.
+### Out of scope
+
+| Venv | Why | How it is built |
+|------|-----|-----------------|
+| `doc-sync`, `langfuse-hook` | dependency-only: no self-package, so there is no install mode to standardize | by hand; doc-sync's dependency floors are recorded as comments in `venv-deploy.sh`, to reapply on any rebuild |
+| `agent-bus` (the repo-local `venv/` in its checkout) | no self-package: PM2 runs `server.py` from the source checkout | from its committed `uv.lock`, by the install script in its README "Installation" section. The old `/opt/venvs/agent-bus` is a dead copy |
+| `doc-cache-mcp` | built from its committed `uv.lock`, without pip, so this script's pip-based install can't deploy it | from a fresh clone of the release tag, by the install script in its README "Installation" section |
+
+`agent-bus` (from v0.6.0) still has no self-package, so it stays out of this script's scope,
+but not because it has no install mode. Its venv has a lock-based install of its own:
+
+```bash
+uv sync --frozen --no-install-project --extra server --python /usr/bin/python3.13
+```
+
+The README script wraps that with the source-tree checks a run-from-source service needs: it
+removes bytecode and caches, refuses any ignored file outside `venv/` and `.env*`, checks the
+tag, and reads the result back with `uv sync --check` against the lock.
+
+`doc-cache-mcp` (from v0.4.0) left this script for a similar reason. Its README script builds
+`/opt/venvs/doc-cache-mcp` with `uv sync --frozen --no-editable --extra telemetry` and no pip.
+Keep the `telemetry` extra on any rebuild: without it the service's audit-sink metrics go
+silent, and silence reads as healthy.
+
+The `graphiti-ingest` and `memsearch` venvs have since been removed from `/opt/venvs`.
 
 ## Operations
 
