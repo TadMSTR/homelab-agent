@@ -2,7 +2,7 @@
 
 Woodpecker is a lightweight CI/CD engine integrated with the forge Gitea instance. It runs pipelines defined in `.woodpecker.yml` files in Gitea repositories, triggered by webhooks on push, PR, and tag events.
 
-- **Version:** 3.15.0
+- **Version:** 3.19.0
 - **URL:** `https://ci.example.com`
 - **Compose:** `~/docker/woodpecker/docker-compose.yml`
 - **Appdata:** `/opt/appdata/woodpecker/`
@@ -15,9 +15,9 @@ Three services: CI server, pipeline agent, and a filtered Docker socket proxy.
 
 | Container | Image | Role |
 |-----------|-------|------|
-| `woodpecker-server` | `woodpeckerci/woodpecker-server:v3.15.0` | Web UI, API, webhook receiver — port 8000 (mapped to 127.0.0.1:8100) |
-| `woodpecker-agent` | `woodpeckerci/woodpecker-agent:v3.15.0` | Pipeline runner — connects to server on gRPC port 9000 |
-| `woodpecker-docker-proxy` | `tecnativa/docker-socket-proxy:latest` | Filtered Docker API access for the agent |
+| `woodpecker-server` | `woodpeckerci/woodpecker-server:v3.19.0` | Web UI, API, webhook receiver — port 8000 (mapped to 127.0.0.1:8100) |
+| `woodpecker-agent` | `woodpeckerci/woodpecker-agent:v3.19.0` | Pipeline runner — connects to server on gRPC port 9000 |
+| `woodpecker-docker-proxy` | `tecnativa/docker-socket-proxy:v0.5.0` | Filtered Docker API access for the agent |
 
 ## Appdata Layout
 
@@ -83,3 +83,5 @@ docker logs woodpecker-agent --tail 50
 ```
 
 **Health check:** `docker inspect woodpecker-server --format '{{.State.Health.Status}}'` — should return `healthy`.
+
+**Leftover step containers:** a pipeline step container (`wp_*`) that never started is sometimes left behind in `created` state, with no compose label. stack-lint flagged one on 2026-10-25 (vikunja#1207).
