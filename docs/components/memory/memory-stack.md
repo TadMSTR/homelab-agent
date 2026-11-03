@@ -2,8 +2,10 @@
 
 The memory stack runs two storage engines on an isolated `memory-net` bridge network:
 Milvus (vector search) and OpenSearch (full-text search). **Milvus was stopped 2026-09-17**
-as part of the memsearch retirement — see below. OpenSearch is still live and backs
-`memory-fulltext-mcp`.
+as part of the memsearch retirement — see below. OpenSearch is still live and still holds
+the memory-notes index fed by `memory-os-sync`, but its query consumer,
+`memory-fulltext-mcp`, was stopped 2026-10-26, pending retirement (vikunja#881) — see
+[memory-services.md](memory-services.md#memory-fulltext-mcp-stopped).
 
 - **Compose:** `~/docker/memory-stack/docker-compose.yml`
 - **Appdata:** `/opt/appdata/memory-stack/`
@@ -34,7 +36,7 @@ backend option — are gone or were never wired to it; qmd uses its own in-proce
 | Service | Port | Consumer |
 |---------|------|----------|
 | Milvus gRPC/HTTP | `127.0.0.1:19530` | None — stopped, port free |
-| OpenSearch REST | `127.0.0.1:9202` | `memory-fulltext-mcp` |
+| OpenSearch REST | `127.0.0.1:9202` | `memory-os-sync` (writes); `memory-fulltext-mcp` (reads — stopped, pending retirement) |
 
 OpenSearch security plugin is disabled (`DISABLE_SECURITY_PLUGIN=true`). The
 localhost-only port binding is the access control boundary — no external exposure.
@@ -45,7 +47,7 @@ OpenSearch instance on the same host.
 
 | PM2 service | What it indexes | Backend |
 |-------------|----------------|---------|
-| `memory-fulltext-mcp` | Memory notes full-text | OpenSearch |
+| `memory-fulltext-mcp` | Memory notes full-text — **stopped 2026-10-26**, pending retirement (vikunja#881); index kept | OpenSearch |
 | `memory-metadata-mcp` | Memory note metadata (SQLite) | — (local file) |
 | `qmd` | 9 000+ markdown docs across all collections | Own in-process `llama.cpp` embedder — not Milvus |
 

@@ -26,7 +26,7 @@ See [`docs/components/agent/scoped-mcp.md`](../docs/components/agent/scoped-mcp.
 | qmd | [doc](../docs/components/cicd/owners-manual.md) | :8181 HTTP | Semantic + keyword search |
 | memsearch-mcp | [doc](../docs/components/memory/memsearch-mcp.md) | :8493 HTTP | Hybrid memory search — **retired 2026-09-17**, see doc |
 | memory-metadata-mcp | [doc](../docs/components/memory/memory-services.md) | :8490 HTTP | Memory note metadata queries |
-| memory-fulltext-mcp | [doc](../docs/components/memory/memory-services.md) | :8491 HTTP | Full-text memory search (renamed from `memory-search-mcp` 2026-07-23) |
+| memory-fulltext-mcp | [doc](../docs/components/memory/memory-services.md) | :8491 HTTP | Full-text memory search (renamed from `memory-search-mcp` 2026-07-23) — **stopped 2026-10-26, pending retirement** (vikunja#881), see doc |
 | patchmon-mcp | [doc](../docs/components/mcp-servers/patchmon-mcp.md) | subprocess | Apt patch tracking — **retired 2026-10-26**, see doc |
 | dockhand-mcp | [doc](../docs/components/mcp-servers/dockhand-mcp.md) | subprocess | Docker stack management |
 | signoz-mcp | [doc](../docs/components/observability/signoz-mcp.md) | :8492 HTTP | APM traces and logs (v0.3.0) |

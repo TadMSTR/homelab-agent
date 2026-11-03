@@ -8,6 +8,10 @@ PM2-managed services that form the agent memory layer. Two groups: **indexing an
 > along with the Milvus backend they indexed into — see
 > [memsearch.md](memsearch.md#retirement) for the full cutover record. This page now lists only
 > the services still running.
+>
+> **memory-fulltext-mcp stopped 2026-10-26 (pending retirement).** Removed from PM2; nothing
+> listens on `:8491`. It is stopped, not deleted — see
+> [memory-fulltext-mcp](#memory-fulltext-mcp-stopped) below.
 
 ## qmd
 
@@ -63,9 +67,17 @@ by category, tier, tag, or date — without reading note bodies.
 - **Endpoint:** `http://127.0.0.1:8490`
 - **Transport:** streamable-http
 
-## memory-fulltext-mcp
+## memory-fulltext-mcp (stopped)
 
-Full-text search MCP over memory notes via OpenSearch. Returns body excerpts alongside
+> **Stopped 2026-10-26, pending retirement (vikunja#881).** Removed from PM2 and from the
+> restart monitor's watched list; nothing listens on `:8491`. The module was removed from the
+> three agent manifests that carried it. Reason: called twice ever (last 2026-09-12), 52
+> advisories against its venv, and it listened unauthenticated on loopback `:8491`. Stopped,
+> not deleted — the venv, the OpenSearch index, and the sync path (`memory-os-sync` →
+> OpenSearch) are kept until retirement. For indexed search over memory notes, use
+> [qmd](#qmd), which already supports BM25 (lexical) sub-queries.
+
+Full-text search MCP over memory notes via OpenSearch. Returned body excerpts alongside
 metadata, enabling queries that require matching note content rather than just frontmatter.
 Scope: personal-agent use only (not in the global scoped-mcp manifest).
 
@@ -78,8 +90,8 @@ Scope: personal-agent use only (not in the global scoped-mcp manifest).
 ~/repos/personal/memory-fulltext-mcp/server.py
 ```
 
-- **Endpoint:** `http://127.0.0.1:8491`
-- **Backend:** OpenSearch at `127.0.0.1:9202`
+- **Endpoint:** `http://127.0.0.1:8491` (not listening while stopped)
+- **Backend:** OpenSearch at `127.0.0.1:9202` (still running, index kept)
 - **Transport:** streamable-http
 
 ## scribe
@@ -153,7 +165,7 @@ flowchart TD
     meta_mcp --> sqlite[("SQLite\n.metadata.db")]
     sqlite --> os_sync["memory-os-sync\nalways-on 30s"]
     os_sync --> opensearch[("OpenSearch\n:9202")]
-    opensearch --> search_mcp["memory-fulltext-mcp\n:8491"]
+    opensearch -.-> search_mcp["memory-fulltext-mcp\n:8491 (stopped)"]
 
     files --> archive["memory-archive-mirror\n02:30 daily"]
     archive --> nfs[("NFS — atlas\n<nas-ip>")]
@@ -177,7 +189,9 @@ OpenSearch container being healthy — Milvus, the other memory-stack container,
 
 **Note:** `memory-metadata-mcp` (SQLite, `:8490`) has zero overlap with `memory-fulltext-mcp`
 (OpenSearch, `:8491`) — the metadata server queries structured note frontmatter (tier,
-tags, dates), the fulltext server queries note bodies.
+tags, dates), the fulltext server queried note bodies. The fulltext server is stopped
+(pending retirement, vikunja#881); `memory-os-sync` still feeds the OpenSearch index, but no
+MCP server exposes it to agents while it is stopped.
 
 ## Related Docs
 

@@ -24,5 +24,5 @@ The memory system gives agents recall across sessions. Notes flow through three 
 | Need | MCP Server | Backend |
 |------|-----------|---------|
 | Semantic / fuzzy recall (incl. session digests) | qmd | Own in-process `llama.cpp` embedder |
-| Keyword / phrase search | memory-fulltext-mcp | OpenSearch (BM25) |
+| Keyword / phrase search | memory-fulltext-mcp — **stopped 2026-10-26, pending retirement** (vikunja#881); qmd's BM25 sub-queries remain | OpenSearch (BM25), index kept |
 | Filter by tag, date, tier | memory-metadata-mcp | SQLite |

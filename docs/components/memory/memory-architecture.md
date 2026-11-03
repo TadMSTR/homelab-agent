@@ -11,6 +11,11 @@ use flat notes for the queries Graphiti used to answer.
 including session history via its `session-digests` collection, which [scribe](scribe.md)
 writes on an hourly cron. The diagrams and tables below reflect the post-retirement state.
 
+**memory-fulltext-mcp was stopped 2026-10-26, pending retirement (vikunja#881)** — see
+[memory-services.md](memory-services.md#memory-fulltext-mcp-stopped). Stopped, not deleted:
+`memory-os-sync` still feeds the OpenSearch index, but nothing serves it to agents on `:8491`.
+It is shown below as stopped (dashed edge).
+
 ---
 
 ## The Three-Tier Note Store
@@ -58,7 +63,7 @@ flowchart TD
     meta --> sqlite[("**.metadata.db**\nSQLite")]
     sqlite --> os_sync["memory-os-sync\nalways-on 30s"]
     os_sync --> opensearch[("**OpenSearch** :9202\nfull-text BM25")]
-    opensearch --> search["**memory-fulltext-mcp** :8491\nfull-text body search"]
+    opensearch -.-> search["**memory-fulltext-mcp** :8491\n(stopped, pending retirement)"]
 ```
 
 ### Choosing a query path
@@ -67,7 +72,7 @@ flowchart TD
 |------|-----|-----|
 | Semantic / fuzzy recall across memory notes and session digests | `qmd` | Own in-process llama.cpp embedder, 9k docs across 40+ collections including `session-digests`. Replaced `memsearch-mcp` 2026-09-17 — see [memsearch.md](memsearch.md#retirement) |
 | Filter notes by tag, date, tier, or category | `memory-metadata-mcp` | Structured frontmatter queries without reading bodies |
-| Find notes containing a specific phrase or term | `memory-fulltext-mcp` | Full-text BM25 over note bodies |
+| Find notes containing a specific phrase or term | `qmd` (BM25 / lexical sub-query) | `memory-fulltext-mcp` (full-text BM25 over note bodies) is **stopped**, pending retirement (vikunja#881) |
 
 ---
 
@@ -136,7 +141,7 @@ flowchart TD
     working -- "⑦ parses frontmatter tags,\ntier, dates into SQLite" --> metadb[(".metadata.db\n(SQLite frontmatter index)")]
     metadb -- "⑧ syncs fields/tags\nfor full-text indexing" --> os_sync["memory-os-sync\n(always-on, 30s poll)"]
     os_sync --> opensearch[("OpenSearch :9202\n(full-text BM25 index)")]
-    opensearch -- "⑨ full-text phrase/\nkeyword search" --> search_mcp["memory-fulltext-mcp :8491"]
+    opensearch -. "⑨ full-text phrase/\nkeyword search (stopped)" .-> search_mcp["memory-fulltext-mcp :8491\n(stopped)"]
     metadb -- "⑩ structured queries on\ntags, dates, tiers" --> meta_mcp["memory-metadata-mcp :8490"]
 
     subgraph "MCP query surface — agents call these"
@@ -157,7 +162,7 @@ flowchart TD
 | ⑥ | working/digests → qmd | `qmd-refresh` re-indexes all memory collections hourly, including scribe's `session-digests` collection. qmd links `llama.cpp` in-process and loads its own GGUF embedding models from `~/.cache/qmd/models/` — no dependency on Milvus. The real GPU coupling: qmd's in-process `llama.cpp` and Ollama's `llama.cpp`-backed inference share one 16 GB GPU, the root of the recurring "Failed to create any embedding context" errors, not a data dependency |
 | ⑦ | working → .metadata.db | `memory-metadata-mcp` parses frontmatter (tier, tags, dates) into a local SQLite file on each write |
 | ⑧ | .metadata.db → OpenSearch | `memory-os-sync` watches the SQLite file and pushes changes to OpenSearch for full-text indexing |
-| ⑨ | OpenSearch → memory-fulltext-mcp | Agents search note *bodies* by phrase or keyword via BM25 |
+| ⑨ | OpenSearch → memory-fulltext-mcp | **Stopped 2026-10-26, pending retirement (vikunja#881).** Agents searched note *bodies* by phrase or keyword via BM25. The OpenSearch index is kept and still fed by ⑧ |
 | ⑩ | .metadata.db → memory-metadata-mcp | Agents filter notes by structured fields (tag, date range, tier) without reading file bodies |
 
 **Retired 2026-09-17:** `memsearch-watch-fast`/`memsearch-watch-templates` (polled/watched

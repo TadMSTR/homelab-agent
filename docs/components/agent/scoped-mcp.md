@@ -142,15 +142,19 @@ which MCP modules it can access, with per-tool denylists enforcing least-privile
 | Agent | Modules | Denylisted Tools |
 |-------|---------|-----------------|
 | sysadmin | system-ops, githost-mcp, dockhand-mcp, searxng-mcp, qmd, memory-metadata-mcp, task-queue-mcp, pm2-mcp, grafana-mcp, loki-mcp, signoz-mcp, claudebox-ops, matrix | `searxng-mcp: clear_cache` |
-| research | searxng-mcp, qmd, memory-metadata-mcp, memory-fulltext-mcp, task-queue-mcp, langfuse-mcp, signoz-mcp, claudebox-ops, matrix | `searxng-mcp: clear_cache` |
+| research | searxng-mcp, qmd, memory-metadata-mcp, task-queue-mcp, langfuse-mcp, signoz-mcp, claudebox-ops, matrix | `searxng-mcp: clear_cache` |
 | developer | system-ops, githost-mcp, searxng-mcp, qmd, memory-metadata-mcp, task-queue-mcp, langfuse-mcp, matrix | `searxng-mcp: clear_cache` |
-| writer | system-ops, searxng-mcp, qmd, memory-metadata-mcp, memory-fulltext-mcp, task-queue-mcp, matrix | `system-ops: list_processes`, `searxng-mcp: clear_cache` |
+| writer | system-ops, searxng-mcp, qmd, memory-metadata-mcp, task-queue-mcp, matrix | `system-ops: list_processes`, `searxng-mcp: clear_cache` |
 | security | system-ops, searxng-mcp, memory-metadata-mcp, task-queue-mcp, loki-mcp, matrix | `system-ops: edit_file`, `searxng-mcp: clear_cache` |
 
 This table covers manifests for the 5 interactive resident agents only. Automation-only
 scoped-mcp instances (e.g. for jobsearch, doc-health, memory-sync workflows) have their own
 manifests under `/etc/forge/manifests/` but are not tabulated here — see `pm2 list | grep
 scoped-mcp` for the current live set.
+
+The `memory-fulltext-mcp` module was removed from the research and writer manifests (and one
+other) when that server was stopped 2026-10-26, pending retirement (vikunja#881) — see
+[memory-services.md](../memory/memory-services.md#memory-fulltext-mcp-stopped).
 
 ### claudebox-ops
 

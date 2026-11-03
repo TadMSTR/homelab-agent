@@ -36,7 +36,7 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 | `agent-bus` | 8488 | Inter-agent event log → NATS |
 | `qmd` | 8181 | Semantic + keyword search over 9000+ docs |
 | `memory-metadata-mcp` | 8490 | Structured queries over memory note metadata |
-| `memory-fulltext-mcp` | 8491 | Full-text search via OpenSearch (renamed from `memory-search-mcp` 2026-07-23) |
+| `memory-fulltext-mcp` | 8491 | Full-text search via OpenSearch (renamed from `memory-search-mcp` 2026-07-23) — **stopped 2026-10-26 and removed from PM2, pending retirement** (vikunja#881); venv and OpenSearch index kept |
 | `system-ops` | 8282 | Shell, file, and process operations |
 | `pm2-mcp` | 8486 | PM2 process management tool surface |
 | `signoz-mcp` | 8492 | SigNoz APM queries (v0.3.0) |
