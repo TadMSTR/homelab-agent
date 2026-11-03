@@ -1,13 +1,14 @@
 # vikunja-mcp
 
-vikunja-mcp is a FastMCP server wrapping the [Vikunja](https://vikunja.io) REST API — 73
+vikunja-mcp is a FastMCP server wrapping the [Vikunja](https://vikunja.io) REST API — 75
 tools spanning the full Vikunja resource surface: projects, project sharing, tasks,
-assignees, relations/reminders, backlinks, kanban buckets/views, labels, comments, filters,
-attachments, teams, and webhooks. It targets Vikunja's `/api/v2`, so it requires **Vikunja
+assignees, relations/reminders, backlinks, ticket sweeps, kanban buckets/views, labels,
+comments, filters, attachments, teams, and webhooks. It targets Vikunja's `/api/v2`, so it requires **Vikunja
 2.4.0 or newer** (v1 is frozen upstream at 2.4.0 and removed at 4.0).
 
 - **Package:** `vikunja-mcp` (`~/repos/personal/vikunja-mcp`), published as
-  `ghcr.io/tadmstr/vikunja-mcp:v0.11.0`
+  `ghcr.io/tadmstr/vikunja-mcp:v0.13.0` (deployed 2026-10-27; verified in `docker ps`
+  2026-11-02)
 - **Transport:** streamable-http — `127.0.0.1:8501`. **Container**, not PM2 — moved into the
   `~/docker/vikunja/` compose stack (alongside the `vikunja` app and `vikunja-db`) at v0.6.0. A
   `vikunja-mcp` PM2 entry still shows in `pm2 jlist` but is `stopped`, a dormant leftover
@@ -56,11 +57,25 @@ model. Per-agent tokens live in Vault at `secret/data/vikunja/agent-<role>`.
 
 ## Tools
 
-73 tools spanning the full Vikunja resource surface — 71 as of v0.2.0, plus
-`backlog_summary` (v0.7.0) and `task_link_commit` (v0.8.0); still 73 at v0.11.0, reverified
-live against a `tools/list` call against the running container 2026-09-28. See the [repo
+75 tools spanning the full Vikunja resource surface — 71 as of v0.2.0, plus
+`backlog_summary` (v0.7.0), `task_link_commit` (v0.8.0), and `tasks_export` and `task_close`
+(v0.13.0). The 73-tool count was reverified with a `tools/list` call against the running
+container 2026-09-28; the 75 is counted from the `@tool` registrations in the v0.13.0
+source (2026-11-02). See the [repo
 README](https://github.com/TadMSTR/vikunja-mcp#tools) for the full table.
 Notable points:
+
+- **Ticket sweeps (v0.13.0).** `tasks_export(project_id, include_done=true, since=None)`
+  returns every task in a project as one compact row each, with no description. It pages
+  to completion or raises, and `since` keeps tasks updated at or after a timestamp.
+  `task_close(task_id, verdict, evidence, ...)` posts a `Closing: <VERDICT> — <evidence>`
+  comment, adds the relation the verdict implies, and marks the task done, in one call.
+- **Smaller replies (v0.13.0).** `task_get` takes `fields=[...]` and
+  `include_comments=true`. `task_update`, `tasks_bulk_update`, `comment_create`,
+  `task_label_add` and `task_relation_add` accept `return_mode="minimal"`. Defaults are
+  unchanged.
+- **Username, not user id (v0.12.0).** `project_user_update`, `project_user_remove` and
+  `team_member_toggle_admin` take `username`; before v0.12.0 every call to them returned 404.
 
 - **No `filter_list`** — Vikunja has no `GET /filters`; saved filters are exposed as
   pseudo-projects, so list them via `project_list` and fetch with `filter_get`.
@@ -103,17 +118,23 @@ vikunja-mcp` shows the stopped ghost entry, not this container.
 
 ## scoped-mcp Wiring
 
-Registered in all 5 agent manifests (`/etc/forge/manifests/*.yml`) as an `mcp_proxy` module
+Registered in 6 agent manifests (`/etc/forge/manifests/*.yml`) as an `mcp_proxy` module
 pointing at `http://127.0.0.1:8501/mcp`, each injecting `Authorization: Bearer
-${VIKUNJA_TOKEN}` from its own Vault-sourced credential.
+${VIKUNJA_TOKEN}` from its own Vault-sourced credential. Every manifest carries an explicit
+`tool_allowlist`. A proxy freezes the tool list when it starts, so it has to be restarted
+before a new tool or parameter shows up.
 
 | Manifest | Access |
 |----------|--------|
-| `sysadmin-agent.yml` | Full access (no allowlist) |
-| `developer-agent.yml` | `project_list`, `project_get`, `project_create`, `task_list`, `task_search`, `task_get`, `task_create`, `task_update`, `label_list`, `label_create`, `task_label_add`, `comment_list`, `comment_create`, `whoami` |
-| `research-agent.yml` | `project_list`, `task_list`, `task_search`, `task_get`, `task_create`, `whoami` |
-| `writer-agent.yml` | `project_list`, `task_list`, `task_get`, `task_create`, `task_update`, `comment_create`, `whoami` |
-| `security-agent.yml` | `project_list`, `task_list`, `task_search`, `task_get`, `whoami` |
+| `sysadmin-agent.yml` | Every tool except `tasks_export` (74 of 75). Five membership/admin tools need HITL approval on every call: `project_user_update`, `project_user_remove`, `team_member_toggle_admin`, `team_delete`, `team_member_remove` (added 2026-10-21 with v0.12.0) |
+| `developer-agent.yml` | `whoami`, `project_list`, `project_get`, `task_list`, `task_search`, `task_get`, `task_create`, `task_update`, `label_list`, `label_get`, `label_create`, `task_label_add`, `task_label_remove`, `comment_list`, `comment_create`, `task_relation_add`, `task_relation_remove`, `task_assignee_list`, `attachment_list`, `attachment_upload`, `view_list`, `view_get`, `bucket_list`, `task_bucket_move`, `backlog_summary`, `task_link_commit`, `task_close` |
+| `research-agent.yml` | `whoami`, `project_list`, `project_get`, `task_list`, `task_search`, `task_get`, `task_create`, `task_update`, `tasks_bulk_update`, `task_label_add`, `task_label_remove`, `task_relation_add`, `task_relation_remove`, `task_assignee_list`, `comment_list`, `comment_create`, `label_list`, `label_get`, `label_create`, `team_list`, `team_get`, `project_team_list`, `project_user_list`, `project_share_list`, `project_share_get`, `view_list`, `view_get`, `bucket_list`, `backlog_summary`, `task_link_commit`, `tasks_export`, `task_close` |
+| `writer-agent.yml` | `whoami`, `project_list`, `project_get`, `task_list`, `task_search`, `task_get`, `task_create`, `task_update`, `task_label_add`, `task_label_remove`, `task_relation_add`, `label_list`, `comment_list`, `comment_create`, `backlog_summary`, `task_link_commit` |
+| `security-agent.yml` | `whoami`, `project_list`, `project_get`, `task_list`, `task_search`, `task_get`, `label_list`, `label_get`, `comment_list`, `comment_create`, `team_list`, `team_get`, `project_team_list`, `project_user_list`, `project_share_list`, `project_share_get`, `view_list`, `view_get`, `bucket_list`, `task_assignee_list`, `backlog_summary` |
+| `fleet-agent.yml` | `project_list`, `project_get`, `task_list`, `task_search`, `task_get`, `task_create`, `task_update`, `task_label_add`, `task_label_remove`, `task_relation_add`, `task_relation_remove`, `comment_list`, `comment_create` |
+
+The v0.13.0 tools were granted 2026-10-27: `task_close` to sysadmin, developer and research,
+and `tasks_export` to research only.
 
 Project taxonomy (parent/child structure, label vocabulary, kanban buckets, sharing teams)
 is defined in `host-forge/vikunja-structure.md` — **proposed**, not yet ratified.
