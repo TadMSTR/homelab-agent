@@ -57,7 +57,7 @@ running as the operator's uid.
 
 | Endpoint | Binding | Used by |
 |----------|---------|---------|
-| API | `127.0.0.1:8210` → container `8200` | scoped-mcp brokers, config-deploy script, snapshot job, seal watcher |
+| API | `127.0.0.1:8210` → container `8200` | scoped-mcp brokers, config-deploy script, env-sync tool, snapshot job, seal watcher |
 | UI | `http://localhost:8210/ui` | Operator, through an SSH tunnel (`ssh -L 8210:127.0.0.1:8210 <host>`) |
 | Cluster | `127.0.0.1:8201` in-container | Raft (single node; not published) |
 | Health | `GET /v1/sys/health` | Seal watcher, container healthcheck |
@@ -140,6 +140,8 @@ on HUP.
 - scoped-mcp for every agent whose manifest has `credentials.source: vault`. These fail
   closed while the store is sealed
 - The config-deploy script ([forge-configs.md](forge-configs.md)), for stack `.env` secrets
+- `openbao-env-sync`, the operator tool that moves secrets between `.env` files and KV
+  (see "Operations")
 - The Raft snapshot job
 
 ## Operations
@@ -192,6 +194,38 @@ result into `unsealed`, `sealed`, `uninitialized` or `unreachable`:
 It exits 0 in every observed state, so its Healthchecks ping measures that the watcher ran,
 not that the store is unsealed. It replaced the old auto-unsealing
 [vault-seal-watcher](vault-seal-watcher.md), now retired.
+
+### Moving secrets between `.env` files and KV: openbao-env-sync
+
+`openbao-env-sync.py` (added 2026-10-29, hardened after its security audit) moves keys
+between a stack `.env` file and KV v2, holding every value in process memory only. It pairs
+with the config-deploy script ([forge-configs.md](forge-configs.md)): `import` puts a stack's
+existing `.env` into `secret/<host>/docker/<stack>`, and the deploy script renders the
+stack's `.env` back from that path on its next run. The deploy script now covers
+webhook-doorman too: its `config.yml` and its `.env`.
+
+| Mode | What it does |
+|------|--------------|
+| `import --file <env> --path <kv> [--overwrite]` | Parses the `.env` with the deploy script's own parser and writes every key. Refuses a path that exists and differs unless `--overwrite`, and refuses any value the deploy script couldn't render back |
+| `set-key --path <kv> --key <K> --from <kv>:<field>` | Copies one value within OpenBao as a KV v2 patch, so the other keys and the version history stay |
+| `render-keys --path <kv> --file <env> --map ENV_KEY=field` | Rewrites only the mapped lines of an existing file, atomically (a 0600 temp file in the same directory, then a rename, owner kept). Every other line stays byte for byte. Refuses symlink and hard-linked targets, and values a shell `source` would alter |
+| `register-matrix`, `whoami`, `join`, `logout --expect-device` | Helpers for a Matrix bot account whose credentials live in KV. `logout` refuses unless the token's device matches `--expect-device` |
+
+How it keeps values out of sight:
+
+- No option takes a secret. The `operator` token comes from `BAO_TOKEN` or a prompt that
+  doesn't echo.
+- Output is paths, key names, per-key status and `match: true|false` from a verify pass that
+  re-reads every write. Never a value, a hash or a length. An agent may run `--dry-run` and
+  read the result; the operator runs every mode that writes or sends a secret.
+- Exit 0 only if every key verifies, 1 on a mismatch, 2 on a refusal, 3 on an unexpected
+  error. A 3 prints the exception's class name only, because its message could hold a value.
+- Plain HTTP goes to loopback only, with no proxy and no redirects followed.
+
+`render-keys` is interim, until per-service OpenBao Agent templates replace it. A rendered
+file is still readable by the shared uid. Keeping the master copy in KV gives version
+history (`bao kv rollback`), an audit trail and one place to rotate. It doesn't add
+isolation.
 
 ### Break-glass (root token for an emergency)
 
@@ -266,6 +300,7 @@ credentials:
 ## Related Docs
 
 - [vault-seal-watcher.md](vault-seal-watcher.md): the retired auto-unseal watcher
-- [forge-configs.md](forge-configs.md): config-deploy script (stack secrets from KV)
+- [forge-configs.md](forge-configs.md): config-deploy script (stack secrets from KV), the
+  render side of openbao-env-sync
 - [authentik.md](authentik.md): SSO provider for the operator OIDC login
 - [../agent/scoped-mcp.md](../agent/scoped-mcp.md): per-agent broker and its credential source

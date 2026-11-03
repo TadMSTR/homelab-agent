@@ -10,7 +10,7 @@ Deploy these first. The rest of the stack assumes SWAG is routing traffic and Au
 |-----|---------|----------------|
 | [swag.md](swag.md) | SWAG nginx reverse proxy | 80, 443 |
 | [authentik.md](authentik.md) | SSO — forward auth + OIDC | 9000, 9443 |
-| [vault.md](vault.md) | HashiCorp Vault — secret management | 8200 |
+| [vault.md](vault.md) | OpenBao (Vault fork) — secret management | 127.0.0.1:8210 |
 | [vaultwarden.md](vaultwarden.md) | Bitwarden-compatible password manager | 8343 |
 | [dockhand.md](dockhand.md) | Docker stack manager UI | 7777 |
 | [forge-configs.md](forge-configs.md) | Host configuration management | — |
@@ -18,13 +18,13 @@ Deploy these first. The rest of the stack assumes SWAG is routing traffic and Au
 | [docker-stack-backup.md](docker-stack-backup.md) | Nightly compose-stack backup (tar + restic, Btrfs snapshots, status/metrics) | — (cron) |
 | [btrbk-daily.md](btrbk-daily.md) | Btrfs snapshot scheduler | — (cron) |
 | [btrfs-scrub-monthly.md](btrfs-scrub-monthly.md) | Btrfs filesystem maintenance | — (cron) |
-| [vault-seal-watcher.md](vault-seal-watcher.md) | Vault seal monitor → Matrix alert | — (PM2) |
+| [vault-seal-watcher.md](vault-seal-watcher.md) | Retired Vault auto-unseal watcher (replaced by the alert-only openbao-seal-watcher, in [vault.md](vault.md)) | — (retired; replacement runs from cron) |
 
 ## Deployment Order
 
 1. SWAG (SSL + routing)
 2. Authentik (SSO)
-3. Vault (secrets)
+3. OpenBao (secrets)
 4. Vaultwarden (passwords)
 5. Dockhand (stack management)
-6. Host maintenance jobs (backrest, docker-stack-backup, btrbk, vault-seal-watcher)
+6. Host maintenance jobs (backrest, docker-stack-backup, btrbk, openbao-seal-watcher)

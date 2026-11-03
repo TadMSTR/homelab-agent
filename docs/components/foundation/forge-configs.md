@@ -40,6 +40,7 @@ The repo also serves as the source of truth for Phase 2f of `agent-workspace-sca
 | `appdata/observability/grafana/provisioning/datasources/datasources.yml` | `observability/grafana/provisioning/...` | Grafana data sources |
 | `appdata/observability/grafana/provisioning/dashboards/dashboards.yml` | `observability/grafana/provisioning/...` | Dashboard provider config |
 | `appdata/observability/grafana/provisioning/dashboards/forge/*.json` | `observability/grafana/provisioning/...` | Dashboard JSON definitions |
+| `appdata/webhook-doorman/config.yml` | `webhook-doorman/config.yml` | Webhook relay config (validated with the image's own `--check` before deploy) |
 | `docker/<service>/.env.example` | — | Env var schema only; actual values in Vault |
 
 ---
@@ -82,7 +83,12 @@ Vault AppRole policy scope: `secret/data/forge/docker/*` (read only).
 ~/scripts/forge-configs-deploy.sh --service grafana
 ```
 
-Available services: `swag`, `grafana`, `authentik`, `observability`, `vaultwarden`.
+Available services: `swag`, `grafana`, `authentik`, `observability`, `vaultwarden`, `webhook-doorman`.
+
+webhook-doorman reads its `config.yml` and `.env` only when the container is created, so it
+has no HUP reload: `--reload` recreates it instead (and prints that as a NEXT step without
+`--reload`). Its `.env` is rendered from KV like the others. To move an existing `.env` into
+KV in the first place, use `openbao-env-sync` ([vault.md](vault.md)).
 
 ### Dry run (show changes without applying)
 

@@ -1,6 +1,6 @@
 # Platform — Monitoring Probes & Documentation Health
 
-Background jobs that watch for drift, resource exhaustion, and documentation staleness. All run as PM2 cron processes and alert via Matrix when thresholds are crossed.
+Background jobs that watch for drift, resource exhaustion, and documentation staleness. Most run as PM2 cron processes and alert via Matrix when thresholds are crossed; the exception is the root system-cron OSV DB refresh ([forge-scanners.md](forge-scanners.md)), which has no alert of its own.
 
 ## Services
 
@@ -15,6 +15,7 @@ Background jobs that watch for drift, resource exhaustion, and documentation sta
 | [build-unblock-scan.md](build-unblock-scan.md) | Stalled build detection | Every 15 min |
 | [git-drift-alert.md](git-drift-alert.md) | Uncommitted git change alerting | Every 6 hours |
 | [git-remote-cred-check.md](git-remote-cred-check.md) | Embedded-credential leak scan on git remotes | Daily |
+| [forge-scanners.md](forge-scanners.md) | osv-scanner offline DB refresh for the security prescan (root system cron, no alert) | Daily |
 
 ## Alert Flow
 
