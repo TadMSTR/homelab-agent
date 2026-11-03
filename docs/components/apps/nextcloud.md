@@ -11,7 +11,7 @@ No Authentik forward auth — it breaks WebDAV clients and mobile sync apps. Eac
 | Container | Image | Purpose |
 |-----------|-------|---------|
 | `nextcloud` | `lscr.io/linuxserver/nextcloud:35.0.2-ls460` | Main app, Nextcloud 35 (nginx + php-fpm + notify_push via docker-mod) |
-| `nextcloud-db` | `postgres:16.15-alpine` | Primary database |
+| `nextcloud-db` | `postgres:18.6-alpine` | Primary database (PostgreSQL 18 since 2026-10-31) |
 | `nextcloud-valkey` | `valkey/valkey:8` | Session cache / file locking |
 | `nextcloud-opensearch` | `opensearchproject/opensearch:2` | Full-text file search |
 | `nextcloud-clamav` | `clamav/clamav:1.5.4` | Antivirus scanning |
@@ -79,9 +79,19 @@ Valkey and PostgreSQL.
 - Appdata: `/opt/appdata/nextcloud/`
   - `config/` — Nextcloud config and nginx/php config
   - `data/` — user files
-  - `db/` — PostgreSQL data
+  - `db/` — PostgreSQL data, mounted at `/var/lib/postgresql`
   - `opensearch/` — OpenSearch indexes
   - `clamav/` — ClamAV virus definitions
+
+**PostgreSQL 18 layout.** The PostgreSQL 18 image keeps its data in a per-major directory
+(`PGDATA` is `/var/lib/postgresql/18/docker`), and its volume is the parent,
+`/var/lib/postgresql`. So the bind mount targets the parent, and the data lands in
+`/opt/appdata/nextcloud/db/18/docker`. The old `.../data` target would put the database in an
+anonymous volume. The mount moved with the 16 → 18 upgrade on 2026-10-31. For the next major,
+`pg_upgrade --link` can run inside this one mount, with `19/docker` beside `18/docker`.
+
+Nextcloud connects as `oc_admin`, which owns every database object, not as `POSTGRES_USER`.
+A dump and restore must carry that role and keep object ownership.
 
 ### Environment
 
@@ -124,6 +134,14 @@ the write control. Agents read that tree as instructions, so code execution in t
 internet-facing container must not be able to change it. Nextcloud's own `readonly` mount option
 is only a permissions mask. `files:scan` writes only to the database, so indexing still works.
 
+Files that agents write on the host don't reach Nextcloud's file cache on their own. A cron job,
+`/etc/cron.d/nextcloud-agent-scan`, runs a shallow scan of the Agent Workspace folder every 15
+minutes and appends to `nc-files-scan.log` in the operator's log directory:
+
+```
+*/15 * * * * <user> docker exec -u abc nextcloud php /app/www/public/occ files:scan --path='<user>/files/Agent Workspace' --shallow
+```
+
 The operator's `~/Documents` is mounted read-write as a second External Storage mount, for the
 operator only. It holds ordinary user files.
 
@@ -138,10 +156,18 @@ their Nextcloud accounts only so that the Agent Workspace mount, which is applie
 works for the web links they send. A dedicated Nextcloud MCP server
 (nextcloud-mcp) was retired; see [nextcloud-mcp.md](../nextcloud-mcp.md).
 
-The sysadmin agent operates the stack through an allowlisted `occ` wrapper script, with a skill
-and a runbook. Read commands run directly. Write commands need the operator's approval of the
-exact command line. User management, `config:*:set`, `app:install`, encryption, and enabling or
-disabling security apps are refused, and stay with the operator.
+The sysadmin agent operates the stack through an allowlisted `occ` wrapper script,
+`~/scripts/nextcloud-occ.sh`, with a skill (`sysadmin-nextcloud`) and a runbook. The skill
+routes every `occ` call through the wrapper, and a raw `docker exec ... occ` is not a
+workaround for a refusal. Read commands run directly. Write commands are refused unless
+`--confirm` comes first, and the agent must get the operator's approval of the exact command
+line before adding it. `--confirm` is a convention, not a gate; the approval rule in the skill
+is the control. User management, `config:*:set`, `app:install`, encryption, and enabling or
+disabling security apps are refused even with `--confirm`, and stay with the operator.
+
+The wrapper writes one audit line per call, refusals included, to `~/logs/nextcloud-occ.log`.
+The log is advisory: it records calls made through the wrapper, not everything that touched
+the instance. A bats suite covers the wrapper (`~/scripts/tests/test_nextcloud_occ.bats`).
 
 ---
 
@@ -204,6 +230,9 @@ docker exec -u abc nextcloud php /app/www/public/occ --no-ansi <command>
 # Example: check status
 docker exec -u abc nextcloud php /app/www/public/occ --no-ansi status
 ```
+
+Agents don't use this form. They go through `~/scripts/nextcloud-occ.sh` (see
+[Agent access](#agent-access)).
 
 ### ClamAV signature update
 
