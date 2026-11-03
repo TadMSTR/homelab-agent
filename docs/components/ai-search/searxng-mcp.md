@@ -6,11 +6,13 @@ cascade, and a domain capability database that learns which fetch tier works for
 the [project README](https://github.com/TadMSTR/searxng-mcp) for the full tool/architecture
 reference; this doc covers forge's deployment of it.
 
-- **Version:** v3.29.0
+- **Version:** v3.30.1, for all three images from this repo (`searxng-mcp`,
+  `searxng-mcp-adblock-proxy`, `searxng-mcp-reranker`), each digest-pinned in compose —
+  verified in `docker ps` 2026-11-02
 - **Runs as:** Docker container in the `searxng` stack (`~/docker/searxng/docker-compose.yml`),
   co-located with SearXNG itself since a 2026-08-23 stack consolidation. As of the v3.26.0
   cutover the container runs a published, digest-pinned image
-  (`ghcr.io/tadmstr/searxng-mcp:v3.29.0`) rather than a local build off repo main — a supply-chain
+  (`ghcr.io/tadmstr/searxng-mcp:v3.30.1`) rather than a local build off repo main — a supply-chain
   improvement as much as a convenience: the image is now reproducible from a tagged release
   instead of whatever commit happened to be checked out at build time
 - **Endpoint:** `http://127.0.0.1:8504` — bearer-authed
@@ -113,7 +115,8 @@ Configuration is two env vars: `SOLVER_ENABLED` (gate — off means challenge pa
 any other unreachable fetch) and `SOLVER_URL` (pointing at the Byparr container on `fetch-net`).
 Byparr has no host-published port and no auth of its own; see
 [byparr.md](byparr.md#network-placement--why-its-isolated) for why that's an acceptable trade —
-short version, it's isolated on a network with exactly one consumer.
+short version, it's isolated on `fetch-net`, a small network kept off `forge-net` (see
+[fetch-net](#fetch-net) for who else is on it).
 
 The solver tier is deliberately a last resort, not a default: spinning up a full browser session
 per request is far more expensive than any other tier, so it only runs when everything cheaper
@@ -126,9 +129,23 @@ has already failed.
   path is the bind mount `/opt/appdata/searxng/domain-db-snapshots` → `/snapshots`. If something
   ever turns out to need a writable root, find out *what* before dropping this flag.
 - `mem_limit: 2g`, `cpus: 2.0`, `ulimits: core: 0`
-- Networks: `forge-net` and `fetch-net` — the latter carries no other traffic, it exists purely
-  so searxng-mcp can reach `adblock-proxy` and Byparr without either being reachable from
-  `forge-net`'s much larger population of containers
+- Networks: `forge-net` and `fetch-net` — the latter exists so searxng-mcp can reach
+  `adblock-proxy` and Byparr without either being reachable from `forge-net`'s much larger
+  population of containers. `firecrawl-v2-api` from the Firecrawl stack is on it too (see
+  below)
+
+### fetch-net
+
+`fetch-net` is an unowned, external network. It was created by hand
+(`docker network create fetch-net`) and is declared `external` in both this stack and
+`~/docker/firecrawl-v2/`. The two compose files attach `searxng-mcp`, `adblock-proxy` and
+`byparr` from this stack, and `firecrawl-v2-api` from the Firecrawl stack.
+
+It used to be the searxng-owned `searxng_fetch-net` (and before that `crawler_fetch-net`).
+When one stack owned it, a `docker compose down` or recreate of the searxng stack removed
+the network and dropped `firecrawl-v2-api`'s endpoint with it. With neither stack owning it,
+recreating either one leaves the other's attachment in place (vikunja#1164). It is not
+`--internal`: Byparr and `adblock-proxy` fetch the internet over it.
 
 ## Concurrent-write behaviour
 
