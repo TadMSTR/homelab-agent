@@ -210,7 +210,7 @@ homelab-agent/
 
 | Doc | Topic |
 |-----|-------|
-| `docs/components/platform/doc-health.md` | Documentation audit system |
+| `docs/components/platform/doc-health.md` | Documentation checks: kb-lint (mechanical, daily) + doc-health (weekly LLM judgment) |
 | `docs/components/platform/doc-sync-daily.md` | Daily doc sync cron |
 | `docs/components/platform/disk-space-probe.md` | Disk usage monitoring + alerts |
 | `docs/components/platform/snapshot-monitoring.md` | Btrfs snapshot space monitoring (bloat + capacity probes, retention) |
