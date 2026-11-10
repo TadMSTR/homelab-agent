@@ -10,13 +10,16 @@ covers what an operator of the memory pipeline needs to know.
 
 Repo: **public**, [`TadMSTR/scribe`](https://github.com/TadMSTR/scribe) —
 `~/repos/personal/scribe/README.md`. CodeQL (Python and Actions) and OSSF Scorecard run on it
-(#26, merged `8126d19`); Scorecard published a 5.3 baseline on 2026-09-28. Tag **v0.12.0**,
-confirmed deployed at `/opt/venvs/scribe` (`pip show scribe` → `0.12.0`, live 2026-09-28).
+(#26, merged `8126d19`); Scorecard published a 5.3 baseline on 2026-09-28. Tag **v0.18.0**,
+confirmed deployed at `/opt/venvs/scribe` (0.18.0, from the `scribe-headless-digest-2026-11`
+build, 2026-11-01, vikunja#1347).
 Merged and released is not automatically deployed for this repo — check the running venv
 rather than trusting a build's own completion note or a version pinned to a date in this doc;
 four releases shipped 2026-09-18 alone (v0.5.0 → v0.6.0 → v0.7.0 → v0.8.0), v0.8.1 and v0.9.0
-followed the next day (2026-09-19), v0.10.0 and v0.11.0 both shipped 2026-09-24, and v0.12.0
-shipped 2026-09-28.
+followed the next day (2026-09-19), v0.10.0 and v0.11.0 both shipped 2026-09-24, v0.12.0
+shipped 2026-09-28, v0.12.1 (dependencies only) on 2026-10-06, v0.13.0 and v0.14.0 both on
+2026-10-21, v0.15.0 on 2026-10-22, v0.16.0 and v0.17.0 both on 2026-10-24, and v0.18.0 on
+2026-11-01. See [Releases since v0.12.0](#releases-since-v0120) below.
 
 ## Why it exists
 
@@ -190,6 +193,11 @@ run over a real scribe digest, producing 177 lines of clean output, unmodified �
 directory differed. That parser is kept byte-for-byte in the repo at
 `tests/reference/recent_memory_preview.awk` and held to equality with scribe's Python port.
 
+**A headless block's quoted closing statement is not injected** (v0.18.0). The quotation is a
+blockquote, split on every line separator, which the preview drops; the subheads it keeps say
+whose text is whose, and the rollup's subhead marks its items as agent-written data. Before
+that fix, quoted `- ` lines reached an agent's next sessions unlabelled.
+
 **Agent attribution comes from the session's `cwd`**, not from the flattened Claude Code
 transcript-directory name. The transcript-directory encoding is lossy — a separator and a
 hyphen both collapse to `-` — and was truncating three of forge's ten agents on the *write*
@@ -205,7 +213,7 @@ happened after the backfill so no agent saw an empty injection on cutover day.
 
 ## Entry points
 
-CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|cap-survey|deps-drift|run|recover|index}`.
+CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|qc-report|cap-survey|deps-drift|run|recover|index|correct|session}`.
 
 - `python -m scribe.extract <transcript.jsonl>` — run the extractor standalone.
 - `python -m scribe events <session-id> [--path]` — print or locate a persisted event log.
@@ -234,6 +242,12 @@ CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|cap-survey|deps
   so a plain `scribe run` was advancing `last_offset` and `status` on production state
   (vikunja#902) — fixed by moving the guard above both; a dry run may observe, it must not
   process. `python -m scribe run --live` runs the full shadow pipeline: summarize and write.
+  As of v0.13.0, `run` exits **`69`** (`EX_UNAVAILABLE`) when a sweep found the provider down:
+  the affected sessions are left pending with no retry budget spent, so a cron wrapper that
+  treats only `0` and its lock-skip code as success reports the sweep as failed. `0` and `2`
+  (config error) are unchanged. As of v0.18.0, `run --json` and the run record carry
+  `render_mode` and the closing-statement fields, and the plain output prints a `headless:`
+  line — see [Releases since v0.12.0](#releases-since-v0120).
 - `python -m scribe recover [--apply]` — reopens sessions whose digest was never really
   written. Dry by default; `--apply` stamps the affected blocks and clears the state, then a
   following `python -m scribe run --live` re-summarizes them. See
@@ -249,8 +263,29 @@ CLI only: `python -m scribe {extract|events|journal|qc|qc-survey|cap-survey|deps
   `index.jsonl` from the digests on disk; `--check` re-derives it in memory and exits non-zero
   on drift. See
   [the indexer contract](#the-indexer-contract-and-why-qmd-isnt-a-dependency-v0100) above.
+  As of v0.18.0, `--check` also enforces **one block per session**: a session with more than
+  one final block is named and exits `4` (manifest clean, contract breached); drift still exits
+  `1` and takes precedence; `5` means the check itself failed. `0`–`3` are unchanged. It also
+  prints a count of `provisional:pending` blocks. In this deployment the daily detector treats
+  exit `4` as report-only for now (vikunja#1353).
 - `python -m scribe qc-report [--backfill]` — new in v0.12.0. Turns the run record into a
-  trend. See [QC tracking](#qc-tracking-the-run-record-and-qc-report-v0120) below.
+  trend. See [QC tracking](#qc-tracking-the-run-record-and-qc-report-v0120) below. As of
+  v0.18.0 the headline and verdict cover model-written blocks only (`llm`,
+  `verbatim-fallback-llm`), every `render_mode` is reported apart, and `--by render_mode` is
+  accepted.
+- `python -m scribe correct [--json] [--apply --lock PATH | --no-lock]` — new in v0.14.0.
+  Applies the v0.13.0 id-conflation rewrite to blocks already on disk. Dry by default;
+  `--apply` needs `--lock` naming the lock the sweep's cron holds (or an explicit `--no-lock`),
+  backs each file up before an atomic replace, and records every edit in `corrections.jsonl`.
+  Exit codes: `0` nothing to do or all applied, `1` corrections pending, `2` usage or config
+  error, `4` tool failure, `75` locked.
+- `python -m scribe session <session-id> [--json|--brief]` — new in v0.18.0. One read-only
+  report of everything scribe holds about a session (transcript and its expiry, state row,
+  event-log stats and fields, every block and which is current, run records, closing
+  statement), schema `scribe.session/1`. Exit `0` found, `1` no trace, `2` usage, `3` the
+  lookup failed or a source could not be read (named in `errors`). An operator procedure for
+  investigating a single session with this command exists alongside the deployment's other
+  runbooks.
 
 Port 8499 appears in `scribe.example.toml` but **no HTTP server exists** — that block is
 forward-looking. Do not add 8499 to `services.md`.
@@ -316,6 +351,74 @@ verdict — the only trace was a line in a PM2 log with 14-day rotation. There w
 **Thresholds are unset by default** — `qc-report` is report-only until something configures a
 threshold; it does not fail a sweep on its own. Scheduling it and gating on the result is a
 separate, not-yet-built piece of work.
+
+## Releases since v0.12.0
+
+The repo's `CHANGELOG.md` has the full entries; this is what an operator needs from each.
+v0.12.1 (2026-10-06) was a dependency-only release (OpenTelemetry 1.45.0) with no application
+change.
+
+- **v0.13.0 (2026-10-21) — provider outages delay rather than lose, and wrong ticket refs are
+  corrected before they land** (vikunja#1188). If a session's last attempt failed because the
+  provider did not answer at all (connection refused or dropped, 429, 5xx), scribe writes no
+  placeholder, makes no state write and spends none of `MAX_PROVISIONAL_ATTEMPTS`; the session
+  is re-offered next sweep. Two consecutive deferrals stop the sweep calling the provider, and
+  `scribe run` exits **`69`**. A timeout is not an outage and still spends retry budget. The
+  **id-conflation rewrite** turns a `#N` the QC gate rejected — because the log holds `N` only
+  as an internal id — into `id N` before the block is written, strictly after grading so QC
+  still measures the model's own output (`ticket_refs_rewritten`; off switch
+  `[qc] rewrite_id_conflations = false`). Also: a backticked path whose root the log never
+  names is no longer grounded by token co-occurrence (vikunja#908), the budget test no longer
+  depends on an expiring transcript (vikunja#966), and two doc overstatements were corrected
+  (vikunja#968). `SCHEMA_VERSION` stays at 2.
+- **v0.14.0 (2026-10-21) — `scribe correct` and the corrections ledger** (vikunja#1194).
+  `correct` applies the v0.13.0 rewrite to digests written before it (see
+  [Entry points](#entry-points)). `corrections.jsonl` records every edit scribe makes to a
+  digest after the model wrote it, live or after the fact. New optional keys `[index]
+  corrections_path` and `[index] backup_dir` default outside both trees. `qc-survey` reports
+  fewer id conflations after a `correct --apply`; `runs.jsonl` is not rewritten.
+- **v0.15.0 (2026-10-22) — the post-render redaction guard stops misreporting** (vikunja#1196,
+  vikunja#1195). A value with no letter or digit is no longer redacted, edge backticks are
+  trimmed before the guard checks the event log, a fourth cause `inconclusive` exists, and
+  `post_render_cause` reaches the run record and `qc-report`. A swapped `#N (id M)` pair is
+  repaired rather than half-rewritten.
+- **v0.16.0 (2026-10-24) — ticket notation is not residue** (vikunja#1216). The contamination
+  guard no longer suppresses digests of sessions about the `#N (id M)` notation, the retry
+  reminder allows it, and `contamination_signal` reaches the run record, with `qc-report`
+  breaking suppressions down by signal. `prompt_sha256` changes.
+- **v0.17.0 (2026-10-24) — the contamination guard says what it matched, and degrades instead
+  of suppressing** (vikunja#1216). `contamination_rule` and a redacted, bounded
+  `contamination_excerpt` reach the run record; the rejected span gains `rule` and `token`. On
+  a terminal `residue_token` rejection only, list items carrying residue are dropped and the
+  digest is written with a visible `_Withheld: …_` line, provided it does not copy the session
+  and no more than half its items went. `qc-report` prints a `degraded` line.
+- **v0.18.0 (2026-11-01) — headless mode, superseding blocks, `scribe session`**
+  (vikunja#1347):
+  - **Headless mode, `[summarize.headless]`, off by default.** A session whose `entrypoint` is
+    listed (and whose agent is in `agents`, when set) is written as the final turn's last text,
+    quoted verbatim under `#### Closing statement`, plus a `#### Rollup` built from the event
+    log. No provider call. Under `min_closing_chars` (800) it takes the previous turn's text,
+    then falls back to the LLM digest, as it does if the contamination guard fires on the
+    statement. A session whose final turn has background work outstanding, or a tool call with
+    no result, gets a rollup-only `provisional:pending` block that its next block replaces. In
+    this deployment it is enabled for the `sdk-cli` entrypoint (dispatcher `claude -p` runs) and
+    the writer and security agents only. The quotation does not reach the `SessionStart`
+    preview — see [Feeding the SessionStart injection](#feeding-the-sessionstart-injection).
+  - **`render_mode`** — `llm`, `verbatim`, `verbatim-fallback-llm` or `pending` — in the run
+    record, `scribe run --json` and the `memsearch.summarize` span, with closing-statement
+    fields alongside. `qc-report` judges only model-written blocks.
+  - **Supersede.** A later block for a session takes the first block's place in one atomic
+    replace and removes the rest, each with an `index.jsonl` tombstone (`provisional:
+    "superseded"`). A `placeholder` or `suppressed` block never supersedes a real digest.
+    There was no historical re-render: sessions already holding more than one block keep them
+    until a later sweep replaces them, and `index --check` names them.
+  - **Event log schema 2** adds `entrypoint`, `subagents`, `compactions`,
+    `background_pending` and a turn's `queued_input` — mid-turn task notifications, which
+    earlier versions dropped. A version-1 log reads these back as "not recorded"; a newer log is
+    refused. `prompt_sha256` changes because the empty log carries the new fields; the prompts
+    themselves are unchanged.
+  - **`scribe session`** and the one-block rule in `index --check` — see
+    [Entry points](#entry-points).
 
 ## Run totals, `placeholder`, and `discarded`
 
@@ -647,14 +750,23 @@ derive it from `scribe.example.toml` in the repo.
   [Three tiers](#three-tiers-and-how-to-get-between-them) above and `AGENTS.md` invariant 18.
 - vikunja#965 — event-log growth alert for `scribe-recover-check.sh`; filed for sysadmin during
   the public-readiness build, not yet built.
-- vikunja#966, #968 — filed during the public-readiness build; see that build's report for
-  detail.
+- vikunja#966, #968 — filed during the public-readiness build; closed by v0.13.0 (synthetic
+  budget-test transcript; two doc overstatements corrected).
 - vikunja#967 — `coderabbit-review-assert` reproducing the same stale-review misread as #962,
   on a different PR the same day.
 - vikunja#988 — GitHub security settings (branch protection, push protection, private
   vulnerability reporting, Dependabot alerts) deferred by Ted at the public flip; open.
 - TadMSTR/scribe#32 — the run-record/`qc-report` build; closed by v0.12.0. See
   [QC tracking](#qc-tracking-the-run-record-and-qc-report-v0120) above.
+- vikunja#1188 — provider-outage deferral and the id-conflation rewrite; v0.13.0.
+- vikunja#908 — backticked-path grounding by token co-occurrence; option 2 shipped in v0.13.0,
+  option 1 still not done.
+- vikunja#1194 — `scribe correct` and the corrections ledger; v0.14.0.
+- vikunja#1195, #1196 — swapped `#N (id M)` repair and post-render guard causes; v0.15.0.
+- vikunja#1216 — ticket notation read as residue, then per-item degrade; v0.16.0 and v0.17.0.
+- vikunja#1347 — headless mode, superseding blocks, event log schema 2, `scribe session`;
+  v0.18.0. See [Releases since v0.12.0](#releases-since-v0120).
+- vikunja#1353 — alerting on `index --check` exit 4; open (report-only until then).
 
 ## Related Docs
 
@@ -663,8 +775,8 @@ derive it from `scribe.example.toml` in the repo.
 - [memory-architecture.md](memory-architecture.md) — full system overview
 - Repo README: `~/repos/personal/scribe/README.md`
 - Phase docs: `host-forge-knowledge-base/phases/scribe-*.md` (sequence runs from
-  `scribe-2026-09.md` through `scribe-qc-monitoring-2026-09-p1-run-record-and-report.md`
-  (v0.12.0, latest), by way of `scribe-public-readiness-2026-09.md` (v0.11.0) and
+  `scribe-2026-09.md` through `scribe-headless-digest-2026-11.md` (v0.18.0, latest), by way of
+  `scribe-qc-monitoring-2026-09-p1-run-record-and-report.md` (v0.12.0), `scribe-public-readiness-2026-09.md` (v0.11.0) and
   `scribe-indexer-portability-2026-09.md` (v0.10.0) — v0.8.1 was a same-day patch release with
   no dedicated phase doc, documented only in the repo's own `CHANGELOG.md`) and
   `memory-consolidation-2026-09-p3-memsearch-retirement.md` /
