@@ -500,18 +500,20 @@ docker logs task-queue-mcp --tail 50
 
 ## Status Visibility (Matrix)
 
-task-queue-mcp itself has no notification path — status visibility for agents and Ted
-comes from [matrix-task-queue-bot](matrix-task-queue-bot.md), which watches the same
-`~/.claude/task-queue/` directory this server manages. As of 2026-07-23 (commit
-`e9f6f26`) the bot's old per-task stale-approval alert (a Matrix ping for any task
-`approved` >24h) was removed — it had become a notification firehose — in favor of two
-passive mechanisms: a pinned, self-editing status board per agent, and a single daily
-morning-brief digest. [task-dispatcher](task-dispatcher.md)'s matching
-`alert_stale_approved` feature was removed the same day for the same reason.
+task-queue-mcp itself has no notification path. Until 2026-10-29, Matrix status visibility
+for agents and Ted came from [matrix-task-queue-bot](matrix-task-queue-bot.md), which
+watched the same `~/.claude/task-queue/` directory this server manages. That bot was
+retired 2026-10-29 when Matrix became notify-only; task-queue-mcp was unaffected.
+
+History: as of 2026-07-23 (commit `e9f6f26`) the bot's old per-task stale-approval alert
+(a Matrix ping for any task `approved` >24h) was removed — it had become a notification
+firehose — in favor of two passive mechanisms: a pinned, self-editing status board per
+agent, and a single daily morning-brief digest. [task-dispatcher](task-dispatcher.md)'s
+matching `alert_stale_approved` feature was removed the same day for the same reason.
 
 ## Related Docs
 
 - [task-dispatcher.md](task-dispatcher.md) — routes and gates tasks; owns TTL archiving
-- [matrix-task-queue-bot.md](matrix-task-queue-bot.md) — Matrix client of the control API; pinned boards + morning brief
+- [matrix-task-queue-bot.md](matrix-task-queue-bot.md) — former Matrix client of the control API; pinned boards + morning brief (retired 2026-10-29)
 - [task-queue-widget.md](task-queue-widget.md) — former dashboard widget client (retired 2026-10-25)
 - [agent-bus.md](agent-bus.md) — event logging alongside task state transitions

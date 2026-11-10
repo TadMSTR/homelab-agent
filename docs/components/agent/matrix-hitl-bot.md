@@ -55,7 +55,8 @@ approve* half; Ted reads the notification and approves from a terminal instead.
 - [scoped-mcp.md](scoped-mcp.md) — the current signed, terminal-only HITL approval flow this bot
   used to front
 - [harlock.md](harlock.md) — a prior decommission record in the same style
-- [matrix-dispatcher.md](matrix-dispatcher.md) — routes operator chat to agent sessions (separate
-  bot, unaffected by this retirement)
-- [matrix-admin-bot.md](matrix-admin-bot.md) — provisions bot accounts and room membership
+- [matrix-dispatcher.md](matrix-dispatcher.md) — routed operator chat to agent sessions (separate
+  bot, unaffected by this retirement; retired itself 2026-10-29)
+- [matrix-admin-bot.md](matrix-admin-bot.md) — provisioned bot accounts and room membership
+  (retired 2026-10-29)
 - [dragonfly.md](dragonfly.md) — HITL state backend scoped-mcp still uses for pending approvals

@@ -46,5 +46,5 @@ The endpoint is localhost-only — not accessible from other hosts on forge-net.
 ## Related Docs
 
 - [synapse.md](synapse.md) — forge homeserver
-- [matrix-dispatcher.md](matrix-dispatcher.md) — message routing to forge agents
+- [matrix-dispatcher.md](matrix-dispatcher.md) — message routing to forge agents (retired 2026-10-29)
 - [scoped-mcp.md](scoped-mcp.md) — per-agent tool proxy that includes this MCP

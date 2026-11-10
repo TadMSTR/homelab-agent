@@ -47,9 +47,6 @@ These run continuously and provide tool surfaces to agents via scoped-mcp:
 
 | Process | Purpose |
 |---------|---------|
-| `matrix-dispatcher` | Routes operator Matrix messages → agent project dirs |
-| `matrix-admin-bot` | Matrix account provisioning |
-| `matrix-task-queue-bot` | Task queue notifications via Matrix |
 | `memory-os-sync` | Syncs OS-level metrics to memory |
 | `cloudcli` | CloudCLI web UI |
 
@@ -66,6 +63,9 @@ No longer run on forge:
   [patchmon-mcp.md](../docs/components/mcp-servers/patchmon-mcp.md))
 - `code-server-mcp` — removed 2026-10-28; the code-server container stays (see
   [code-server-mcp.md](../docs/components/mcp-servers/code-server-mcp.md))
+- `matrix-dispatcher`, `matrix-admin-bot` and `matrix-task-queue-bot` — removed 2026-10-29;
+  Matrix is now notify-only, and `matrix-mcp` stays (see
+  [matrix-dispatcher.md](../docs/components/agent/matrix-dispatcher.md))
 
 ### Scheduled Jobs
 

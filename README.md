@@ -85,12 +85,12 @@ This is the part that ties everything together. Nine resident agents run as scop
 flowchart TB
     operator["Operator\n(Matrix client or browser)"]
 
-    operator -- "message in agent's room" --> dispatcher["matrix-dispatcher"]
-    dispatcher --> sysadmin["sysadmin\nDocker, apt, services"]
-    dispatcher --> research["research\nplanning, upstream docs"]
-    dispatcher --> developer["developer\ncode, MCP servers, PRs"]
-    dispatcher --> writer["writer\ndocs, READMEs, runbooks"]
-    dispatcher --> security["security\naudits, triage, remediation"]
+    sysadmin["sysadmin\nDocker, apt, services"]
+    research["research\nplanning, upstream docs"]
+    developer["developer\ncode, MCP servers, PRs"]
+    writer["writer\ndocs, READMEs, runbooks"]
+    security["security\naudits, triage, remediation"]
+    sysadmin & research & developer & writer & security -- "notify via matrix-mcp" --> operator
 
     subgraph "Each agent gets"
         manifest["Manifest\n(allowed tools, rate limits,\nargument filters, HITL gates)"]
@@ -108,7 +108,7 @@ flowchart TB
 
 - **[scoped-mcp](docs/components/agent/scoped-mcp.md)** reads each agent's manifest and proxies only the allowed tools. Agents never see credentials — secrets are injected from OpenBao (Vault-compatible API) at proxy level. Rate limits, argument filters, and response redaction are enforced per-agent.
 
-- **[Matrix dispatch](docs/components/agent/matrix-dispatcher.md)** polls each agent's room for operator messages and routes them into the right Claude Code project. Send a message from any Matrix client; the agent picks it up and replies in-thread.
+- **[Matrix notifications](docs/components/agent/matrix-mcp.md)**: Matrix is notify-only. Agents post messages to their rooms through matrix-mcp. The [Matrix dispatcher](docs/components/agent/matrix-dispatcher.md), which routed operator messages from Matrix into agent sessions, was retired 2026-10-29 along with the task-queue and admin bots.
 
 - **[Persistent memory](docs/components/memory/memory-architecture.md)** — a three-tier system (session → working → distilled) with three search paths: semantic via [qmd](docs/components/memory/memory-services.md), full-text keyword via [OpenSearch](docs/components/memory/memory-stack.md), and structured metadata queries.
 

@@ -1,21 +1,42 @@
-# matrix-dispatcher (forge)
+# matrix-dispatcher (forge) (retired 2026-10-29)
 
-The forge instance of matrix-dispatcher routes operator Matrix messages to the correct
-forge agent Claude Code session. It polls the forge homeserver for new messages in each
-agent's room and injects them into the agent's Claude Code project directory.
+The forge instance of matrix-dispatcher routed operator Matrix messages to the correct
+forge agent Claude Code session. It polled the forge homeserver for new messages in each
+agent's room and injected them into the agent's Claude Code project directory.
+
+## Retirement
+
+Retired 2026-10-29 by the `matrix-notify-overhaul-2026-10` p1 build ("quiet down").
+
+**Why:** Matrix is now notify-only. Nobody replies to agents from the phone, so a service
+that turned Matrix messages into agent actions had no remaining job.
+[matrix-task-queue-bot](matrix-task-queue-bot.md) and
+[matrix-admin-bot](matrix-admin-bot.md) were retired with it.
+
+**What was removed:**
+
+- the PM2 process (`pm2 delete`, then `pm2 save`). It was never defined in an
+  `ecosystem.config.js`, so there was no start file to remove;
+- the bot's Matrix devices, which were revoked.
+
+[matrix-mcp](matrix-mcp.md), which agents use to send messages, is unaffected and still
+runs. The full record is in the `matrix-notify-overhaul-2026-10` p1 build record (private).
+
+The rest of this doc describes the dispatcher as it ran before retirement, for reference.
+
+## What it was
 
 - **Source:** `~/repos/personal/matrix-dispatcher/`
-- **PM2 name:** `matrix-dispatcher-forge` (ID 3)
+- **PM2 name:** `matrix-dispatcher-forge`
 - **Entry point:** `start-forge.sh`
-- **Status:** online
 
-## How It Runs
+## How It Ran
 
-`start-forge.sh` sources credentials from `~/.secrets/matrix-dispatcher.env`
-(bot access token), then executes `dispatcher.py`. The credentials file must exist and be
-readable before the process starts — PM2 restarts will fail with an error if it's missing.
+`start-forge.sh` sourced credentials from `~/.secrets/matrix-dispatcher.env`
+(bot access token), then executed `dispatcher.py`. The credentials file had to exist and be
+readable before the process started; PM2 restarts failed with an error if it was missing.
 
-Logs at `~/.pm2/logs/matrix-dispatcher-forge-{out,error}.log`.
+Logs were at `~/.pm2/logs/matrix-dispatcher-forge-{out,error}.log`.
 
 ## Configuration
 
@@ -50,29 +71,30 @@ agents:
     project_dir: "~/.claude/projects/writer"
 ```
 
-The dispatcher bot runs as `@forge-sysadmin:example.com`. Only messages from
-`trusted_sender` (`@ted:example.com`) are routed to agent sessions — other senders
-are ignored.
+The dispatcher bot ran as `@forge-sysadmin:example.com`. Only messages from
+`trusted_sender` (`@ted:example.com`) were routed to agent sessions; other senders
+were ignored.
 
-`startup_notification_agent: sysadmin` means the sysadmin agent's room receives a message
-when the dispatcher starts or restarts.
+`startup_notification_agent: sysadmin` meant the sysadmin agent's room received a message
+when the dispatcher started or restarted.
 
 ## Agent Routing
 
-When a message arrives in an agent room from `trusted_sender`, the dispatcher writes it
-to the agent's project directory (`project_dir`) where Claude Code picks it up as input.
-The `project_dir` paths map to the standard forge Claude Code project directories.
+When a message arrived in an agent room from `trusted_sender`, the dispatcher wrote it
+to the agent's project directory (`project_dir`) where Claude Code picked it up as input.
+The `project_dir` paths mapped to the standard forge Claude Code project directories.
 
 ## Relationship to Forge-Agent-Setup
 
-The `project_dir` values require each forge agent's Claude Code project to exist at the
+The `project_dir` values required each forge agent's Claude Code project to exist at the
 configured path. These were provisioned by the `forge-agent-setup` build (completed
 2026-05-25). The `forge-matrix-agent-wiring` build (completed 2026-05-25) updated
 `config.yml` with all 5 real paths and corrected the agent key name from `dev` to
-`developer`. The dispatcher is fully wired and routing live agent sessions.
+`developer`. From then until its retirement, the dispatcher routed live agent sessions.
 
 ## Related Docs
 
 - [synapse.md](synapse.md) — forge homeserver
-- [matrix-mcp.md](matrix-mcp.md) — MCP tool surface for forge agents
-- [matrix-admin-bot.md](matrix-admin-bot.md) — account management bot
+- [matrix-mcp.md](matrix-mcp.md) — MCP tool surface for forge agents (still running)
+- [matrix-admin-bot.md](matrix-admin-bot.md) — account management bot (retired 2026-10-29)
+- [matrix-task-queue-bot.md](matrix-task-queue-bot.md) — task queue bot (retired 2026-10-29)

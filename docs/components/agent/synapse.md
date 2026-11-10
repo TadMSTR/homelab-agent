@@ -69,8 +69,10 @@ Ketesa is the primary interface for:
 ## Accounts and Rooms
 
 Agent bot accounts on the forge homeserver:
-- `@forge-sysadmin:example.com` — matrix-dispatcher bot (reads rooms, routes to agents)
-- `@matrix-admin-bot:example.com` — admin bot (account provisioning)
+- `@forge-sysadmin:example.com` — matrix-dispatcher bot (read rooms, routed to agents);
+  the dispatcher was retired 2026-10-29 and its Matrix devices revoked
+- `@matrix-admin-bot:example.com` — admin bot (account provisioning); retired 2026-10-29,
+  Matrix devices revoked
 - Agent MXIDs follow the pattern `@agent.<type>:example.com`
 
 8 rooms created at build time: sysadmin, research, developer, writer, security,
@@ -86,5 +88,5 @@ SHA-pinned in compose.
 ## Related Docs
 
 - [matrix-mcp.md](matrix-mcp.md) — MCP server for forge agent access
-- [matrix-dispatcher.md](matrix-dispatcher.md) — message routing to forge agents
-- [matrix-admin-bot.md](matrix-admin-bot.md) — account management bot
+- [matrix-dispatcher.md](matrix-dispatcher.md) — message routing to forge agents (retired 2026-10-29)
+- [matrix-admin-bot.md](matrix-admin-bot.md) — account management bot (retired 2026-10-29)

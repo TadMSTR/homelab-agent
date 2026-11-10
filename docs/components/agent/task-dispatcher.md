@@ -24,8 +24,9 @@ Each run executes two phases:
 
 Per-task stale-approval alerting (a Matrix notification to the `alerts` room for any task
 `approved` >24h) was removed — it was a notification firehose. Status visibility for
-non-terminal tasks now comes from the matrix-task-queue-bot's per-agent pinned board (see
+non-terminal tasks then came from matrix-task-queue-bot's per-agent pinned board (see
 [matrix-task-queue-bot.md](matrix-task-queue-bot.md)) instead of per-task dispatcher alerts.
+That bot was retired 2026-10-29, and its boards no longer update.
 
 ## Headless Agent Launch
 

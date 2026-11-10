@@ -152,10 +152,10 @@ homelab-agent/
 | `docs/components/agent/task-queue-widget.md` | Task queue dashboard widget (React, Matrix), retired 2026-10-25 |
 | `docs/components/agent/task-dispatcher.md` | Task routing and headless agent launch |
 | `docs/components/agent/pool-manager.md` | Ephemeral agent session pre-warming |
-| `docs/components/agent/matrix-dispatcher.md` | Matrix dispatch loop |
+| `docs/components/agent/matrix-dispatcher.md` | Matrix dispatch loop, retired 2026-10-29 |
 | `docs/components/agent/matrix-mcp.md` | Matrix send/receive MCP |
-| `docs/components/agent/matrix-admin-bot.md` | Matrix room admin bot |
-| `docs/components/agent/matrix-task-queue-bot.md` | Matrix task queue notification bot |
+| `docs/components/agent/matrix-admin-bot.md` | Matrix room admin bot, retired 2026-10-29 |
+| `docs/components/agent/matrix-task-queue-bot.md` | Matrix task queue notification bot, retired 2026-10-29 |
 | `docs/components/agent/matrix-hitl-bot.md` | Matrix HITL approval bot, decommissioned 2026-09-27 (signed terminal-only approval replaced it) |
 | `docs/components/agent/nats-mcp.md` | NATS publish/subscribe MCP |
 | `docs/components/agent/harlock.md` | Harlock personal agent, decommissioned 2026-08-08 |
@@ -249,7 +249,7 @@ homelab-agent/
 → `docker/observability/`, `docs/components/observability/grafana-alloy.md`, `docs/components/observability/influxdb.md`
 
 ### "I want to understand how agents communicate"
-→ `docs/components/agent/nats.md`, `docs/components/agent/agent-bus.md`, `docs/components/agent/matrix-dispatcher.md`
+→ `docs/components/agent/nats.md`, `docs/components/agent/agent-bus.md`, `docs/components/agent/matrix-mcp.md` (`docs/components/agent/matrix-dispatcher.md` covers the inbound Matrix router, retired 2026-10-29)
 
 ### "I want to understand how tasks are routed"
 → `docs/components/agent/task-queue-mcp.md`, `docs/components/agent/task-dispatcher.md`
@@ -267,7 +267,6 @@ Key cross-references:
 | Component | Depends On | Used By |
 |-----------|-----------|---------|
 | `scoped-mcp` | All MCP servers | All agents |
-| `matrix-dispatcher` | Synapse | All agents |
 | `matrix-mcp` | Synapse | All agents |
 | `agent-bus` | NATS | All agents |
 | `qmd` | File system | All agents — semantic memory recall since memsearch-mcp retired 2026-09-17 |

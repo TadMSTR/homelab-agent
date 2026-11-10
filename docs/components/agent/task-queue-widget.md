@@ -13,8 +13,9 @@ task-queue-mcp compose stack (task-queue-mcp itself is unchanged and stayed up t
 the SWAG `widgets` subdomain route was removed, and the image deleted. The source repo is
 being archived.
 
-Task queue visibility now comes from the CloudCLI plugin and from matrix-task-queue-bot's
-pinned per-agent status boards and daily morning brief.
+Task queue visibility now comes from the CloudCLI plugin. matrix-task-queue-bot's pinned
+per-agent status boards and daily morning brief also provided it until that bot was retired
+2026-10-29.
 
 ## What it was
 
@@ -27,5 +28,5 @@ pinned per-agent status boards and daily morning brief.
 
 ## Related Docs
 
-- [matrix-task-queue-bot.md](matrix-task-queue-bot.md) — Matrix client of the task queue
+- [matrix-task-queue-bot.md](matrix-task-queue-bot.md) — Matrix client of the task queue (retired 2026-10-29)
 - [task-queue-mcp.md](task-queue-mcp.md) — task queue MCP server and HTTP API

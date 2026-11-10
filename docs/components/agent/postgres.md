@@ -43,14 +43,15 @@ The `schema_migrations` table records which migrations have run.
 
 | Table | Holds | Written by |
 |-------|-------|-----------|
-| `sessions` | One row per launcher-minted run id: agent, transport, room, project dir, status, last seen | scoped-mcp, matrix-dispatcher |
-| `hitl_approvals` | Audit row per gated call: agent, tool, state, created/resolved time, `resolved_via`. Stores the **sha256 of the OTP only**, never the plaintext | scoped-mcp (insert + resolve), matrix-dispatcher (link + read state) |
+| `sessions` | One row per launcher-minted run id: agent, transport, room, project dir, status, last seen | scoped-mcp; matrix-dispatcher until its retirement on 2026-10-29 |
+| `hitl_approvals` | Audit row per gated call: agent, tool, state, created/resolved time, `resolved_via`. Stores the **sha256 of the OTP only**, never the plaintext | scoped-mcp (insert + resolve); matrix-dispatcher (link + read state) until its retirement on 2026-10-29 |
 | `session_tasks` | Links a session to the task-queue task it ran (`task_id`, `role`, `build_name`) | scoped-mcp |
 | `session_usage`, `memory_artifacts` | Reserved. The schema and insert helpers exist, but nothing writes to them yet | — |
 
-The other tables point at `sessions.session_id` through foreign keys. matrix-dispatcher
-writes the `sessions` row before a turn starts, so an approval row created during that
-turn always has a session to point at.
+The other tables point at `sessions.session_id` through foreign keys. While it ran,
+matrix-dispatcher wrote the `sessions` row before a turn started, so an approval row
+created during that turn always had a session to point at. matrix-dispatcher was retired
+2026-10-29.
 
 ### Roles
 
@@ -59,7 +60,7 @@ The services connect as two least-privilege roles, not as the owner:
 | Role | Used by | Grants |
 |------|---------|--------|
 | `agent_registry` | scoped-mcp | SELECT/INSERT/UPDATE on the five registry tables, plus sequence usage. No DELETE and no access to `schema_migrations` |
-| `dispatcher_registry` | matrix-dispatcher | SELECT/INSERT/UPDATE on `sessions`, SELECT/UPDATE on `hitl_approvals`. No access to the other tables |
+| `dispatcher_registry` | matrix-dispatcher (retired 2026-10-29) | SELECT/INSERT/UPDATE on `sessions`, SELECT/UPDATE on `hitl_approvals`. No access to the other tables |
 
 Each consumer reads its connection string from its own `AGENT_REGISTRY_DSN` env var
 (`postgresql://<role>:<password>@127.0.0.1:5433/agent_platform`).
@@ -75,11 +76,11 @@ Each consumer reads its connection string from its own `AGENT_REGISTRY_DSN` env 
   resolved. It also upserts `sessions` and links `session_tasks` using the run id from the
   `X-Forge-Run-Id` header, which task-dispatcher mints as `FORGE_RUN_ID` for each launch.
   Interactive sessions have no run id, so they register nothing.
-- **matrix-dispatcher** (`registry.py`, `hitl.py`). It upserts `sessions` for each turn,
-  and its resume-on-approval loop reads `hitl_approvals.state` to restart a session once an
-  approval lands.
+- **matrix-dispatcher** (`registry.py`, `hitl.py`), retired 2026-10-29. While it ran, it
+  upserted `sessions` for each turn, and its resume-on-approval loop read
+  `hitl_approvals.state` to restart a session once an approval landed.
 
-**Fail-open everywhere.** Both consumers treat the registry as best-effort. Any of these
+**Fail-open everywhere.** Consumers treat the registry as best-effort. Any of these
 turns every registry call into a logged no-op:
 
 - `AGENT_REGISTRY_DSN` is unset
@@ -88,8 +89,8 @@ turns every registry call into a logged no-op:
 - a query fails
 
 The HITL decision itself is unaffected. If agent-postgres is down, approvals still work but
-are not recorded, and matrix-dispatcher falls back to manual retry instead of resuming the
-session automatically.
+are not recorded. (While matrix-dispatcher ran, it fell back to manual retry in that case
+instead of resuming the session automatically.)
 
 ## Operations
 
@@ -168,5 +169,5 @@ stored as `NULL`.
 
 - [dragonfly.md](dragonfly.md): sibling in the same stack, holds the fail-closed HITL gate token
 - [scoped-mcp.md](scoped-mcp.md): HITL gate and session attribution
-- [matrix-dispatcher.md](matrix-dispatcher.md): resume-on-approval consumer
+- [matrix-dispatcher.md](matrix-dispatcher.md): former resume-on-approval consumer (retired 2026-10-29)
 - [task-dispatcher.md](task-dispatcher.md): mints the `FORGE_RUN_ID` run id

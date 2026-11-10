@@ -16,10 +16,10 @@ The services that make the multi-agent engine work: tool scoping, inter-agent me
 | [pool-manager.md](pool-manager.md) | Ephemeral agent session directory pre-warming | — (PM2) |
 | [synapse.md](synapse.md) | Matrix homeserver (Synapse) | 8008 |
 | [matrix-mcp.md](matrix-mcp.md) | Matrix send/receive MCP server | 8487 |
-| [matrix-dispatcher.md](matrix-dispatcher.md) | Matrix → agent task dispatch loop | — (PM2) |
-| [matrix-admin-bot.md](matrix-admin-bot.md) | Matrix room administration bot | — (PM2) |
+| [matrix-dispatcher.md](matrix-dispatcher.md) | Matrix → agent task dispatch loop, retired 2026-10-29 | — |
+| [matrix-admin-bot.md](matrix-admin-bot.md) | Matrix room administration bot, retired 2026-10-29 | — |
 | [matrix-hitl-bot.md](matrix-hitl-bot.md) | Matrix front end for scoped-mcp HITL approve/deny | — (PM2, outbound only) |
-| [matrix-task-queue-bot.md](matrix-task-queue-bot.md) | Matrix task queue notification bot | — (PM2) |
+| [matrix-task-queue-bot.md](matrix-task-queue-bot.md) | Matrix task queue notification bot, retired 2026-10-29 | — |
 | [nats.md](nats.md) | NATS JetStream event bus | 4222 |
 | [nats-mcp.md](nats-mcp.md) | NATS publish/subscribe MCP server | 8497 |
 | [dragonfly.md](dragonfly.md) | Agent state backend (Redis-compatible) | 6379 |
@@ -29,7 +29,7 @@ The services that make the multi-agent engine work: tool scoping, inter-agent me
 ## How It Fits Together
 
 ```
-Operator → Matrix room → matrix-dispatcher → agent project dir
+                                      agent session
                                                     ↓
                                      scoped-mcp reads manifest
                                                     ↓
@@ -37,5 +37,9 @@ Operator → Matrix room → matrix-dispatcher → agent project dir
                                                     ↓
                                     agent-bus logs event → NATS
 ```
+
+Matrix is notify-only: agents post to it through [matrix-mcp](matrix-mcp.md). Until
+2026-10-29, [matrix-dispatcher](matrix-dispatcher.md) also routed operator messages from
+Matrix rooms into agent project dirs; it was retired that day.
 
 Cross-agent work flows through the task queue: research hands off build plans to developer, developer hands off doc updates to writer.

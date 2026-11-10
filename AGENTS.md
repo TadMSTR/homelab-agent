@@ -34,12 +34,15 @@ and was retired in September 2026; its row is kept below for history — see
 Each agent's tool surface is controlled by a manifest file. [scoped-mcp](docs/components/agent/scoped-mcp.md) reads the manifest and proxies only the allowed tools — agents never hold credentials directly.
 
 ```
-operator message → Matrix room → matrix-dispatcher → agent project dir
+                                             agent session
                                                            ↓
                                           scoped-mcp reads manifest
                                                            ↓
                                      agent ↔ MCP proxy ↔ backend service
 ```
+
+Matrix is notify-only. Until 2026-10-29, [matrix-dispatcher](docs/components/agent/matrix-dispatcher.md)
+routed operator messages from Matrix rooms into agent project dirs; it was retired that day.
 
 Sanitized manifest examples are in [`manifests/`](manifests/). The full manifest schema is documented in [`docs/components/agent/scoped-mcp.md`](docs/components/agent/scoped-mcp.md).
 

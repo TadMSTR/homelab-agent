@@ -87,9 +87,9 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`pool-manager.md`](agent/pool-manager.md) | Ephemeral agent session directory pre-warming |
 | [`synapse.md`](agent/synapse.md) | Matrix homeserver |
 | [`matrix-mcp.md`](agent/matrix-mcp.md) | Matrix send/receive MCP server |
-| [`matrix-dispatcher.md`](agent/matrix-dispatcher.md) | Matrix-to-agent task dispatch loop |
-| [`matrix-admin-bot.md`](agent/matrix-admin-bot.md) | Matrix room administration bot |
-| [`matrix-task-queue-bot.md`](agent/matrix-task-queue-bot.md) | Matrix task queue notification bot |
+| [`matrix-dispatcher.md`](agent/matrix-dispatcher.md) | Matrix-to-agent task dispatch loop, retired 2026-10-29 |
+| [`matrix-admin-bot.md`](agent/matrix-admin-bot.md) | Matrix room administration bot, retired 2026-10-29 |
+| [`matrix-task-queue-bot.md`](agent/matrix-task-queue-bot.md) | Matrix task queue notification bot, retired 2026-10-29 |
 | [`nats.md`](agent/nats.md) | NATS JetStream event bus |
 | [`nats-mcp.md`](agent/nats-mcp.md) | NATS publish/subscribe MCP server |
 | [`dragonfly.md`](agent/dragonfly.md) | Agent state backend (Redis-compatible) |
