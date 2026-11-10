@@ -49,7 +49,7 @@ The reranker is the last step before results are returned. It improves result qu
 
 ## Related Docs
 
-- [phase-5-user-stack-infra.md](../../phases/phase-5-user-stack-infra.md) — web search pipeline architecture
+- `phase-5-user-stack-infra` build record (private) — web search pipeline architecture
 - [firecrawl-v2.md](firecrawl-v2.md) — content extraction (feeds into reranker)
 - [crawl4ai.md](crawl4ai.md) — browser-based extraction (feeds into reranker)
 - [searxng-mcp.md](searxng-mcp.md) — primary consumer; same compose stack

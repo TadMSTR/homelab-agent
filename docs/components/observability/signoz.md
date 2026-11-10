@@ -209,5 +209,5 @@ Priority order if restoring selectively:
 
 ## Related Docs
 
-- [phase-analytics-stack.md](../../phases/phase-analytics-stack.md) — build narrative for this stack
+- `phase-analytics-stack` build record (private) — build narrative for this stack
 - [langfuse.md](langfuse.md) — companion LLM observability stack

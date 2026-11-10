@@ -54,5 +54,5 @@ Until OIDC is wired, access is controlled by `WEBUI_AUTH=true` + `ENABLE_SIGNUP=
 
 ## Related Docs
 
-- [phase-5-user-stack-infra.md](../../phases/phase-5-user-stack-infra.md) — build narrative
+- `phase-5-user-stack-infra` build record (private) — build narrative
 - [authentik.md](../foundation/authentik.md) — OIDC provider (pending wiring)

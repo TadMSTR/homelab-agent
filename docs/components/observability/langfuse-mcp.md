@@ -44,7 +44,7 @@ exec /opt/venvs/langfuse-mcp/bin/langfuse-mcp
 ```
 
 This pattern is shared with other stdio-launched MCP servers where the scoped-mcp env
-cannot be relied upon. See [forge-agent-mcp-restore.md](../../phases/forge-agent-mcp-restore.md)
+cannot be relied upon. See the `forge-agent-mcp-restore` build record (private)
 for background.
 
 ## scoped-mcp Registration
@@ -93,4 +93,4 @@ Langfuse write operations are exposed as tools.
 ## Related Docs
 
 - [langfuse.md](langfuse.md) — Langfuse service (the wrapped service)
-- [forge-agent-mcp-restore.md](../../phases/forge-agent-mcp-restore.md) — scoped-mcp wiring and launcher pattern
+- `forge-agent-mcp-restore` build record (private) — scoped-mcp wiring and launcher pattern

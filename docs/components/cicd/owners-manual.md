@@ -95,5 +95,5 @@ Installed via pipx: `~/.local/bin/mkdocs`
 
 ## Related Docs
 
-- [phase-6-system-agents.md](../../phases/phase-6-system-agents.md) — Phase 6 context
+- `phase-6-system-agents` build record (private) — Phase 6 context
 - [authentik.md](../foundation/authentik.md) — forward auth configuration

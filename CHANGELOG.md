@@ -95,7 +95,7 @@ logs, replaces EOL Promtail), Grafana Image Renderer (AMD iGPU DRI), Grafana MCP
 
 Deployed operator agent infrastructure on forge (Dockhand, Hister, CloudCLI, memory-stack, Langfuse wiring). All five build phases (A–E) complete. Security audit: 8 findings, all resolved (1 High NATS rebind, 4 Medium, 3 Low including git history purge). Authentik forward auth active for all three user-facing services.
 
-See [`docs/phases/forge-operator-agents.md`](docs/phases/forge-operator-agents.md) for full details.
+See the `forge-operator-agents` build record (private) for full details.
 
 ## 2026-05-13 — forge-phase5-user-stack-infra
 

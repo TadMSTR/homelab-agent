@@ -91,4 +91,4 @@ From audit 2026-05-24:
 
 ## Related Docs
 
-- [forge-update-management-phase1.md](../../phases/forge-update-management-phase1.md) — build narrative
+- `forge-update-management-phase1` build record (private) — build narrative

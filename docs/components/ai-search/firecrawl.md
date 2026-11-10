@@ -64,7 +64,7 @@ No API key header required (auth disabled). Response is markdown-formatted page 
 
 ## Related Docs
 
-- [phase-5-user-stack-infra.md](../../phases/phase-5-user-stack-infra.md) — build narrative, web search pipeline overview
+- `phase-5-user-stack-infra` build record (private) — build narrative, web search pipeline overview
 - [crawl4ai.md](crawl4ai.md) — companion browser-rendering service
 - [searxng-mcp.md](searxng-mcp.md#configuration) — the `adblock-proxy` container that filters
   searxng-mcp's fetches. It is defined in the `searxng` stack (moved there 2026-08-23 with its

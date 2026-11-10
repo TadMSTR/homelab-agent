@@ -93,4 +93,4 @@ invocation. If the container restarts, agents recompute their state on the next 
 
 - [scoped-mcp.md](scoped-mcp.md) — HITL state backend configuration
 - [postgres.md](postgres.md) — sibling agent-postgres: durable session registry + HITL audit trail
-- [phase-7-agent-infrastructure.md](../../phases/phase-7-agent-infrastructure.md) — Phase 7 build context
+- `phase-7-agent-infrastructure` build record (private) — Phase 7 build context

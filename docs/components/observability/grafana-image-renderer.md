@@ -60,4 +60,4 @@ not directly to the renderer.
 
 ## Related Docs
 
-- [forge-observability-stack.md](../../phases/forge-observability-stack.md) — build narrative
+- `forge-observability-stack` build record (private) — build narrative

@@ -218,5 +218,5 @@ Priority order if restoring selectively:
 ## Related Docs
 
 - [dragonfly.md](../agent/dragonfly.md) — standalone Dragonfly for forge agents (different instance, 2GB/4 threads)
-- [phase-analytics-stack.md](../../phases/phase-analytics-stack.md) — build narrative for this stack
+- `phase-analytics-stack` build record (private) — build narrative for this stack
 - [signoz.md](signoz.md) — companion APM/observability stack

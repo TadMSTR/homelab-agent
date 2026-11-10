@@ -136,5 +136,5 @@ No agent has direct MCP access to forge-configs contents; the deploy script is i
 
 ## Related Docs
 
-- [agent-workspace-forge-2026-06 phase doc](../../phases/agent-workspace-forge-2026-06.md) — build that created this repo
+- `agent-workspace-forge-2026-06` build record (private) — build that created this repo
 - agent-workspace-scan — scanner that performs Phase 2f tamper detection

@@ -75,4 +75,4 @@ UIDs and do not need access to this directory directly.
 ## Related Docs
 
 - [telegraf.md](telegraf.md) — writes metrics to InfluxDB 3
-- [forge-observability-stack.md](../../phases/forge-observability-stack.md) — build narrative
+- `forge-observability-stack` build record (private) — build narrative

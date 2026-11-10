@@ -52,6 +52,6 @@ Returns 200 when the service is ready. searxng-mcp uses `CRAWL4AI_URL=http://cra
 
 ## Related Docs
 
-- [phase-5-user-stack-infra.md](../../phases/phase-5-user-stack-infra.md) — web search pipeline architecture
+- `phase-5-user-stack-infra` build record (private) — web search pipeline architecture
 - [firecrawl.md](firecrawl.md) — complementary extraction service (also browser-capable; differentiator is tier/use-case, not static-vs-dynamic)
 - [reranker.md](reranker.md) — result reranking (downstream of both)

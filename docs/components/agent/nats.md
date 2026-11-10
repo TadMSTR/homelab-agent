@@ -183,5 +183,5 @@ cross-agent event router. `agent-security` is the only agent-type user with an
 
 - [scoped-mcp.md](scoped-mcp.md) — how agent credentials are injected at session start
 - [agent-bus.md](agent-bus.md) — event routing over NATS
-- [phase-4-agent-framework.md](../../phases/phase-4-agent-framework.md) — Phase 4 context
-- [phase-5-agent-isolation.md](../../phases/phase-5-agent-isolation.md) — Phase 5 context
+- `phase-4-agent-framework` build record (private) — Phase 4 context
+- `phase-5-agent-isolation` build record (private) — Phase 5 context
