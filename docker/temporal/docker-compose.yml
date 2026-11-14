@@ -135,7 +135,7 @@ services:
         condition: service_healthy
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
-      - TEMPORAL_CORS_ORIGINS=https://temporal.helmforge.me
+      - TEMPORAL_CORS_ORIGINS=https://temporal.example.com
       # M-03 fix: mTLS client cert for UI → frontend connection.
       # Audit: temporal-mtls-2026-06.
       - TEMPORAL_TLS_CA=/etc/temporal/tls/ca.crt

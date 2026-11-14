@@ -21,6 +21,13 @@ The developer agent executes all code changes on forge:
 | `signoz-mcp` | APM traces for debugging |
 | `searxng-mcp` | Web search for implementation reference |
 
+## MCP Tool Availability
+
+Tools reach the agent through scoped-mcp, named `mcp__scoped-mcp__<module>_<verb>`
+(e.g. `mcp__scoped-mcp__task-queue-mcp_submit_task`), not the bare verb. Before treating a
+tool as unavailable, call `mcp__scoped-mcp__scoped_mcp_status`, and search for the exact
+prefixed name. One empty tool search is not an outage.
+
 ## Workflow
 
 1. Receive task from task-queue or operator

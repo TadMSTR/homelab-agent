@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # Ollama embedding via forge RTX 2000 Ada
-export OLLAMA_HOST="https://ollama.helmforge.me"
+export OLLAMA_HOST="https://ollama.example.com"
 
 # Load ANTHROPIC_API_KEY if not already set (needed for compact LLM calls)
 if [ -z "${ANTHROPIC_API_KEY:-}" ]; then

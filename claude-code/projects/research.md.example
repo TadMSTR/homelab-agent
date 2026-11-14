@@ -17,7 +17,6 @@ The research agent handles all pre-build work:
 |------|---------|
 | `searxng-mcp` | Web search via private SearXNG instance |
 | `qmd` | Semantic search over 9000+ indexed docs |
-| `graphiti` | Knowledge graph — past decisions and relationships |
 | `githost-mcp` | Reading repos, checking existing code |
 | `task-queue-mcp` | Submitting build plans to other agents |
 | `memory-search-mcp` | Full-text search over memory notes |

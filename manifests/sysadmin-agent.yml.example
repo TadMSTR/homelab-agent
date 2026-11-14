@@ -28,7 +28,7 @@ modules:
   githost-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/repos/gitea/host-forge-scripts/scripts/run-githost-mcp-sysadmin.py
+      command: ${HOME}/repos/gitea/host-forge-scripts/scripts/run-githost-mcp-sysadmin.py
       env:
         AGENT_ID: sysadmin
       # SECURITY[control]: log_args:true logs call arguments only — tool responses are NOT
@@ -36,15 +36,10 @@ modules:
       # (pipeline output, may contain secrets) is never written to the agent audit trail.
       # Audit: 2026-05-31/githost-mcp-expansion-2026-05.
 
-  patchmon-mcp:
-    type: mcp_proxy
-    config:
-      command: /home/ted/scripts/run-patchmon-mcp.sh
-
   backrest-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/repos/personal/backrest-mcp/.venv/bin/backrest-mcp
+      command: ${HOME}/repos/personal/backrest-mcp/.venv/bin/backrest-mcp
       env:
         BACKREST_URL: "http://localhost:9898"
         BACKREST_USERNAME: "${BACKREST_USERNAME}"
@@ -52,16 +47,16 @@ modules:
         BACKREST_READONLY: "true"
         BACKREST_ALLOW_DESTRUCTIVE: "false"
         BACKREST_RESTORE_ALLOWED_PREFIX: "/tmp/backrest-restore/"
-        BACKREST_AUDIT_LOG: "/home/ted/logs/backrest-mcp-audit.jsonl"
+        BACKREST_AUDIT_LOG: "${HOME}/logs/backrest-mcp-audit.jsonl"
         LOG_LEVEL: "INFO"
-        LOG_FILE: "/home/ted/logs/backrest-mcp.log"
+        LOG_FILE: "${HOME}/logs/backrest-mcp.log"
       # Write tools (trigger_backup, do_repo_task, cancel_operation) disabled via READONLY=true.
       # Set BACKREST_READONLY=false in env to enable; add to hitl.approval_required if write access granted.
 
   dockhand-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/repos/personal/dockhand-mcp/.venv/bin/python3
+      command: ${HOME}/repos/personal/dockhand-mcp/.venv/bin/python3
       args: ["-m", "dockhand_mcp.server"]
       env:
         DOCKHAND_ENDPOINT: "http://localhost:7777"
@@ -69,7 +64,7 @@ modules:
   searxng-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/scripts/run-searxng-mcp.sh
+      command: ${HOME}/scripts/run-searxng-mcp.sh
       tool_denylist:
         - clear_cache
 
@@ -95,14 +90,6 @@ modules:
     config:
       url: http://localhost:8485/mcp
 
-  plane-mcp:
-    type: mcp_proxy
-    config:
-      url: http://localhost:8495/mcp
-      headers:
-        Authorization: "Bearer ${PLANE_TOKEN}"
-        x-workspace-slug: "${PLANE_WORKSPACE}"
-
   pm2-mcp:
     type: mcp_proxy
     config:
@@ -116,7 +103,7 @@ modules:
   loki-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/scripts/run-loki-mcp.sh
+      command: ${HOME}/scripts/run-loki-mcp.sh
 
   signoz-mcp:
     type: mcp_proxy
@@ -132,31 +119,25 @@ modules:
   agent-bus:
     type: mcp_proxy
     config:
-      command: /home/ted/repos/personal/agent-bus/venv/bin/python3
-      args: ["/home/ted/repos/personal/agent-bus/server.py"]
+      command: ${HOME}/repos/personal/agent-bus/venv/bin/python3
+      args: ["${HOME}/repos/personal/agent-bus/server.py"]
 
   matrix:
     config:
       allowed_rooms:
-        - "<room-id>"    # #forge:helmforge.me
-        - "<room-id>"    # #announcements:helmforge.me
+        - "<room-id>"    # #forge:example.com
+        - "<room-id>"    # #announcements:example.com
 
   matrix-mcp:
     type: mcp_proxy
     config:
       url: http://localhost:8487/mcp
 
-  code-server-mcp:
-    type: mcp_proxy
-    config:
-      url: http://localhost:8498/mcp
-
 rate_limits:
   global: "60/minute"
   per_tool:
     "dockhand-mcp_container_action": "10/minute"
     "dockhand-mcp_update_container": "3/hour"
-    "patchmon-mcp_approve_patch_run": "2/hour"
     "pm2-mcp_stop_service": "5/minute"
     "pm2-mcp_restart_service": "10/minute"
     "claudebox-ops_run_command": "60/minute"
@@ -173,7 +154,6 @@ hitl:
     - "dockhand-mcp_container_action"
     - "dockhand-mcp_stack_action"
     - "dockhand-mcp_update_container"
-    - "patchmon-mcp_approve_patch_run"
     - "pm2-mcp_stop_service"
     - "pm2-mcp_restart_service"
     - "githost-mcp_gitea_pr_merge"
@@ -182,7 +162,7 @@ hitl:
     # intercept tested in session; approval ID sysadmin-01.1858479cb409 issued and approved.
   notify:
     type: matrix
-    room: "<room-id>"   # #forge:helmforge.me
+    room: "<room-id>"   # #forge:example.com
 
 audit:
   agent_bus_emit: true

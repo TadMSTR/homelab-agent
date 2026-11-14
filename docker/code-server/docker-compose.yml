@@ -11,13 +11,13 @@ services:
       - TZ=America/New_York
       - PASSWORD=
       - SUDO_PASSWORD=
-      - PROXY_DOMAIN=code.helmforge.me
+      - PROXY_DOMAIN=code.example.com
       - DEFAULT_WORKSPACE=/repos
     volumes:
       - /opt/appdata/code-server:/config
       # SECURITY[accepted]: rw mount — design intent; code-server purpose is repo editing.
       #   Mitigated by Authentik forward-auth + 127.0.0.1-only binding. Audit: 2026-06-06/code-server-deploy-2026-05 F-02.
-      - /home/ted/repos:/repos
+      - ${HOME}/repos:/repos
     ports:
       - 127.0.0.1:8443:8443
     networks:

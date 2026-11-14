@@ -25,7 +25,7 @@ PRs and the cache directory.
 // ~/docker/renovate/config.js
 module.exports = {
   platform: 'gitea',
-  endpoint: 'https://gitea.tadmstr.me',
+  endpoint: 'https://gitea.example.com',
   gitAuthor: 'Renovate Bot <renovate-bot@example.com>',
   autodiscover: true,
   autodiscoverTopics: ['renovate'],   // only repos tagged 'renovate'
@@ -34,7 +34,7 @@ module.exports = {
 };
 ```
 
-Renovate autodiscovers repos on `gitea.tadmstr.me` that have the `renovate` topic tag.
+Renovate autodiscovers repos on `gitea.example.com` that have the `renovate` topic tag.
 Currently tagged: `host-forge/stacks`.
 
 ## renovate-bot Service Account

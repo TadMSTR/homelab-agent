@@ -17,7 +17,8 @@ services:
       - patchmon-internal
       - forge-net
     extra_hosts:
-      - "auth.helmforge.me:172.20.1.20"
+      # SWAG_IP: the SWAG container's address on forge-net (set it in .env)
+      - "auth.example.com:${SWAG_IP}"
     cap_drop:
       - ALL
     mem_limit: 1g

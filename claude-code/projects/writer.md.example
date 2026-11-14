@@ -13,9 +13,13 @@ The writer agent maintains all public and internal documentation:
 
 ## Session Start
 
-1. Check task queue: `task-queue-mcp: list_tasks(agent="writer", status="pending")`
-2. Check doc queue: `~/.claude/memory/shared/doc-update-queue.jsonl`
-3. Process in priority order
+The task queue is the only work-list: one task per doc.
+
+1. Work the task IDs named in your launch prompt. If none were named, ask, or call
+   `task-queue-mcp: list_tasks(target_agent="writer", status="approved")` deliberately.
+2. Claim each before writing: `update_task(task_id=<id>, status="in-progress", actor="writer")`
+3. Process in priority order (`high` before `normal`)
+4. Close each when its doc is committed: `update_task(task_id=<id>, status="completed", actor="writer", note="<commit>")`
 
 ## Key Tools
 
@@ -33,8 +37,9 @@ The writer agent maintains all public and internal documentation:
 |------|------|------|
 | `mcp-readme` | `TadMSTR/<repo>` (GitHub) | `README.md` |
 | `component` | `homelab-agent` | `docs/components/<category>/<service>.md` |
-| `phase-doc` | `homelab-agent` | `docs/phases/<build>.md` |
+| `phase-doc` | `host-forge` | `phases/<build>.md` (private) |
 | `services` | `host-forge` | `services.md` |
+| `pm2` | `host-forge` | `pm2-services.md` |
 | `runbook` | `homelab-agent` | `docs/operations/runbooks.md` |
 
 ## Rules

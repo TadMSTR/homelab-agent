@@ -30,7 +30,7 @@ modules:
   searxng-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/scripts/run-searxng-mcp.sh
+      command: ${HOME}/scripts/run-searxng-mcp.sh
       tool_denylist:
         - clear_cache
 
@@ -38,13 +38,6 @@ modules:
     type: mcp_proxy
     config:
       url: http://localhost:8181/mcp
-
-  graphiti:
-    type: mcp_proxy
-    config:
-      url: http://localhost:8000/mcp
-      tool_denylist:
-        - clear_graph
 
   memory-metadata-mcp:
     type: mcp_proxy
@@ -67,7 +60,7 @@ modules:
   githost-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/scripts/run-githost-mcp-writer.py
+      command: ${HOME}/scripts/run-githost-mcp-writer.py
       env:
         AGENT_ID: writer
       # SECURITY[control]: Repo access restricted to doc repos via ALLOWED_REPO_ROOTS in
@@ -99,29 +92,16 @@ modules:
     config:
       url: http://localhost:8485/mcp
 
-  plane-mcp:
-    type: mcp_proxy
-    config:
-      url: http://localhost:8495/mcp
-      headers:
-        Authorization: "Bearer ${PLANE_TOKEN}"
-        x-workspace-slug: "${PLANE_WORKSPACE}"
-      tool_allowlist:
-        - list_projects
-        - list_work_items
-        - retrieve_work_item
-        - create_work_item
-
   agent-bus:
     type: mcp_proxy
     config:
-      command: /home/ted/repos/personal/agent-bus/venv/bin/python3
-      args: ["/home/ted/repos/personal/agent-bus/server.py"]
+      command: ${HOME}/repos/personal/agent-bus/venv/bin/python3
+      args: ["${HOME}/repos/personal/agent-bus/server.py"]
 
   matrix:
     config:
       allowed_rooms:
-        - "<room-id>"    # #writer:helmforge.me
+        - "<room-id>"    # #writer:example.com
 
   matrix-mcp:
     type: mcp_proxy

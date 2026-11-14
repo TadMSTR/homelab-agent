@@ -30,16 +30,9 @@ modules:
   searxng-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/scripts/run-searxng-mcp.sh
+      command: ${HOME}/scripts/run-searxng-mcp.sh
       tool_denylist:
         - clear_cache
-
-  graphiti:
-    type: mcp_proxy
-    config:
-      url: http://localhost:8000/mcp
-      tool_denylist:
-        - clear_graph
 
   memory-metadata-mcp:
     type: mcp_proxy
@@ -59,24 +52,10 @@ modules:
     config:
       url: http://localhost:8485/mcp
 
-  plane-mcp:
-    type: mcp_proxy
-    config:
-      url: http://localhost:8495/mcp
-      headers:
-        Authorization: "Bearer ${PLANE_TOKEN}"
-        x-workspace-slug: "${PLANE_WORKSPACE}"
-      tool_allowlist:
-        - list_projects
-        - list_work_items
-        - retrieve_work_item
-        - create_work_item
-        - create_intake_work_item
-
   loki-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/scripts/run-loki-mcp.sh
+      command: ${HOME}/scripts/run-loki-mcp.sh
 
   signoz-mcp:
     type: mcp_proxy
@@ -87,13 +66,13 @@ modules:
   agent-bus:
     type: mcp_proxy
     config:
-      command: /home/ted/repos/personal/agent-bus/venv/bin/python3
-      args: ["/home/ted/repos/personal/agent-bus/server.py"]
+      command: ${HOME}/repos/personal/agent-bus/venv/bin/python3
+      args: ["${HOME}/repos/personal/agent-bus/server.py"]
 
   githost-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/repos/gitea/host-forge-scripts/scripts/run-githost-mcp-security.py
+      command: ${HOME}/repos/gitea/host-forge-scripts/scripts/run-githost-mcp-security.py
       env:
         AGENT_ID: security
       tool_denylist:
@@ -123,9 +102,9 @@ modules:
   matrix:
     config:
       allowed_rooms:
-        - "<room-id>"    # #forge:helmforge.me (audit completion → resume signal)
-        - "<room-id>"    # #security:helmforge.me
-        - "<room-id>"    # #announcements:helmforge.me
+        - "<room-id>"    # #forge:example.com (audit completion → resume signal)
+        - "<room-id>"    # #security:example.com
+        - "<room-id>"    # #announcements:example.com
 
   matrix-mcp:
     type: mcp_proxy

@@ -28,7 +28,6 @@ This is a dedicated AI agent server for homelab operations.
 - Langfuse: langfuse.<your-domain> (forward auth)
 - SigNoz: signoz.<your-domain> (forward auth)
 - NATS: localhost:4222 (JetStream, per-agent user auth)
-- Neo4j + Graphiti MCP: bolt://localhost:7687, MCP at :8000
 - Dockhand: localhost:7777
 - PatchMon: localhost:3005
 

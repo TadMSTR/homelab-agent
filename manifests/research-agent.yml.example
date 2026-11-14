@@ -20,7 +20,7 @@ modules:
   searxng-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/scripts/run-searxng-mcp.sh
+      command: ${HOME}/scripts/run-searxng-mcp.sh
       tool_denylist:
         - clear_cache          # shared Valkey cache, not research's to manage
 
@@ -28,13 +28,6 @@ modules:
     type: mcp_proxy
     config:
       url: http://localhost:8181/mcp
-
-  graphiti:
-    type: mcp_proxy
-    config:
-      url: http://localhost:8000/mcp
-      tool_denylist:
-        - clear_graph          # catastrophic — never appropriate for research agent
 
   memory-metadata-mcp:
     type: mcp_proxy
@@ -57,7 +50,7 @@ modules:
   githost-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/scripts/run-githost-mcp-research.py
+      command: ${HOME}/scripts/run-githost-mcp-research.py
       env:
         AGENT_ID: research
       # SECURITY[control]: Repo access restricted to doc repos via ALLOWED_REPO_ROOTS in
@@ -86,22 +79,7 @@ modules:
   langfuse-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/scripts/run-langfuse-mcp.sh
-
-  plane-mcp:
-    type: mcp_proxy
-    config:
-      url: http://localhost:8495/mcp
-      headers:
-        Authorization: "Bearer ${PLANE_TOKEN}"
-        x-workspace-slug: "${PLANE_WORKSPACE}"
-      tool_allowlist:
-        - list_projects
-        - list_work_items
-        - search_work_items
-        - retrieve_work_item
-        - create_work_item
-        - create_intake_work_item
+      command: ${HOME}/scripts/run-langfuse-mcp.sh
 
   context7:
     type: mcp_proxy
@@ -139,26 +117,19 @@ modules:
   agent-bus:
     type: mcp_proxy
     config:
-      command: /home/ted/repos/personal/agent-bus/venv/bin/python3
-      args: ["/home/ted/repos/personal/agent-bus/server.py"]
+      command: ${HOME}/repos/personal/agent-bus/venv/bin/python3
+      args: ["${HOME}/repos/personal/agent-bus/server.py"]
 
   matrix:
     config:
       allowed_rooms:
-        - "<room-id>"    # #research:helmforge.me
-        - "<room-id>"    # #announcements:helmforge.me
+        - "<room-id>"    # #research:example.com
+        - "<room-id>"    # #announcements:example.com
 
   matrix-mcp:
     type: mcp_proxy
     config:
       url: http://localhost:8487/mcp
-
-  code-server-mcp:
-    type: mcp_proxy
-    config:
-      url: http://localhost:8498/mcp
-      tool_denylist:
-        - install_extension   # destructive — not appropriate for research agent
 
 rate_limits:
   global: "120/minute"

@@ -30,6 +30,13 @@ The security agent handles all security work:
 | `signoz-mcp` | Anomaly detection in traces/logs |
 | `task-queue-mcp` | Receive audit requests, send remediation tasks |
 
+## MCP Tool Availability
+
+Tools reach the agent through scoped-mcp, named `mcp__scoped-mcp__<module>_<verb>`
+(e.g. `mcp__scoped-mcp__task-queue-mcp_submit_task`), not the bare verb. Before treating a
+tool as unavailable, call `mcp__scoped-mcp__scoped_mcp_status`, and search for the exact
+prefixed name. One empty tool search is not an outage.
+
 ## Scope
 
 **In scope:**
