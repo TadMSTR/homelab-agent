@@ -65,7 +65,7 @@ hitl:
   timeout_seconds: 300
   approval_required:
     - dockhand-mcp_stack_action
-    - patchmon-mcp_approve_patch_run
+    - pm2-mcp_restart_service
   notify:
     type: matrix
     room: "<room-id>"

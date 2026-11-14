@@ -32,7 +32,7 @@ modules:
   githost-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/repos/gitea/host-forge-scripts/scripts/run-githost-mcp-developer.py
+      command: ${HOME}/repos/gitea/host-forge-scripts/scripts/run-githost-mcp-developer.py
       env:
         AGENT_ID: developer
       # SECURITY[control]: log_args:true logs call arguments only — tool responses are NOT
@@ -43,7 +43,7 @@ modules:
   searxng-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/scripts/run-searxng-mcp.sh
+      command: ${HOME}/scripts/run-searxng-mcp.sh
       tool_denylist:
         - clear_cache
 
@@ -51,13 +51,6 @@ modules:
     type: mcp_proxy
     config:
       url: http://localhost:8181/mcp
-
-  graphiti:
-    type: mcp_proxy
-    config:
-      url: http://localhost:8000/mcp
-      tool_denylist:
-        - clear_graph
 
   memory-metadata-mcp:
     type: mcp_proxy
@@ -79,15 +72,7 @@ modules:
   langfuse-mcp:
     type: mcp_proxy
     config:
-      command: /home/ted/scripts/run-langfuse-mcp.sh
-
-  plane-mcp:
-    type: mcp_proxy
-    config:
-      url: http://localhost:8495/mcp
-      headers:
-        Authorization: "Bearer ${PLANE_TOKEN}"
-        x-workspace-slug: "${PLANE_WORKSPACE}"
+      command: ${HOME}/scripts/run-langfuse-mcp.sh
 
   context7:
     type: mcp_proxy
@@ -99,14 +84,14 @@ modules:
   agent-bus:
     type: mcp_proxy
     config:
-      command: /home/ted/repos/personal/agent-bus/venv/bin/python3
-      args: ["/home/ted/repos/personal/agent-bus/server.py"]
+      command: ${HOME}/repos/personal/agent-bus/venv/bin/python3
+      args: ["${HOME}/repos/personal/agent-bus/server.py"]
 
   matrix:
     config:
       allowed_rooms:
-        - "<room-id>"    # #dev:helmforge.me
-        - "<room-id>"    # #announcements:helmforge.me
+        - "<room-id>"    # #dev:example.com
+        - "<room-id>"    # #announcements:example.com
 
   matrix-mcp:
     type: mcp_proxy
@@ -125,7 +110,7 @@ hitl:
     - "githost-mcp_woodpecker_pipeline_cancel"
   notify:
     type: matrix
-    room: "<room-id>"   # #dev:helmforge.me
+    room: "<room-id>"   # #dev:example.com
 
 audit:
   agent_bus_emit: true
