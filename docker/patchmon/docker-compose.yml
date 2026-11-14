@@ -17,6 +17,7 @@ services:
       - patchmon-internal
       - forge-net
     extra_hosts:
+      # SWAG_IP: the SWAG container's address on forge-net (set it in .env)
       - "auth.example.com:${SWAG_IP}"
     cap_drop:
       - ALL

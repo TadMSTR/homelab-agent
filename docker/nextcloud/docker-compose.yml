@@ -160,6 +160,7 @@ services:
       - NEXTCLOUD_URL=https://nextcloud.example.com
       # Recording disabled: v2's recorder runs a --no-sandbox Chromium that any write-JWT
       # holder (edit-enabled public links included) can start. A non-existent path fails every launch.
+      # Re-check that recording reports unavailable after every whiteboard image bump.
       - CHROME_EXECUTABLE_PATH=/nonexistent/recording-disabled
       - JWT_SECRET_KEY=${NC_WHITEBOARD_JWT_SECRET}
     mem_limit: 512m

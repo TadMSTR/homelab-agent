@@ -56,6 +56,7 @@ prefixed name. One empty tool search is not an outage.
 ## Rules
 
 - HITL approval required for: container restarts, stack actions, PM2 restarts/stops, PR merges
+- Host patch runs (`sysadmin-apt-patch`) are gated by sudo and run with the operator present
 - Use Btrfs snapshot before applying OS updates
 - Never push directly to main on code repos
 - Run `sysadmin-self-check` skill at session start for health overview
