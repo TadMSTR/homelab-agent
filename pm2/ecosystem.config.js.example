@@ -108,13 +108,6 @@ module.exports = {
     },
 
     {
-      name: "patchmon-mcp",
-      script: `${HOME}/repos/personal/patchmon-mcp/.venv/bin/python3`,
-      args: "-m patchmon_mcp.server",
-      autorestart: true,
-    },
-
-    {
       name: "pm2-mcp",
       script: `${HOME}/repos/personal/pm2-mcp/.venv/bin/python3`,
       args: "-m pm2_mcp.server",
@@ -158,25 +151,6 @@ module.exports = {
     {
       name: "cloudcli",
       script: `${HOME}/scripts/cloudcli.sh`,
-      autorestart: true,
-    },
-
-    {
-      name: "temporal-build-worker",
-      script: `${HOME}/repos/personal/temporal-build-worker/worker.py`,
-      autorestart: true,
-    },
-
-    {
-      name: "plane-mcp",
-      script: `${HOME}/scripts/run-plane-mcp.sh`,
-      autorestart: true,
-    },
-
-    {
-      name: "code-server-mcp",
-      script: `${HOME}/repos/personal/code-server-mcp/venv/bin/python3`,
-      args: "-m code_server_mcp",
       autorestart: true,
     },
 
