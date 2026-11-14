@@ -129,9 +129,8 @@ services:
       - nextcloud-internal
 
   nextcloud-collabora:
-    # SECURITY[accepted]: uid 1001, no cap_drop/no-new-privileges (DC-02).
-    # Already explained immediately below — CODE's chroot/setuid sandbox breaks
-    # under both. mem_limit IS set (1 GiB), so DC-03 is satisfied here.
+    # SECURITY[accepted]: uid 1001, no cap_drop/no-new-privileges: CODE's chroot/setuid
+    # sandbox breaks under both (see below). mem_limit is set (1 GiB).
     image: collabora/code:26.04.3.2.1
     container_name: nextcloud-collabora
     restart: unless-stopped
