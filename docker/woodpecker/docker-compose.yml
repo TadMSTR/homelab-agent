@@ -44,7 +44,7 @@ services:
       - WOODPECKER_OPEN=false
       - WOODPECKER_HOST=https://ci.example.com
       - WOODPECKER_GITEA=true
-      - WOODPECKER_GITEA_URL=https://gitea.tadmstr.me
+      - WOODPECKER_GITEA_URL=https://gitea.example.com
       - WOODPECKER_DATABASE_DRIVER=sqlite3
       - WOODPECKER_DATABASE_DATASOURCE=/var/lib/woodpecker/woodpecker.db
     env_file:
