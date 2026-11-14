@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+- Example files: retired services (graphiti, plane-mcp, patchmon-mcp, code-server-mcp,
+  temporal-build-worker) removed from the manifest, PM2 and Claude Code examples; task-queue
+  calls in the Claude Code examples corrected.
+- Nextcloud sample compose re-derived from the running stack.
+- Real domains replaced with `example.com` in the sample stacks and component docs.
+- Isolation diagram scoped to the target design (agents currently share one uid); sample
+  compose files annotated (`SWAG_IP`, whiteboard recording re-check).
+
 ## 2026-05-28 — forge-q2-sync-deploy
 
 repo-improvements-q2 updates deployed to forge. 5 MCP service repos pulled (agent-bus,
