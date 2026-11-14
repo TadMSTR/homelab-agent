@@ -17,7 +17,7 @@ The repo also serves as the source of truth for Phase 2f of `agent-workspace-sca
 | Item | Value |
 |------|-------|
 | Repo path | `~/repos/gitea/host-forge-configs/` |
-| Gitea remote | `gitea.tadmstr.me/host-forge/configs` |
+| Gitea remote | `gitea.example.com/host-forge/configs` |
 | Deploy script | `~/scripts/forge-configs-deploy.sh` |
 | Log | `~/.claude/logs/forge-configs-deploy.log` |
 | Vault KV mount | `secret/data/forge/docker/<service>` (KV v2) |
