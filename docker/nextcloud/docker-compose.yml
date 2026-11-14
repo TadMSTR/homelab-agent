@@ -1,6 +1,6 @@
 services:
   nextcloud:
-    image: lscr.io/linuxserver/nextcloud:latest
+    image: lscr.io/linuxserver/nextcloud:35.0.2-ls460
     container_name: nextcloud
     restart: unless-stopped
     # F-06: LSIO s6-overlay uses setuid at init — user: and no-new-privileges both break it.
@@ -13,13 +13,13 @@ services:
     volumes:
       - /opt/appdata/nextcloud/config:/config
       - /opt/appdata/nextcloud/data:/data
-      - /home/ted/.claude/comms/artifacts:/agent-workspace
-      - /home/ted/repos:/ted-personal/repos
-      - /home/ted/Documents:/ted-personal/Documents
-    extra_hosts:
-      - "nextcloud.helmforge.me:172.20.1.29"
-      - "collabora.helmforge.me:172.20.1.29"
-      - "whiteboard.helmforge.me:172.20.1.29"
+      # :ro: agents read this tree as instructions, and an RCE in this container must not be able
+      # to write it. files:scan only writes the DB. The :ro bind is the write control; Nextcloud's
+      # external-storage readonly option is only a mask.
+      - ${HOME}/.claude/comms/artifacts:/agent-workspace:ro
+      # No repos mount: it would expose scripts, agent config and checkout secrets (.env files)
+      # to Nextcloud. Browse repos in your git host instead.
+      - ${HOME}/Documents:/personal/Documents
     networks:
       - nextcloud-internal
       - forge-net
@@ -38,7 +38,7 @@ services:
       start_period: 120s
 
   nextcloud-db:
-    image: postgres:16-alpine
+    image: postgres:18.6-alpine
     container_name: nextcloud-db
     restart: unless-stopped
     # F-06: cap_drop:[ALL] breaks postgres — init runs as root, uses chown/chmod on data dir before
@@ -49,8 +49,14 @@ services:
       POSTGRES_USER: ${NC_DB_USER:-nextcloud}
       POSTGRES_PASSWORD: ${NC_DB_PASSWORD}
       POSTGRES_DB: nextcloud
+    # PG 18+ layout (docker-library/postgres#1259): PGDATA is /var/lib/postgresql/18/docker and
+    # the image VOLUME is /var/lib/postgresql. Mount the parent: the old .../data target would
+    # put the database in an anonymous volume. Data lands in /opt/appdata/nextcloud/db/18/docker.
+    # The next major can pg_upgrade --link inside this one mount (19/docker beside 18/docker).
+    # Nextcloud connects as oc_admin (owns every object), not POSTGRES_USER: a dump/restore
+    # must carry that role and keep ownership.
     volumes:
-      - /opt/appdata/nextcloud/db:/var/lib/postgresql/data
+      - /opt/appdata/nextcloud/db:/var/lib/postgresql
     mem_limit: 1g
     cpus: '1.0'
     healthcheck:
@@ -88,9 +94,9 @@ services:
       - IPC_LOCK
     environment:
       - discovery.type=single-node
-      # SECURITY[accepted]: OpenSearch security plugin disabled (no auth/TLS). Internal-only —
-      # nextcloud-internal network only, no host port, no forge-net access.
-      # Single-tenant forge; TLS cert overhead exceeds risk. Audit: 2026-06-20/nextcloud-2026-06 F-09.
+      # SECURITY[accepted]: OpenSearch security plugin disabled (no auth/TLS). Internal-only — nextcloud-internal
+      # network only, no host port, no forge-net access. Single-tenant forge; TLS cert overhead exceeds risk.
+      # Audit: 2026-06-20/nextcloud-2026-06. F-09.
       - DISABLE_SECURITY_PLUGIN=true
       - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
       - cluster.name=nextcloud-opensearch
@@ -109,7 +115,7 @@ services:
       - nextcloud-internal
 
   nextcloud-clamav:
-    image: clamav/clamav:latest
+    image: clamav/clamav:1.5.4
     container_name: nextcloud-clamav
     restart: unless-stopped
     # F-06: cap_drop:[ALL] may break clamd/freshclam init — keeping security_opt only per upstream constraint.
@@ -123,14 +129,17 @@ services:
       - nextcloud-internal
 
   nextcloud-collabora:
-    image: collabora/code:latest
+    # SECURITY[accepted]: uid 1001, no cap_drop/no-new-privileges (DC-02).
+    # Already explained immediately below — CODE's chroot/setuid sandbox breaks
+    # under both. mem_limit IS set (1 GiB), so DC-03 is satisfied here.
+    image: collabora/code:26.04.3.2.1
     container_name: nextcloud-collabora
     restart: unless-stopped
     # F-06: no-new-privileges NOT added — CODE uses chroot/setuid sandbox (breaks if set).
     # cap_drop:[ALL] breaks coolforkit — needs SYS_CHROOT/SETUID/SETGID/FOWNER for sandbox init.
-    # Upstream constraint; default Docker cap set required. Audit 2026-06-20.
+    # Upstream constraint; default Docker cap set required. Audit 2026-06-20 finding revised.
     environment:
-      - domain=nextcloud\\.helmforge\\.me
+      - domain=nextcloud\\.example\\.com
       - extra_params=--o:ssl.enable=false --o:ssl.termination=true
       - username=${NC_COLLABORA_ADMIN_USER:-admin}
       - password=${NC_COLLABORA_ADMIN_PASSWORD}
@@ -141,7 +150,7 @@ services:
       - forge-net
 
   nextcloud-whiteboard:
-    image: ghcr.io/nextcloud/whiteboard:latest
+    image: ghcr.io/nextcloud/whiteboard:v2.1.2
     container_name: nextcloud-whiteboard
     restart: unless-stopped
     security_opt:
@@ -149,14 +158,16 @@ services:
     cap_drop:
       - ALL
     environment:
-      - NEXTCLOUD_URL=https://nextcloud.helmforge.me
+      - NEXTCLOUD_URL=https://nextcloud.example.com
+      # Recording disabled: v2's recorder runs a --no-sandbox Chromium that any write-JWT
+      # holder (edit-enabled public links included) can start. A non-existent path fails every launch.
+      - CHROME_EXECUTABLE_PATH=/nonexistent/recording-disabled
       - JWT_SECRET_KEY=${NC_WHITEBOARD_JWT_SECRET}
-    extra_hosts:
-      - "nextcloud.helmforge.me:172.20.1.29"
     mem_limit: 512m
     cpus: '0.5'
+    # forge-net only: it reaches Nextcloud via NEXTCLOUD_URL through SWAG, and SWAG
+    # reaches it on forge-net; nextcloud-internal exposed the no-auth OpenSearch, clamd, Valkey and Postgres.
     networks:
-      - nextcloud-internal
       - forge-net
 
 networks:
