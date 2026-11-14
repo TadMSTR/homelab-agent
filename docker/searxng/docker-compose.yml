@@ -52,8 +52,8 @@ services:
       retries: 3
     environment:
       - HISTER__SERVER__ADDRESS=0.0.0.0:4434
-      - HISTER__SERVER__BASE_URL=https://hister.helmforge.me
-      - HISTER__APP__SEARCH_URL=https://search.helmforge.me/search?q={query}
+      - HISTER__SERVER__BASE_URL=https://hister.example.com
+      - HISTER__APP__SEARCH_URL=https://search.example.com/search?q={query}
       - HISTER__APP__REDIRECT_ON_NO_RESULTS=false
     ports:
       - "127.0.0.1:4434:4434"

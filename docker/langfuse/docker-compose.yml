@@ -183,7 +183,7 @@ services:
       AUTH_CUSTOM_ALLOW_ACCOUNT_LINKING: "true"
       HOSTNAME: "0.0.0.0"
     extra_hosts:
-      - "auth.helmforge.me:172.20.1.5"
+      - "auth.example.com:${SWAG_IP}"
     ports:
       - "127.0.0.1:3000:3000"
     networks:

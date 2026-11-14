@@ -11,11 +11,11 @@ services:
     volumes:
       - /opt/appdata/dockhand:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
-      - /home/ted/docker:/home/ted/docker
+      - ${HOME}/docker:${HOME}/docker
     ports:
       - "127.0.0.1:7777:3000"
     extra_hosts:
-      - "auth.helmforge.me:172.20.1.17"
+      - "auth.example.com:${SWAG_IP}"
     networks:
       - forge-net
     logging:

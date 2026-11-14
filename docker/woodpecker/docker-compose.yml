@@ -42,13 +42,13 @@ services:
       - /opt/appdata/woodpecker/server:/var/lib/woodpecker
     environment:
       - WOODPECKER_OPEN=false
-      - WOODPECKER_HOST=https://ci.helmforge.me
+      - WOODPECKER_HOST=https://ci.example.com
       - WOODPECKER_GITEA=true
       - WOODPECKER_GITEA_URL=https://gitea.tadmstr.me
       - WOODPECKER_DATABASE_DRIVER=sqlite3
       - WOODPECKER_DATABASE_DATASOURCE=/var/lib/woodpecker/woodpecker.db
     env_file:
-      - /home/ted/.secrets/woodpecker.env
+      - ${HOME}/.secrets/woodpecker.env
     cap_drop:
       - ALL
     security_opt:
@@ -76,7 +76,7 @@ services:
       - WOODPECKER_MAX_PROCS=2
       - DOCKER_HOST=tcp://woodpecker-docker-proxy:2375
     env_file:
-      - /home/ted/.secrets/woodpecker.env
+      - ${HOME}/.secrets/woodpecker.env
     cap_drop:
       - ALL
     security_opt:

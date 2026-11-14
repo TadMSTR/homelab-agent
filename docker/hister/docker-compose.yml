@@ -12,14 +12,14 @@ services:
       - /tmp
     environment:
       - HISTER__SERVER__ADDRESS=0.0.0.0:4433
-      - HISTER__SERVER__BASE_URL=https://hister-kb.helmforge.me
-      - HISTER__APP__SEARCH_URL=https://search.helmforge.me/search?q={query}
+      - HISTER__SERVER__BASE_URL=https://hister-kb.example.com
+      - HISTER__APP__SEARCH_URL=https://search.example.com/search?q={query}
       - HISTER__APP__REDIRECT_ON_NO_RESULTS=true
     volumes:
       - /opt/appdata/hister:/hister/data
-      - /home/ted/repos/gitea/agent-platform-knowledge-base:/mnt/agent-platform-kb:ro
-      - /home/ted/repos/gitea/host-forge-knowledge-base:/mnt/host-forge-kb:ro
-      - /home/ted/.claude/memory/shared:/mnt/memory-shared:ro
+      - ${HOME}/repos/gitea/agent-platform-knowledge-base:/mnt/agent-platform-kb:ro
+      - ${HOME}/repos/gitea/host-forge-knowledge-base:/mnt/host-forge-kb:ro
+      - ${HOME}/.claude/memory/shared:/mnt/memory-shared:ro
     networks:
       - forge-net
     logging:
