@@ -5,6 +5,8 @@ multi-agent setup. Agents log communication events (task handoffs, audit request
 completions, artifact creation) via MCP tool calls. Events are written to local JSONL
 files and federated to NATS JetStream for real-time observability.
 
+- **Version:** v0.7.1 (2026-11-09). The venv is built from the committed `uv.lock` (since v0.6.0;
+  `requirements.txt` is gone)
 - **Source:** `~/repos/personal/agent-bus/`
 - **PM2 name:** `agent-bus` (PM2 ids are assigned at registration order and shift on every
   ecosystem rebuild — use the name, not a hardcoded id, to look it up)
@@ -55,6 +57,18 @@ scopes. High-priority events trigger ntfy notifications.
 | `preflight.completed` | cross | — | A build preflight check finished |
 | `security.finding` | cross | — | A security finding was recorded |
 | `artifact.untracked` | cross | — | reconcile.py found an artifact with no prior log entry |
+| `workspace.edit_denied` | cross | — | The workspace-policy hook refused an agent file edit (or, in log-only mode, would have). Since v0.6.0 |
+| `subagent.started` | cross | — | A Claude Code subagent started: its type and id and the parent session, never its prompt. Emitted by a managed `SubagentStart` hook. Since v0.7.0 |
+| `subagent.stopped` | cross | — | The same subagent stopped (`SubagentStop` hook), again without its output. Since v0.7.0 |
+| `subagent.write_denied` | cross | — | A scoped subagent tried to edit a file outside its assignment; emitted by the subagent write-scope hook. Since v0.7.0 |
+| `audit.baseline.completed` | cross | — | One pre-audit security-baseline pass finished: build, round, side, verdict counts and the checker subagents' usage totals. Since v0.7.0 |
+
+**Quiet scratch trees (v0.7.0).** reconcile.py collapses a directory three or more levels
+below `artifacts/` that contains a `.reconcile-ignore` file into one event (`Ignored tree:
+<dir>`) instead of one `artifact.untracked` per file. Whoever writes a scratch tree drops the
+marker in its root. A marker shallower than that is not honoured: it is logged as `Marker not
+honoured: <dir>` once a day and the tree is scanned as usual. A directory the walk can't read
+now fails the run and holds the cursor, so it is retried rather than skipped.
 
 ## Architecture
 
@@ -126,6 +140,13 @@ flowchart LR
 Unsigned events are always accepted in enforce mode — the server distinguishes between
 "no signature present" (allowed) and "signature present but invalid" (rejected). This lets
 agents that haven't restarted since signing was enabled continue logging without errors.
+
+**Freshness and replay (v0.7.1).** Signatures with `sig_v >= 2` carry a timestamp and a
+nonce. `AGENT_BUS_SIG_MAX_AGE` bounds how old one may be, default **120 s** (300 s before
+v0.7.1); with per-process nonce sets, that window is the replay bound that holds across every
+agent-bus process. A stale or replayed signature is logged and accepted in `warn`, and
+rejected in `enforce`. A deployment that copied an older `.env.example` may still set 300
+explicitly.
 
 Public keys are stored in `~/.claude/comms/agent-keys.json` (chmod 644). Use `get_status`
 to confirm which agents have registered keys.

@@ -219,6 +219,7 @@ homelab-agent/
 | `docs/components/platform/build-unblock-scan.md` | Stalled build detection |
 | `docs/components/platform/git-drift-alert.md` | Uncommitted git drift alerting |
 | `docs/components/platform/git-remote-cred-check.md` | Plaintext credentials in git remote URLs |
+| `docs/components/platform/forge-scanners.md` | osv-scanner offline DB refresh (daily root cron) for the security prescan |
 | `docs/components/memory/memory-compact-qc.md` | Weekly QC on `memsearch compact` output — failing nightly since the 2026-09-17 memsearch retirement, pending retirement itself in `scribe-qc-monitoring-2026-09` part 2 |
 | `docs/components/plugin-drift-sentinel.md` | Claude Code plugin marketplace drift detection |
 | `docs/components/dep-update-check.md` | Dependency update scanner |
