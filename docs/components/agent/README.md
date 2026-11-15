@@ -21,7 +21,7 @@ The services that make the multi-agent engine work: tool scoping, inter-agent me
 | [matrix-hitl-bot.md](matrix-hitl-bot.md) | Matrix front end for scoped-mcp HITL approve/deny | — (PM2, outbound only) |
 | [matrix-task-queue-bot.md](matrix-task-queue-bot.md) | Matrix task queue notification bot, retired 2026-10-29 | — |
 | [nats.md](nats.md) | NATS JetStream event bus | 4222 |
-| [nats-mcp.md](nats-mcp.md) | NATS publish/subscribe MCP server | 8497 |
+| [nats-mcp.md](nats-mcp.md) | Read-only NATS monitoring MCP server, retired 2026-11-14 | — |
 | [dragonfly.md](dragonfly.md) | Agent state backend (Redis-compatible) | 6379 |
 | [postgres.md](postgres.md) | Agent session registry + HITL approval audit (PostgreSQL) | 5433 |
 | [webhook-doorman.md](webhook-doorman.md) | Fail-closed inbound webhook router (GitHub, Vikunja, Grafana) | 8507 |

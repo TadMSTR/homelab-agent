@@ -104,7 +104,7 @@ were completely silent — measured: five `emit_metric` calls against a dead Inf
 zero log lines.
 
 This server deliberately does **not** get the third-party logger demotion its sibling MCP
-servers (backrest-mcp, nats-mcp) received — its `configure_logging()` is
+servers (backrest-mcp, and nats-mcp before its retirement) received — its `configure_logging()` is
 `structlog.configure()` with a `PrintLoggerFactory` and does no stdlib routing, so there is no
 third-party wire trace to drown it out.
 

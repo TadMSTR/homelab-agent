@@ -157,7 +157,7 @@ homelab-agent/
 | `docs/components/agent/matrix-admin-bot.md` | Matrix room admin bot, retired 2026-10-29 |
 | `docs/components/agent/matrix-task-queue-bot.md` | Matrix task queue notification bot, retired 2026-10-29 |
 | `docs/components/agent/matrix-hitl-bot.md` | Matrix HITL approval bot, decommissioned 2026-09-27 (signed terminal-only approval replaced it) |
-| `docs/components/agent/nats-mcp.md` | NATS publish/subscribe MCP |
+| `docs/components/agent/nats-mcp.md` | Read-only NATS monitoring MCP, retired 2026-11-14 |
 | `docs/components/agent/harlock.md` | Harlock personal agent, decommissioned 2026-08-08 |
 | `docs/components/agent/steward.md` | Config steward agent — proposals, countersign, apply |
 | `docs/components/agent/forge-config-mcp.md` | Root-owned config surface MCP (/etc/forge) |

@@ -91,7 +91,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`matrix-admin-bot.md`](agent/matrix-admin-bot.md) | Matrix room administration bot, retired 2026-10-29 |
 | [`matrix-task-queue-bot.md`](agent/matrix-task-queue-bot.md) | Matrix task queue notification bot, retired 2026-10-29 |
 | [`nats.md`](agent/nats.md) | NATS JetStream event bus |
-| [`nats-mcp.md`](agent/nats-mcp.md) | NATS publish/subscribe MCP server |
+| [`nats-mcp.md`](agent/nats-mcp.md) | Read-only NATS monitoring MCP server, retired 2026-11-14 |
 | [`dragonfly.md`](agent/dragonfly.md) | Agent state backend (Redis-compatible) |
 | [`postgres.md`](agent/postgres.md) | Agent session registry + HITL approval audit (PostgreSQL) |
 | [`steward.md`](agent/steward.md) | Config-proposer agent for the root-owned manifest and workspace-policy surface (proposes, never applies) |
