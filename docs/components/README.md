@@ -94,8 +94,8 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`nats-mcp.md`](agent/nats-mcp.md) | Read-only NATS monitoring MCP server, retired 2026-11-14 |
 | [`dragonfly.md`](agent/dragonfly.md) | Agent state backend (Redis-compatible) |
 | [`postgres.md`](agent/postgres.md) | Agent session registry + HITL approval audit (PostgreSQL) |
-| [`steward.md`](agent/steward.md) | Config-proposer agent for the root-owned manifest and workspace-policy surface (proposes, never applies) |
-| [`forge-config-mcp.md`](agent/forge-config-mcp.md) | Closed op vocabulary steward authors config proposals through |
+| [`steward.md`](agent/steward.md) | Config-proposer agent for the root-owned manifest and workspace-policy surface, retired (decommissioned 2026-11-13) |
+| [`forge-config-mcp.md`](agent/forge-config-mcp.md) | Closed op vocabulary steward authored config proposals through, disabled 2026-11-15 |
 | [`webhook-doorman.md`](agent/webhook-doorman.md) | Fail-closed inbound webhook router (verify, dedupe, fan out to sinks) |
 | [`matrix-hitl-bot.md`](agent/matrix-hitl-bot.md) | Matrix front end for HITL approvals, decommissioned 2026-09-27 |
 | [`harlock.md`](agent/harlock.md) | Resident personal-assistant Matrix agent, decommissioned 2026-08-08 |

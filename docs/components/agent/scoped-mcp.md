@@ -181,7 +181,7 @@ Each agent has a global rate limit and per-tool overrides for intensive operatio
 
 Three manifests run `hitl.mode: enforce` and list tools in `hitl.approval_required`; a call to
 any of them waits for a signed human approval before it executes. The other agents (research,
-writer, security, doc-health, memory-sync, jobsearch, steward) have no `hitl` block: their
+writer, security, doc-health, memory-sync, jobsearch) have no `hitl` block: their
 manifests simply do not grant high-impact tools. Gated tools as of 2026-10-27, read from the
 live manifests:
 

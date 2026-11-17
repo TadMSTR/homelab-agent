@@ -1,11 +1,19 @@
-# forge-config-mcp (forge)
+# forge-config-mcp (disabled 2026-11-15; its only client is retired)
 
-The closed op vocabulary through which [steward](steward.md) authors every config
+The closed op vocabulary through which [steward](steward.md) authored every config
 proposal. `config_propose`, `config_show`, `config_vocabulary`, `config_effective_diff`,
 plus lifecycle tools.
 
-**Version: v0.2.0.** Source is a private repo — link to it as private, not a public GitHub
+**Status: disabled.** steward, its only client, was decommissioned on 2026-11-13, and its
+grant record for this server was removed with it. The service crash-looped after that cleanup
+and was disabled on 2026-11-15 (vikunja#1517). It is not listening. Whether it is removed or
+kept is still to be decided. No agent holds a grant to it.
+
+**Last version: v0.2.0.** Source is a private repo — link to it as private, not a public GitHub
 URL, when cross-referencing from elsewhere.
+
+The rest of this doc is kept as a design record: the closed-vocabulary pattern is the part
+worth reusing. Read it in the past tense.
 
 ## The two things that make it interesting
 
@@ -146,6 +154,9 @@ Prerequisites, provisioned once:
 
 Install non-editable, from a reviewed tag, using the standard venv-deploy tooling for
 forge services.
+
+Since the 2026-11 decommission, items 3 and 5 are gone (the deploy key was deleted and
+steward's manifest removed), and the unit is disabled.
 
 ## Tests
 

@@ -159,8 +159,8 @@ homelab-agent/
 | `docs/components/agent/matrix-hitl-bot.md` | Matrix HITL approval bot, decommissioned 2026-09-27 (signed terminal-only approval replaced it) |
 | `docs/components/agent/nats-mcp.md` | Read-only NATS monitoring MCP, retired 2026-11-14 |
 | `docs/components/agent/harlock.md` | Harlock personal agent, decommissioned 2026-08-08 |
-| `docs/components/agent/steward.md` | Config steward agent — proposals, countersign, apply |
-| `docs/components/agent/forge-config-mcp.md` | Root-owned config surface MCP (/etc/forge) |
+| `docs/components/agent/steward.md` | Config steward agent — proposals, countersign, apply; retired (decommissioned 2026-11-13) |
+| `docs/components/agent/forge-config-mcp.md` | Root-owned config surface MCP (/etc/forge), disabled 2026-11-15 |
 | `manifests/` | Sanitized agent manifest examples |
 | `claude-code/` | Claude Code project configs |
 
@@ -274,6 +274,6 @@ Key cross-references:
 | `task-queue-mcp` | DragonflyDB | All agents (cross-agent handoffs) |
 | `task-dispatcher` | task-queue-mcp, scoped-mcp | Platform (headless launches) |
 | `system-ops` | Host OS | sysadmin, developer, writer |
-| `githost-mcp` | Gitea, GitHub | developer, sysadmin, security, research, writer, fleet, harlock, steward |
+| `githost-mcp` | Gitea, GitHub | developer, sysadmin, security, research, writer, fleet, harlock |
 | `searxng-mcp` | SearXNG, Firecrawl, Reranker | All agents |
 | `dockhand-mcp` | Docker socket | sysadmin, fleet (pinned read-only instance) |

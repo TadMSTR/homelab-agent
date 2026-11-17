@@ -442,7 +442,7 @@ deployed manifests, 2026-11-08):
 | `writer` | allowlist (38) | Commits docs directly to `main`. Converted from a denylist in the 0.20.0 deploy, minus the same seven verbs as research. No tag, checkout, release, registry publish, Woodpecker tool, PR/MR tool, clone, worktree, force-push or repo create. Writes are further limited to doc paths by `write_globs` |
 | `fleet` | allowlist (19) | Local git without tag/worktree/force-push, Gitea/GitHub PR create/get/list, `gitea_pr_comment`, `github_issue_write`. No merge, tag, release, or remote-branch delete; write scope is limited by policy to per-host compose repos |
 | `harlock` | — | **Decommissioned 2026-08-08** ([harlock.md](../agent/harlock.md)); its manifest was deleted in the 0.20.0 deploy. It had a denylist stdio launcher, never a PM2 instance. `steward` (below) is a separate, later agent, not a rename |
-| `steward` | allowlist (8) | Read verbs plus `gitea_pr_create`/`gitea_pr_comment` — opens a PR carrying a config diff, never lands one. Parked: its manifest remains, but since 0.21.0 `ecosystem.config.js` defines no steward app |
+| `steward` | allowlist (8) | Read verbs plus `gitea_pr_create`/`gitea_pr_comment` — opens a PR carrying a config diff, never lands one. **Decommissioned 2026-11-13** ([steward.md](../agent/steward.md)): its manifest was removed; since 0.21.0 `ecosystem.config.js` had already defined no steward app |
 
 Desktop-session manifests for developer, research, security, sysadmin and writer also carry
 githost-mcp entries. Since the 0.18.0 deploy they are allowlists, so a new tool reaches no

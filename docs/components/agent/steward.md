@@ -1,8 +1,24 @@
-# steward (forge)
+# steward (retired; decommissioned 2026-11-13)
 
-steward is the sole **proposer** of changes to forge's root-owned agent-config surface —
-the per-agent capability manifests and the central workspace-access policy. It applies
+steward was the sole **proposer** of changes to forge's root-owned agent-config surface —
+the per-agent capability manifests and the central workspace-access policy. It applied
 nothing.
+
+## Retirement
+
+steward was taken out of service in 2026-09, and config changes stopped routing through a
+proposer agent. It was fully decommissioned on 2026-11-13: its capability manifest, its
+`scoped-mcp-steward` tool-broker unit and its forge-config-mcp grant record were removed, its
+read-write deploy key was deleted, and the broker's port is free. Its
+[forge-config-mcp](forge-config-mcp.md) service was disabled on 2026-11-15; whether that
+server is removed or kept is still to be decided. Some leftovers of the dedicated OS identity
+(the system user, a launcher script, a sudoers rule) are still on the host, and their removal
+is tracked in vikunja#1104.
+
+The rest of this doc is kept as a design record. The reasoning (why a config proposer
+should hold its own OS identity, why the applier's invariants must sit out of every
+reviewer's reach) is still the reference for anything that takes this role later. Read it
+in the past tense: none of the processes, units or commands below run any more.
 
 ## Why it exists
 
@@ -99,18 +115,16 @@ than merely asserted.
 
 ## Operations
 
-Restart the tool broker or the config-authoring server independently — they are separate
-systemd units:
+There is nothing to operate. While steward ran, its tool broker and the config-authoring
+server were separate systemd units (`scoped-mcp-steward`, `forge-config-mcp`), restarted
+independently and only by the operator — steward had no restart-my-own-process tool,
+consistent with it holding no shell. The `scoped-mcp-steward` unit file is gone; to confirm
+the other is still off:
 
 ```bash
-systemctl status scoped-mcp-steward
-systemctl status forge-config-mcp
-journalctl -u scoped-mcp-steward -n 50
-journalctl -u forge-config-mcp -n 50
+systemctl is-enabled forge-config-mcp   # disabled
+systemctl is-active forge-config-mcp    # inactive
 ```
-
-steward has no restart-my-own-process tool — restarts are an operator action, consistent
-with it holding no shell.
 
 ## scoped-mcp integration
 
