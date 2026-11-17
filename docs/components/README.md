@@ -129,10 +129,11 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`cloudcli.md`](cicd/cloudcli.md) | Browser Claude Code UI |
 | [`owners-manual.md`](cicd/owners-manual.md) | Auto-generated platform reference (MkDocs site) |
 
-## [`platform/`](platform/) — Monitoring & Doc Health (9)
+## [`platform/`](platform/) — Deploys, Monitoring & Doc Health (11)
 
 | Doc | Service |
 |-----|---------|
+| [`forge-deploy.md`](platform/forge-deploy.md) | Single deploy entry point: refuses unmerged, red-CI, unaudited or unapproved deploys; per-type adapters with rollback |
 | [`doc-health.md`](platform/doc-health.md) | Documentation audit system (weekly full scan + nightly targeted) |
 | [`doc-sync-daily.md`](platform/doc-sync-daily.md) | Daily documentation sync cron |
 | [`disk-space-probe.md`](platform/disk-space-probe.md) | Disk usage monitoring + Matrix alerts |
@@ -142,6 +143,7 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`git-drift-alert.md`](platform/git-drift-alert.md) | Uncommitted git change alerting |
 | [`git-remote-cred-check.md`](platform/git-remote-cred-check.md) | Plaintext credentials in git remote URLs, alerting |
 | [`writer-doc-queue.md`](platform/writer-doc-queue.md) | Daily headless writer session that works approved doc tasks |
+| [`forge-scanners.md`](platform/forge-scanners.md) | osv-scanner offline DB refresh (daily root cron) for the security prescan |
 
 ## [`apps/`](apps/) — Productivity & Self-Hosted Services (8)
 

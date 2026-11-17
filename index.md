@@ -20,7 +20,7 @@ homelab-agent/
 │   │   ├── apps/                # Nextcloud, Vikunja, tools stack, parked Plane (8)
 │   │   ├── mcp-servers/         # system-ops, githost, dockhand, pm2, vikunja (12)
 │   │   ├── cicd/                # Woodpecker, Renovate, PatchMon, CloudCLI (7)
-│   │   └── platform/            # Doc health, disk probes, drift detection (9)
+│   │   └── platform/            # Deploys, doc health, disk probes, drift detection (11)
 │   ├── operations/              # Runbooks and operational procedures
 │   └── diagrams/                # Architecture diagrams
 ├── docker/                      # Docker Compose stacks + .env.example templates
@@ -210,6 +210,7 @@ homelab-agent/
 
 | Doc | Topic |
 |-----|-------|
+| `docs/components/platform/forge-deploy.md` | The single deploy entry point: merged + CI + audit-cleared + approved gate, per-type adapters, rollback |
 | `docs/components/platform/doc-health.md` | Documentation checks: kb-lint (mechanical, daily) + doc-health (weekly LLM judgment) |
 | `docs/components/platform/doc-sync-daily.md` | Daily doc sync cron |
 | `docs/components/platform/disk-space-probe.md` | Disk usage monitoring + alerts |

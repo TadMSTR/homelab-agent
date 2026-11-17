@@ -8,7 +8,7 @@ didn't fit naturally in flat memory notes.
 ## Retirement
 
 Ted shut the stack off 2026-08-04 after it hit the Anthropic API hard enough to lock the API
-billing account. Decommissioned under vikunja#345 (id 364, `graphiti-decommission-2026-08`) in
+billing account. Decommissioned under vikunja#345 (`graphiti-decommission-2026-08`) in
 a 3-phase handoff: sysadmin removed it from scoped-mcp manifests and stopped the affected
 processes (urgent, same day), developer updated the CloudCLI dashboard client, and this doc
 sweep is the writer phase. The `graphiti-ingest` nightly cron and the `memory-sync` freshness

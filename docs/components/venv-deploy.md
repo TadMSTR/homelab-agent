@@ -7,6 +7,12 @@ process restart." `venv-deploy.sh` installs a service into its `/opt/venvs/<name
 a reviewed, immutable ref and proves the result by reading the installed artifact off disk,
 rather than trusting `pip`'s exit code.
 
+> **Deploys go through [forge-deploy](platform/forge-deploy.md) now.** Its `venv-pip` adapter
+> calls this script after checking that the commit is merged, CI is green, the build's audit
+> has cleared and the deploy row was approved, and it adds the rollback point and health probe.
+> A direct `venv-deploy.sh` run skips all of those gates; its read-only modes (`--check`,
+> `--dry-run`, `--list`) are still useful on their own.
+
 ## Usage
 
 ```bash
@@ -195,3 +201,4 @@ List registered services:
 - ADR: `design-records/2026-07-28-venv-install-mode-standardization.md`
 - Build: `venv-install-standardization-2026-07`
 - Script: `host-forge/scripts` → `scripts/venv-deploy.sh`
+- [forge-deploy](platform/forge-deploy.md): the deploy entry point that wraps this script
