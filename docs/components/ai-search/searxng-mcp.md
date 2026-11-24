@@ -6,18 +6,22 @@ cascade, and a domain capability database that learns which fetch tier works for
 the [project README](https://github.com/TadMSTR/searxng-mcp) for the full tool/architecture
 reference; this doc covers forge's deployment of it.
 
-- **Version:** v3.30.1, for all three images from this repo (`searxng-mcp`,
-  `searxng-mcp-adblock-proxy`, `searxng-mcp-reranker`), each digest-pinned in compose —
-  verified in `docker ps` 2026-11-02
+- **Version:** v4.1.0, for all four images from this repo, each digest-pinned in compose —
+  `searxng-mcp`, `searxng-mcp-adblock-proxy` and `searxng-mcp-reranker` in the `searxng` stack,
+  and `searxng-mcp-playwright-adblock` in the Firecrawl stack (container
+  `firecrawl-v2-playwright`, the renderer behind Firecrawl's fetches) — verified in `docker ps`
+  2026-11-23. The four are bumped together, so they always run the same release
 - **Runs as:** Docker container in the `searxng` stack (`~/docker/searxng/docker-compose.yml`),
   co-located with SearXNG itself since a 2026-08-23 stack consolidation. As of the v3.26.0
   cutover the container runs a published, digest-pinned image
-  (`ghcr.io/tadmstr/searxng-mcp:v3.30.1`) rather than a local build off repo main — a supply-chain
+  (`ghcr.io/tadmstr/searxng-mcp:v4.1.0`) rather than a local build off repo main — a supply-chain
   improvement as much as a convenience: the image is now reproducible from a tagged release
   instead of whatever commit happened to be checked out at build time
 - **Endpoint:** `http://127.0.0.1:8504` — bearer-authed
 - **Transport:** streamable-http
-- **Agents:** all agent manifests (developer, sysadmin, security, writer, research, harlock)
+- **Agents:** all agent manifests (developer, fleet, jobsearch, research, security, sysadmin,
+  writer) and the four desktop-client profiles — every client goes through this one container
+  since 2026-11-19
 
 ## What changed 2026-08-19
 
@@ -31,7 +35,50 @@ PM2 process to the container. Zero outage, each step independently verifiable �
 header was harmless against the old unauthenticated PM2 instance for the time both existed.
 
 The PM2 process (`~/scripts/run-searxng-mcp-http.sh`) is **stopped, deleted, and pm2-saved** —
-it no longer exists. There is one instance of this service now, not two.
+it no longer exists. There is one instance of this service now, not two. As of 2026-11-19 the
+launcher scripts themselves are gone too — see [What changed 2026-11](#what-changed-2026-11-v3310--v410).
+
+## What changed 2026-11 (v3.31.0 → v4.1.0)
+
+Five releases in five days, from a backlog programme that worked through searxng-mcp's open
+tickets. The MCP tool surface didn't change in a way any client had to act on. Per release, as it
+affects this deployment (full detail in the
+[project CHANGELOG](https://github.com/TadMSTR/searxng-mcp/blob/main/CHANGELOG.md)):
+
+- **3.31.0 (2026-11-16)** — `crawl_site` stays under the start URL's path (pass
+  `include_path: "/"` for the old whole-site behaviour), `fetch_url` stops answering most
+  github.com pages with the repo README, empty optional arguments count as omitted, zod 4.
+- **3.31.1 (2026-11-17)** — fixes a 3.31.0 regression where the string `"false"` read as `true`
+  for `expand` and `same_domain_only`; `GITHUB_TOKEN` is now sent only to URLs shaped like the
+  GitHub fast path's repository endpoints. (This container sets no `GITHUB_TOKEN`, so the token
+  change is moot here.)
+- **3.32.0 (2026-11-17)** — the silent-failure release: places that reported success while doing
+  nothing. `adblock-proxy` used to install an empty rule set as if it were good and pass all
+  traffic; it now refuses an empty or incomplete load and has a `GET /health` (see
+  [Port / Endpoint](#port--endpoint)). `same_domain_only` now holds on every crawl strategy, not
+  just BFS — this deployment crawls through Firecrawl, so the flag had been doing nothing here.
+  Upstream error text relayed into logs, `domain_stats` and NATS events is bounded and scrubbed of
+  URL credentials.
+- **Stack healthchecks (2026-11-19, no release)** — compose-only change. `searxng`, the reranker
+  and the Firecrawl stack's services gained healthchecks, `firecrawl-v2-api` now waits for its
+  dependencies to be healthy, and searxng-mcp gained `depends_on: searxng-dragonfly:
+  service_healthy`. `playwright-adblock` was brought up to the same release as the other three
+  images. The old PM2-era launcher scripts were retired; desktop clients use the container, with
+  the same bearer header as the agent manifests.
+- **4.0.0 (2026-11-19)** — the dependency-major release (OpenTelemetry SDK, jsdom 31, vitest 5).
+  Breaking only for npm consumers: Node `^22.22.2 || ^24.15.0 || >=26.0.0` is required, and the
+  main and `adblock-proxy` images now run Node 24. The main image finally ships `domains.json`
+  (it had been missing from every container, so the llms.txt fast path never fired); the server
+  logs a `domains: llms_txt=N boost=N block=N profiles=N` line on load. `adblock-proxy` retries
+  a failed startup load (1, 2, 4, 8, 16 minutes, then every `ADBLOCK_RETRY_MAX_MINUTES`, default
+  30) instead of running unfiltered until the weekly refresh.
+- **4.1.0 (2026-11-20)** — observability and usage data. New metrics for crawls, fallbacks
+  (`searxng_degrade_total`) and reranker scores (`searxng_rerank_top_score`);
+  `searxng_errors_total` now counts every tool's failures, not only search's; spans record which
+  fetch tier served a page (`fetch.tier_served`) and whether it was a cache hit. A caller's W3C
+  `traceparent` is accepted after the bearer check — inert here until scoped-mcp sends one
+  (vikunja#1576). The GitHub fast path now says why it failed, and file URLs fall back to the
+  normal cascade. No new environment variables.
 
 ## Port / Endpoint
 
@@ -52,7 +99,24 @@ response carries no secrets:
 It returns **503 when Valkey is unreachable**, so a cache outage marks the container unhealthy
 even though the server itself fails soft (cache miss → serve live, doesn't error). `restart:
 unless-stopped` does not act on container health, so nothing auto-restarts as a result — this
-surprises people, worth knowing before assuming a 503 means the process is down.
+surprises people, worth knowing before assuming a 503 means the process is down. Nothing needs
+to: the cache client is dropped on any error and rebuilt on the next call (including the next
+`/health`), so the container goes healthy again by itself once Valkey is back — confirmed live
+on 2026-11-19 with no restart. Nothing alerts on an unhealthy container yet either
+(vikunja#1564).
+
+Since 2026-11-19 searxng-mcp also has `depends_on: searxng-dragonfly: service_healthy`, so on
+a full stack restart it no longer starts before its cache. Treat that as startup ordering only:
+the dragonfly healthcheck is an unauthenticated `ping`, which passes on a `NOAUTH` reply, so it
+proves the port answers and nothing more.
+
+`adblock-proxy` has its own `GET /health` since v3.32.0, and its image's `HEALTHCHECK` is what's
+in force (the compose file deliberately adds no override). `200` with `status` `ok`, or
+`partial` when the rule set is missing some configured lists (still filtering); `503` with
+`no_filters` when no usable rule set is loaded, or `stale` when refreshes have kept failing.
+Treating `partial` as unhealthy would mark the container down for a whole refresh interval
+after a single list's outage, so alert on the `status` field rather than adding a stricter
+check.
 
 ## Configuration
 
@@ -178,16 +242,18 @@ curl -s -H "Authorization: Bearer $SEARXNG_MCP_TOKEN" http://127.0.0.1:8504/mcp
 
 ### Rollback
 
-`pm2 start searxng-mcp` **no longer works on its own** — the PM2 entry was deleted, not just
-stopped. Recreate it from `~/.claude/comms/artifacts/searxng-mcp-phase3/pm2-searxng-mcp.json`
-(`bash ~/scripts/run-searxng-mcp-http.sh`, fork mode, cwd the operator's home directory), then
-`docker compose -f ~/docker/searxng/docker-compose.yml down`. The manifests' bearer header is
-harmless against the PM2 instance — it has no auth check to reject it with.
+There is **no PM2 rollback any more**. The PM2 entry was deleted at cutover, and on 2026-11-19
+the launcher scripts and the saved PM2 recreate file were removed as well — a PM2 instance
+would also have been unauthenticated, which was the whole problem. Rolling back now means
+restoring the previous digest-pinned image line in `docker-compose.yml` and recreating the
+container. Keep the four images from this repo on the same release when you do.
 
 ## scoped-mcp Integration
 
-All 6 agent manifests carry `Authorization: Bearer ${SEARXNG_MCP_TOKEN}`, resolved from
-`/opt/appdata/agents/<type>/.env`. Tool scoping (e.g. `clear_cache` denylisting) is enforced at
+All 7 agent manifests carry `Authorization: Bearer ${SEARXNG_MCP_TOKEN}`, resolved from
+`/opt/appdata/agents/<type>/.env`. Since 2026-11-19 the four desktop-client profiles use the
+same `mcp_proxy` block to `http://127.0.0.1:8504/mcp`, replacing a stdio launcher that had
+handed the whole host env file and NATS credentials to a child process. Tool scoping (e.g. `clear_cache` denylisting) is enforced at
 the proxy layer, not by searxng-mcp itself — see above.
 
 ## Security Notes
@@ -202,7 +268,8 @@ the standard network-isolation pattern, recorded in `accepted-risks.md`:
 | NE-03 | Accepted | In-container `0.0.0.0` bind — required for container-name DNS resolution; the startup guard makes an unauthenticated non-loopback bind loud rather than silent |
 
 Migration is not yet fully complete — a couple of follow-up phases (cron reconciliation, cleanup)
-remain tracked separately. The chat-UI integration piece of that follow-up has landed since this
+remain tracked separately. Part of the cleanup landed on 2026-11-19, when the PM2-era launcher
+scripts were deleted. The chat-UI integration piece of that follow-up has landed since this
 was written: a chat UI now calls the reranker sidecar directly (see the reranker note above),
 independent of searxng-mcp.
 
@@ -210,6 +277,8 @@ independent of searxng-mcp.
 
 - [project README](https://github.com/TadMSTR/searxng-mcp) — full tool reference, architecture,
   domain capability DB schema
+- [project CHANGELOG](https://github.com/TadMSTR/searxng-mcp/blob/main/CHANGELOG.md) — per-release
+  detail behind the 2026-11 summary above
 - `services.md` (host-forge-knowledge-base) — port registry entry
 - Phase docs (host-forge-knowledge-base): `phases/searxng-mcp-domain-db-writeloss-2026-08.md`,
   `phases/searxng-mcp-containerize-2026-08.md`
