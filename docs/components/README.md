@@ -1,6 +1,6 @@
 # docs/components
 
-Per-service operational reference for the homelab-agent platform. 111 docs covering every service, MCP server, and background job running on forge, organized into 9 categories plus 6 uncategorised top-level docs.
+Per-service operational reference for the homelab-agent platform. 112 docs covering every service, MCP server, and background job running on forge, organized into 9 categories plus 6 uncategorised top-level docs.
 
 Each doc covers: what the service is, where it runs, configuration, dependencies, how to restart/check health/view logs, and scoped-mcp integration where applicable.
 
@@ -129,12 +129,13 @@ Each doc covers: what the service is, where it runs, configuration, dependencies
 | [`cloudcli.md`](cicd/cloudcli.md) | Browser Claude Code UI |
 | [`owners-manual.md`](cicd/owners-manual.md) | Auto-generated platform reference (MkDocs site) |
 
-## [`platform/`](platform/) — Deploys, Monitoring & Doc Health (11)
+## [`platform/`](platform/) — Deploys, Monitoring & Doc Health (12)
 
 | Doc | Service |
 |-----|---------|
 | [`forge-deploy.md`](platform/forge-deploy.md) | Single deploy entry point: refuses unmerged, red-CI, unaudited or unapproved deploys; per-type adapters with rollback |
 | [`doc-health.md`](platform/doc-health.md) | Documentation audit system (weekly full scan + nightly targeted) |
+| [`programme-graph.md`](platform/programme-graph.md) | One graph over every programme ledger, the task queue and the component registry; daily check, digest and the cross-programme gates skills call |
 | [`doc-sync-daily.md`](platform/doc-sync-daily.md) | Daily documentation sync cron |
 | [`disk-space-probe.md`](platform/disk-space-probe.md) | Disk usage monitoring + Matrix alerts |
 | [`snapshot-monitoring.md`](platform/snapshot-monitoring.md) | Btrfs snapshot capacity + bloat monitoring |

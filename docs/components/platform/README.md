@@ -13,6 +13,7 @@ Background jobs that watch for drift, resource exhaustion, and documentation sta
 | [snapshot-monitoring.md](snapshot-monitoring.md) | Btrfs capacity safety net + snapshot-bloat/drift trend + retention pruning | Every 15 min / Nightly |
 | [drift-detector-scan.md](drift-detector-scan.md) | Configuration drift detection | Every 6 hours |
 | [build-unblock-scan.md](build-unblock-scan.md) | Stalled build detection | Every 15 min |
+| [programme-graph.md](programme-graph.md) | Cross-programme dependency graph over every ledger, the queue and the component registry → `graph.md` + research-room digest; skills gate on `--ready` / `--unblocked-by` / `--ticket` | Daily |
 | [git-drift-alert.md](git-drift-alert.md) | Uncommitted git change alerting | Every 6 hours |
 | [git-remote-cred-check.md](git-remote-cred-check.md) | Embedded-credential leak scan on git remotes | Daily |
 | [forge-scanners.md](forge-scanners.md) | osv-scanner offline DB refresh for the security prescan (root system cron, no alert) | Daily |
